@@ -307,7 +307,11 @@ export default function CMSConsole() {
         console.warn("Could not sync with live database:", dbErr);
       }
 
-      alert("successfully uploaded");
+      if (dbError) {
+        alert("Warning: Product saved locally in browser cache, but failed to sync to the live database. Please check if your live database is connected and has the correct tables/columns.");
+      } else {
+        alert("Successfully uploaded and synced to the live database!");
+      }
       setShowDrawer(false);
     } catch (err) {
       console.error("Form submission error:", err);
