@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-function updateDefaults() {
+function updateDefaultsClean() {
   const backupPath = path.join(__dirname, '..', 'backups', 'products_backup_2026-06-25.json');
   const appContextPath = path.join(__dirname, '..', 'src', 'context', 'AppContext.js');
 
@@ -13,8 +13,15 @@ function updateDefaults() {
   const backupData = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
   console.log(`Loaded ${backupData.length} products from backup.`);
 
-  // Map to the format expected by the app context
+  // Map to the format expected by the app context, removing heavy base64 strings
   const cleanProducts = backupData.map(p => {
+    // If the image is base64, replace it with a default local placeholder for the instant load starting state.
+    // The database fetch will load the real images asynchronously.
+    const cleanImage = (p.image && p.image.startsWith('data:')) ? '/saree_kanjivaram.png' : (p.image || '/saree_kanjivaram.png');
+    const cleanImage2 = (p.image2 && p.image2.startsWith('data:')) ? '/saree_kanjivaram.png' : (p.image2 || '/saree_kanjivaram.png');
+    const cleanImage3 = (p.image3 && p.image3.startsWith('data:')) ? '/saree_kanjivaram.png' : (p.image3 || '/saree_kanjivaram.png');
+    const cleanImage4 = (p.image4 && p.image4.startsWith('data:')) ? '/saree_kanjivaram.png' : (p.image4 || '');
+
     return {
       id: p.id,
       name: p.name || '',
@@ -22,9 +29,10 @@ function updateDefaults() {
       color: p.color || '',
       price: Number(p.price || 0),
       originalPrice: Number(p.originalprice || p.originalPrice || 0),
-      image: p.image || '',
-      image2: p.image2 || '',
-      image3: p.image3 || '',
+      image: cleanImage,
+      image2: cleanImage2,
+      image3: cleanImage3,
+      image4: cleanImage4,
       origin: p.origin || '',
       craft: p.craft || '',
       desc: p.desc || '',
@@ -50,7 +58,6 @@ function updateDefaults() {
   const appContextContent = fs.readFileSync(appContextPath, 'utf8');
 
   // Replace defaultProducts array
-  // We locate the start and end of the defaultProducts array in the file
   const startMarker = 'const defaultProducts = [';
   const endMarker = '];\n\nexport function AppProvider';
   
@@ -60,15 +67,12 @@ function updateDefaults() {
     return;
   }
 
-  // Find the closing bracket of the array
-  // We can look for the next '];' followed by 'export function AppProvider' or look for 'export function AppProvider'
   const endMarkerIndex = appContextContent.indexOf('export function AppProvider');
   if (endMarkerIndex === -1) {
     console.error("Could not find AppProvider export in AppContext.js");
     return;
   }
 
-  // Find the last '];' before the AppProvider export
   const searchSlice = appContextContent.substring(startIndex, endMarkerIndex);
   const lastBracketIndex = searchSlice.lastIndexOf('];');
   if (lastBracketIndex === -1) {
@@ -85,7 +89,7 @@ function updateDefaults() {
                          appContextContent.substring(absoluteEndIndex);
 
   fs.writeFileSync(appContextPath, updatedContent, 'utf8');
-  console.log("AppContext.js updated successfully with all 11 default products.");
+  console.log("AppContext.js updated successfully with all 11 clean default products.");
 }
 
-updateDefaults();
+updateDefaultsClean();
