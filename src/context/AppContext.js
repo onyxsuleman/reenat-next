@@ -197,8 +197,9 @@ export function AppProvider({ children }) {
           rating: item.rating || 4.5
         }));
 
-        // Merge fetched data with local-only items (isLocal: true)
-        const existingLocal = Array.isArray(cached) ? cached.filter(p => p.isLocal) : [];
+        // Merge fetched data with local-only items (either marked isLocal or not present in the database)
+        const dbNames = new Set(mappedData.map(p => p.name));
+        const existingLocal = Array.isArray(cached) ? cached.filter(p => p.isLocal || !dbNames.has(p.name)) : [];
         const combined = [...mappedData, ...existingLocal];
         setProducts(combined);
         try {

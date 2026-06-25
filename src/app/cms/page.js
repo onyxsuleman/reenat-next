@@ -212,7 +212,8 @@ export default function CMSConsole() {
       price: Number(formData.price),
       originalPrice: Number(formData.originalPrice),
       weight: Number(formData.weight),
-      rating: editingIndex !== null ? products[editingIndex].rating : 4.5
+      rating: editingIndex !== null ? products[editingIndex].rating : 4.5,
+      isLocal: true
     };
 
     let updatedProducts = [...products];
@@ -257,12 +258,34 @@ export default function CMSConsole() {
         rating: formattedProduct.rating
       };
 
+      let dbError = false;
       if (editingIndex !== null) {
         const { error } = await supabase.from('products').update(dbRow).eq('name', formattedProduct.name);
-        if (error) console.error("Database update error:", error);
+        if (error) {
+          console.error("Database update error:", error);
+          dbError = true;
+        }
       } else {
         const { error } = await supabase.from('products').insert(dbRow);
-        if (error) console.error("Database insert error:", error);
+        if (error) {
+          console.error("Database insert error:", error);
+          dbError = true;
+        }
+      }
+
+      if (!dbError) {
+        // If sync succeeded, remove the isLocal flag from state and localStorage
+        const syncedProduct = { ...formattedProduct };
+        delete syncedProduct.isLocal;
+        
+        const finalProducts = [...products];
+        if (editingIndex !== null) {
+          finalProducts[editingIndex] = syncedProduct;
+        } else {
+          finalProducts.push(syncedProduct);
+        }
+        setProducts(finalProducts);
+        localStorage.setItem('products', JSON.stringify(finalProducts));
       }
     } catch (dbErr) {
       console.warn("Could not sync with live database:", dbErr);
