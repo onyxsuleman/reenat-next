@@ -268,7 +268,7 @@ export default function CMSConsole() {
       console.warn("Could not sync with live database:", dbErr);
     }
 
-    showToast(editingIndex !== null ? 'Product details updated!' : 'Saree added to catalog!', 'success');
+    alert("successfully uploaded");
     setShowDrawer(false);
   };
 

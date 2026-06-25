@@ -213,7 +213,7 @@ function ProductDetailsContent() {
               <div className="flex items-center gap-3">
                 <span className="bg-[#d9a05b] text-white text-[9px] font-bold tracking-wider px-2 py-0.5 rounded-md uppercase">OFFER</span>
                 <div className="flex flex-col">
-                  <span class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Get this as low as</span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Get this as low as</span>
                   <span className="text-sm font-bold text-slate-800 dark:text-white mt-0.5">₹{onlinePrice.toLocaleString('en-IN')}</span>
                 </div>
               </div>
@@ -356,7 +356,7 @@ function ProductDetailsContent() {
       </div>
 
       {/* Sticky Mobile Actions */}
-      <div className="mobile-sticky-bar fixed bottom-0 left-0 right-0 h-16 border-t items-center justify-between px-4 z-40 md:hidden shadow-[0_-4px_12px_rgba(0,0,0,0.05)] bg-white dark:bg-[#0c1e44]">
+      <div className="mobile-sticky-bar fixed bottom-0 left-0 right-0 h-16 border-t flex items-center justify-between px-4 z-40 md:hidden shadow-[0_-4px_12px_rgba(0,0,0,0.05)] bg-white dark:bg-[#0c1e44]">
         <button 
           onClick={() => addToCart(product)}
           className="mobile-sticky-btn-secondary w-[48%] h-11 font-bold rounded-xl text-xs shadow-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#0f1f41]"
