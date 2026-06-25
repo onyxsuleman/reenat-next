@@ -239,6 +239,7 @@ export default function CMSConsole() {
       }
       
       // Save/update in Supabase as well
+      let dbError = false;
       try {
         const dbRow = {
           name: formattedProduct.name,
@@ -270,7 +271,6 @@ export default function CMSConsole() {
           rating: formattedProduct.rating
         };
 
-        let dbError = false;
         if (editingIndex !== null) {
           const { error } = await supabase.from('products').update(dbRow).eq('name', formattedProduct.name);
           if (error) {
