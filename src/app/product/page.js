@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useApp } from '../../context/AppContext';
 import ProductCard from '../../components/ProductCard';
 
@@ -103,11 +104,14 @@ function ProductDetailsContent() {
             onMouseLeave={handleMouseLeave}
             className="relative overflow-hidden aspect-[3/4] md:aspect-square bg-slate-100 dark:bg-black/20 md:rounded-3xl border border-black/5 dark:border-white/10 shadow-sm md:shadow-md cursor-zoom-in group select-none"
           >
-            <img 
+            <Image 
               ref={zoomImageRef}
               src={activeImageSrc} 
               alt={product.name} 
-              className="w-full h-full object-cover rounded-none md:rounded-2xl transition-transform duration-250 ease-out origin-center" 
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
+              className="object-cover rounded-none md:rounded-2xl transition-transform duration-250 ease-out origin-center"
+              priority
             />
             {/* Dots on mobile */}
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20 md:hidden bg-black/35 px-2.5 py-1 rounded-full">
@@ -142,7 +146,15 @@ function ProductDetailsContent() {
                       : 'border-black/10 dark:border-white/10 opacity-70 hover:opacity-100'
                   }`}
                 >
-                  <img src={img} className="w-full h-full object-cover" alt={`View ${idx + 1}`} />
+                  <div className="relative w-full h-full">
+                    <Image 
+                      src={img} 
+                      alt={`View ${idx + 1}`} 
+                      fill
+                      sizes="80px"
+                      className="object-cover"
+                    />
+                  </div>
                 </button>
               ))}
             </div>

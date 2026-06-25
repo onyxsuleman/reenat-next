@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useApp } from '../context/AppContext';
 
 export default function ProductCard({ product }) {
@@ -18,17 +19,11 @@ export default function ProductCard({ product }) {
   const handleShare = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    const productUrl = `${window.location.origin}/product?id=${product.id}`;
-    let imgPart = '';
-    if (product.image) {
-      if (product.image.startsWith('data:')) {
-        imgPart = '';
-      } else if (product.image.startsWith('http')) {
-        imgPart = `\n\nHigh-Res Image: ${product.image}`;
-      } else {
-        imgPart = `\n\nHigh-Res Image: ${window.location.origin}${product.image}`;
-      }
+    let productUrl = `https://reenat.vercel.app/product?id=${product.id}`;
+    if (typeof window !== 'undefined') {
+      productUrl = `${window.location.origin}/product?id=${product.id}`;
     }
+    const imgPart = product.image ? `&img=${encodeURIComponent(product.image)}` : '';
     const shareText = `Hey! What do you think of this gorgeous handloom saree? Check it out on Reenat Trends: ${product.name} (${product.craft} from ${product.origin}) for ₹${product.price.toLocaleString('en-IN')}.\n\nView details: ${productUrl}${imgPart}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
   };
@@ -37,12 +32,14 @@ export default function ProductCard({ product }) {
     <li className="group product-card col-span-1 flex flex-col rounded-3xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 backdrop-blur-md">
       {/* Image Container */}
       <div className="relative overflow-hidden aspect-[3/4] bg-[#0c1e44]/5 dark:bg-black/20 p-2">
-        <Link href={`/product?id=${product.id}`}>
-          <img 
+        <Link href={`/product?id=${product.id}`} className="relative block w-full h-full">
+          <Image 
             src={product.image} 
             alt={product.name} 
-            className="w-full h-full object-cover rounded-2xl transition-transform duration-500 group-hover:scale-105" 
-            loading="lazy" 
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+            className="object-cover rounded-2xl transition-transform duration-500 group-hover:scale-105"
+            priority={product.id <= 4}
           />
         </Link>
         {/* Badge */}
