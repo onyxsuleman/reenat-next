@@ -232,7 +232,11 @@ export default function CMSConsole() {
       }
 
       setProducts(updatedProducts);
-      localStorage.setItem('products', JSON.stringify(updatedProducts));
+      try {
+        localStorage.setItem('products', JSON.stringify(updatedProducts));
+      } catch (storageError) {
+        console.warn("Could not save products cache to localStorage due to quota limits:", storageError);
+      }
       
       // Save/update in Supabase as well
       try {
@@ -293,7 +297,11 @@ export default function CMSConsole() {
             finalProducts.push(syncedProduct);
           }
           setProducts(finalProducts);
-          localStorage.setItem('products', JSON.stringify(finalProducts));
+          try {
+            localStorage.setItem('products', JSON.stringify(finalProducts));
+          } catch (storageError) {
+            console.warn("Could not save products cache to localStorage due to quota limits:", storageError);
+          }
         }
       } catch (dbErr) {
         console.warn("Could not sync with live database:", dbErr);
@@ -312,7 +320,11 @@ export default function CMSConsole() {
       const itemToDelete = products[index];
       const updated = products.filter((_, i) => i !== index);
       setProducts(updated);
-      localStorage.setItem('products', JSON.stringify(updated));
+      try {
+        localStorage.setItem('products', JSON.stringify(updated));
+      } catch (storageError) {
+        console.warn("Could not save products cache to localStorage due to quota limits:", storageError);
+      }
 
       try {
         await supabase.from('products').delete().eq('name', itemToDelete.name);
