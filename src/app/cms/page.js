@@ -10,6 +10,7 @@ export default function CMSConsole() {
   const [passcode, setPasscode] = useState('');
   
   // Form Drawer Overlay state
+  // Trigger fresh Vercel build
   const [showDrawer, setShowDrawer] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null); // null means adding new
 
