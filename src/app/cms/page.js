@@ -206,93 +206,98 @@ export default function CMSConsole() {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    const formattedProduct = {
-      ...formData,
-      id: editingIndex !== null ? products[editingIndex].id : Date.now(),
-      price: Number(formData.price),
-      originalPrice: Number(formData.originalPrice),
-      weight: Number(formData.weight),
-      rating: editingIndex !== null ? products[editingIndex].rating : 4.5,
-      isLocal: true
-    };
-
-    let updatedProducts = [...products];
-
-    if (editingIndex !== null) {
-      updatedProducts[editingIndex] = formattedProduct;
-    } else {
-      updatedProducts.push(formattedProduct);
-    }
-
-    setProducts(updatedProducts);
-    localStorage.setItem('products', JSON.stringify(updatedProducts));
-    
-    // Save/update in Supabase as well
     try {
-      const dbRow = {
-        name: formattedProduct.name,
-        price: formattedProduct.price,
-        originalprice: formattedProduct.originalPrice,
-        type: formattedProduct.type,
-        origin: formattedProduct.origin,
-        desc: formattedProduct.desc,
-        gst: formattedProduct.gst,
-        hsn: formattedProduct.hsn,
-        weight: formattedProduct.weight,
-        styleid: formattedProduct.styleId,
-        blouselen: formattedProduct.blouseLen,
-        sareelen: formattedProduct.sareeLen,
-        blousetype: formattedProduct.blouseType,
-        blousecolor: formattedProduct.blouseColor,
-        color: formattedProduct.color,
-        transparency: formattedProduct.transparency,
-        qty: formattedProduct.qty,
-        fabric: formattedProduct.fabric,
-        border: formattedProduct.border,
-        occasion: formattedProduct.occasion,
-        loom: formattedProduct.loom,
-        brand: formattedProduct.brand,
-        image: formattedProduct.image,
-        image2: formattedProduct.image2,
-        image3: formattedProduct.image3,
-        rating: formattedProduct.rating
+      const formattedProduct = {
+        ...formData,
+        id: editingIndex !== null ? products[editingIndex].id : Date.now(),
+        price: Number(formData.price),
+        originalPrice: Number(formData.originalPrice),
+        weight: Number(formData.weight),
+        rating: editingIndex !== null ? products[editingIndex].rating : 4.5,
+        isLocal: true
       };
 
-      let dbError = false;
+      let updatedProducts = [...products];
+
       if (editingIndex !== null) {
-        const { error } = await supabase.from('products').update(dbRow).eq('name', formattedProduct.name);
-        if (error) {
-          console.error("Database update error:", error);
-          dbError = true;
-        }
+        updatedProducts[editingIndex] = formattedProduct;
       } else {
-        const { error } = await supabase.from('products').insert(dbRow);
-        if (error) {
-          console.error("Database insert error:", error);
-          dbError = true;
-        }
+        updatedProducts.push(formattedProduct);
       }
 
-      if (!dbError) {
-        // If sync succeeded, remove the isLocal flag from state and localStorage
-        const syncedProduct = { ...formattedProduct };
-        delete syncedProduct.isLocal;
-        
-        const finalProducts = [...products];
+      setProducts(updatedProducts);
+      localStorage.setItem('products', JSON.stringify(updatedProducts));
+      
+      // Save/update in Supabase as well
+      try {
+        const dbRow = {
+          name: formattedProduct.name,
+          price: formattedProduct.price,
+          originalprice: formattedProduct.originalPrice,
+          type: formattedProduct.type,
+          origin: formattedProduct.origin,
+          desc: formattedProduct.desc,
+          gst: formattedProduct.gst,
+          hsn: formattedProduct.hsn,
+          weight: formattedProduct.weight,
+          styleid: formattedProduct.styleId,
+          blouselen: formattedProduct.blouseLen,
+          sareelen: formattedProduct.sareeLen,
+          blousetype: formattedProduct.blouseType,
+          blousecolor: formattedProduct.blouseColor,
+          color: formattedProduct.color,
+          transparency: formattedProduct.transparency,
+          qty: formattedProduct.qty,
+          fabric: formattedProduct.fabric,
+          border: formattedProduct.border,
+          occasion: formattedProduct.occasion,
+          loom: formattedProduct.loom,
+          brand: formattedProduct.brand,
+          image: formattedProduct.image,
+          image2: formattedProduct.image2,
+          image3: formattedProduct.image3,
+          rating: formattedProduct.rating
+        };
+
+        let dbError = false;
         if (editingIndex !== null) {
-          finalProducts[editingIndex] = syncedProduct;
+          const { error } = await supabase.from('products').update(dbRow).eq('name', formattedProduct.name);
+          if (error) {
+            console.error("Database update error:", error);
+            dbError = true;
+          }
         } else {
-          finalProducts.push(syncedProduct);
+          const { error } = await supabase.from('products').insert(dbRow);
+          if (error) {
+            console.error("Database insert error:", error);
+            dbError = true;
+          }
         }
-        setProducts(finalProducts);
-        localStorage.setItem('products', JSON.stringify(finalProducts));
-      }
-    } catch (dbErr) {
-      console.warn("Could not sync with live database:", dbErr);
-    }
 
-    alert("successfully uploaded");
-    setShowDrawer(false);
+        if (!dbError) {
+          // If sync succeeded, remove the isLocal flag from state and localStorage
+          const syncedProduct = { ...formattedProduct };
+          delete syncedProduct.isLocal;
+          
+          const finalProducts = [...products];
+          if (editingIndex !== null) {
+            finalProducts[editingIndex] = syncedProduct;
+          } else {
+            finalProducts.push(syncedProduct);
+          }
+          setProducts(finalProducts);
+          localStorage.setItem('products', JSON.stringify(finalProducts));
+        }
+      } catch (dbErr) {
+        console.warn("Could not sync with live database:", dbErr);
+      }
+
+      alert("successfully uploaded");
+      setShowDrawer(false);
+    } catch (err) {
+      console.error("Form submission error:", err);
+      alert("Error: " + err.message);
+    }
   };
 
   const deleteSaree = async (index) => {
