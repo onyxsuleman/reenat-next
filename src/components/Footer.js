@@ -10,7 +10,6 @@ export default function Footer() {
         <Link href="/" className="hover:text-[#F1BF0A] transition-colors">Home</Link>
         <Link href="/about" className="hover:text-[#F1BF0A] transition-colors">About</Link>
         <Link href="/new-arrivals" className="hover:text-[#F1BF0A] transition-colors">Collection</Link>
-        <Link href="/stores" className="hover:text-[#F1BF0A] transition-colors">Stores</Link>
       </nav>
 
       <div className="mt-10 border-t border-white/30 pt-4 md:flex md:items-center md:justify-between">
