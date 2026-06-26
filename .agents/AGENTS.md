@@ -41,3 +41,39 @@ All future agents must design and implement features to match the standards of t
 
 4. **Zero-Tolerance Error Checking**:
    - Every feature must be checked for hydration warnings, local storage quota issues, and browser compatibility.
+
+---
+
+## Planned Feature: Pinned Products / Featured Listings
+
+> ⚠️ **Status: PLANNED BUT NOT YET IMPLEMENTED** — User confirmed intent to execute. Waiting for remaining questions to be clarified before starting.
+
+### Concept
+The homepage product grid will be split into two distinct sections:
+1. **Top 9 "Pinned" products** — always load instantly (hardcoded defaults on first visit, localStorage cache on return visits)
+2. **Custom CMS listings** — appear below the pinned 9, loaded asynchronously from Supabase
+
+### Architecture
+- A `pinned_products` table in Supabase stores which products are "featured" + their display `pin_order` (1–9).
+- The CMS panel (`/cms`) will get a new **"⭐ Featured Listings"** section where the admin can pick and reorder the pinned 9 without touching code.
+- On **first visit**: the hardcoded `defaultProducts` array in `AppContext.js` renders instantly, then gets swapped/updated once Supabase responds with the pinned selection.
+- On **return visits**: `localStorage` cache of pinned products provides instant load, silently refreshed in background.
+- Custom Supabase listings always appear **below** the pinned 9, loaded async.
+
+### Critical Architecture Insight (do not contradict this)
+- `localStorage` caching ONLY benefits **returning visitors**, NOT first-timers.
+- For **first-time visitors**, ONLY hardcoded `defaultProducts` in `AppContext.js` provide instant rendering.
+- This is why the hardcoded fallback must remain AND be expanded to 9 items.
+- The hardcoded defaults act as the "skeleton" that is immediately visible, then replaced by the CMS-controlled pinned selection once DB responds.
+
+### Supabase Status
+- ✅ **Connected and verified working** (tested via direct query in this session).
+- URL: `https://eilxtuedgtimrxfvqojv.supabase.co`
+- `products` table exists and returns data correctly.
+- A new `pinned_products` table will need to be created as part of this feature.
+
+### Files That Will Need Changes
+- `src/context/AppContext.js` — expand `defaultProducts` to 9 items, add `pinnedProducts` state and fetch logic
+- `src/app/page.js` — split product grid into pinned section + custom section
+- `src/app/cms/page.js` — add "⭐ Featured Listings" management panel
+- Supabase — add `pinned_products` table schema

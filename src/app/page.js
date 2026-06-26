@@ -203,10 +203,10 @@ export default function Home() {
 
 
       {/* Trust Badges Row */}
-      <div className="w-full max-w-5xl mx-auto grid grid-cols-2 sm:grid-cols-5 gap-4 py-8 border-y border-slate-200 dark:border-white/10 text-center">
-        <div className="flex flex-col items-center p-2">
-          <div className="size-12 rounded-full bg-amber-500/10 dark:bg-amber-500/5 text-amber-500 dark:text-[#F1BF0A] flex items-center justify-center mb-3">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-6">
+      <div className="w-full max-w-5xl mx-auto grid grid-cols-5 gap-1 sm:gap-4 py-6 border-y border-slate-200 dark:border-white/10 text-center">
+        <div className="flex flex-col items-center p-1">
+          <div className="size-10 sm:size-12 rounded-full bg-amber-500/10 dark:bg-amber-500/5 text-amber-500 dark:text-[#F1BF0A] flex items-center justify-center mb-2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-5 sm:size-6">
               <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h1" />
               <path d="M15 18H9" />
               <path d="M19 18h2a1 1 0 0 0 1-1v-5.65a1 1 0 0 0-.293-.707l-2.6-2.6A1 1 0 0 0 18.4 8H15" />
@@ -214,35 +214,35 @@ export default function Home() {
               <circle cx="18.5" cy="18.5" r="2.5" />
             </svg>
           </div>
-          <span className="font-semibold text-slate-800 dark:text-slate-100 text-sm">Free Shipping</span>
-          <span className="text-slate-500 dark:text-slate-400 text-xs mt-1">Across all of India</span>
+          <span className="font-semibold text-slate-800 dark:text-slate-100 text-[10px] sm:text-sm leading-tight">Free Shipping</span>
+          <span className="text-slate-500 dark:text-slate-400 text-[8px] sm:text-xs mt-0.5 leading-tight">Across India</span>
         </div>
 
-        <div className="flex flex-col items-center p-2">
-          <div className="size-12 rounded-full bg-amber-500/10 dark:bg-amber-500/5 text-amber-500 dark:text-[#F1BF0A] flex items-center justify-center mb-3">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-6">
+        <div className="flex flex-col items-center p-1">
+          <div className="size-10 sm:size-12 rounded-full bg-amber-500/10 dark:bg-amber-500/5 text-amber-500 dark:text-[#F1BF0A] flex items-center justify-center mb-2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-5 sm:size-6">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
               <path d="m9 11 2 2 4-4" />
             </svg>
           </div>
-          <span className="font-semibold text-slate-800 dark:text-slate-100 text-sm">Assured Quality</span>
-          <span className="text-slate-500 dark:text-slate-400 text-xs mt-1">Handloom certified</span>
+          <span className="font-semibold text-slate-800 dark:text-slate-100 text-[10px] sm:text-sm leading-tight">Assured Quality</span>
+          <span className="text-slate-500 dark:text-slate-400 text-[8px] sm:text-xs mt-0.5 leading-tight">Handloom cert.</span>
         </div>
 
-        <div className="flex flex-col items-center p-2">
-          <div className="size-12 rounded-full bg-amber-500/10 dark:bg-amber-500/5 text-amber-500 dark:text-[#F1BF0A] flex items-center justify-center mb-3">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-6">
+        <div className="flex flex-col items-center p-1">
+          <div className="size-10 sm:size-12 rounded-full bg-amber-500/10 dark:bg-amber-500/5 text-amber-500 dark:text-[#F1BF0A] flex items-center justify-center mb-2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-5 sm:size-6">
               <rect x="2" y="5" width="20" height="14" rx="2" />
               <line x1="2" y1="10" x2="22" y2="10" />
             </svg>
           </div>
-          <span className="font-semibold text-slate-800 dark:text-slate-100 text-sm">Secure Payment</span>
-          <span className="text-slate-500 dark:text-slate-400 text-xs mt-1">UPI & Credit Cards</span>
+          <span className="font-semibold text-slate-800 dark:text-slate-100 text-[10px] sm:text-sm leading-tight">Secure Payment</span>
+          <span className="text-slate-500 dark:text-slate-400 text-[8px] sm:text-xs mt-0.5 leading-tight">UPI & Cards</span>
         </div>
 
-        <div className="flex flex-col items-center p-2 col-span-1">
-          <div className="size-12 rounded-full bg-amber-500/10 dark:bg-amber-500/5 text-amber-500 dark:text-[#F1BF0A] flex items-center justify-center mb-3">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-6">
+        <div className="flex flex-col items-center p-1">
+          <div className="size-10 sm:size-12 rounded-full bg-amber-500/10 dark:bg-amber-500/5 text-amber-500 dark:text-[#F1BF0A] flex items-center justify-center mb-2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-5 sm:size-6">
               <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
               <polyline points="7.5 4.21 12 6.81 16.5 4.21" />
               <polyline points="7.5 19.79 7.5 14.6 3 12" />
@@ -250,18 +250,18 @@ export default function Home() {
               <polyline points="12 22 12 14.6" />
             </svg>
           </div>
-          <span className="font-semibold text-slate-800 dark:text-slate-100 text-sm">100% Protection</span>
-          <span className="text-slate-500 dark:text-slate-400 text-xs mt-1">Easy returns policy</span>
+          <span className="font-semibold text-slate-800 dark:text-slate-100 text-[10px] sm:text-sm leading-tight">100% Protection</span>
+          <span className="text-slate-500 dark:text-slate-400 text-[8px] sm:text-xs mt-0.5 leading-tight">Easy returns</span>
         </div>
 
-        <div className="flex flex-col items-center p-2 col-span-2 sm:col-span-1">
-          <div className="size-12 rounded-full bg-amber-500/10 dark:bg-amber-500/5 text-amber-500 dark:text-[#F1BF0A] flex items-center justify-center mb-3">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-6">
+        <div className="flex flex-col items-center p-1">
+          <div className="size-10 sm:size-12 rounded-full bg-amber-500/10 dark:bg-amber-500/5 text-amber-500 dark:text-[#F1BF0A] flex items-center justify-center mb-2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-5 sm:size-6">
               <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
             </svg>
           </div>
-          <span className="font-semibold text-slate-800 dark:text-slate-100 text-sm">Best Price Promise</span>
-          <span className="text-slate-500 dark:text-slate-400 text-xs mt-1">Direct from artisans</span>
+          <span className="font-semibold text-slate-800 dark:text-slate-100 text-[10px] sm:text-sm leading-tight">Price Promise</span>
+          <span className="text-slate-500 dark:text-slate-400 text-[8px] sm:text-xs mt-0.5 leading-tight">Direct source</span>
         </div>
       </div>
 
