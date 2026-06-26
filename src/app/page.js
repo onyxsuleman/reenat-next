@@ -151,7 +151,7 @@ export default function Home() {
           id="hero-image" 
           src={activeSlide.image} 
           alt={activeSlide.title} 
-          className={`block object-contain h-[95vw] max-h-[420px] md:h-[56vw] md:max-h-135 absolute bottom-6 left-[85%] -translate-x-1/2 md:left-1/2 md:-translate-x-1/2 z-1 select-none pointer-events-none animate-float carousel-image-transition ${fadeText ? 'carousel-image-hidden' : ''}`}
+          className={`block object-contain h-[95vw] max-h-[420px] md:h-[56vw] md:max-h-135 absolute bottom-6 left-1/2 -translate-x-1/2 z-1 select-none pointer-events-none animate-float carousel-image-transition ${fadeText ? 'carousel-image-hidden' : ''}`}
           style={{ filter: "drop-shadow(5px 5px 10px rgba(0, 0, 0, 0.4))" }}
         />
       </header>
