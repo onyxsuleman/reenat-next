@@ -185,10 +185,7 @@ function ProductDetailsContent() {
           </div>
 
           {/* Thumbnails strip */}
-          <div className="mobile-card md:bg-transparent md:border-0 md:p-0">
-            <span className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2.5 md:hidden">
-              Gallery Views
-            </span>
+          <div className="hidden md:block md:bg-transparent md:border-0 md:p-0">
             <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
               {galleryImages.map((img, idx) => (
                 <button 
