@@ -16,6 +16,7 @@ function ProductDetailsContent() {
   const [showExtendedInfo, setShowExtendedInfo] = useState(false);
   const zoomContainerRef = useRef(null);
   const zoomImageRef = useRef(null);
+  const mobileCarouselRef = useRef(null);
 
   const productId = searchParams.get('id');
 
@@ -25,9 +26,36 @@ function ProductDetailsContent() {
       if (found) {
         setProduct(found);
         setActiveImageIndex(0);
+        if (mobileCarouselRef.current) {
+          mobileCarouselRef.current.scrollLeft = 0;
+        }
       }
     }
   }, [products, productId]);
+
+  const handleMobileScroll = (e) => {
+    const container = e.currentTarget;
+    const scrollLeft = container.scrollLeft;
+    const width = container.clientWidth;
+    if (width > 0) {
+      const index = Math.round(scrollLeft / width);
+      if (index >= 0 && index < galleryImages.length && index !== activeImageIndex) {
+        setActiveImageIndex(index);
+      }
+    }
+  };
+
+  const handleImageChange = (idx) => {
+    setActiveImageIndex(idx);
+    const container = mobileCarouselRef.current;
+    if (container) {
+      const width = container.clientWidth;
+      container.scrollTo({
+        left: idx * width,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   if (!product) {
     return (
@@ -83,6 +111,10 @@ function ProductDetailsContent() {
     .filter(p => String(p.id) !== String(product.id))
     .slice(0, 3);
 
+  // Get color variants (matching weave type or similar prefix)
+  const colorVariants = products.filter(p => p.type === product.type);
+  const displayVariants = colorVariants.length > 1 ? colorVariants : products.slice(0, 6);
+
   return (
     <div className="space-y-6">
       {/* Breadcrumbs */}
@@ -98,34 +130,56 @@ function ProductDetailsContent() {
       <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12 items-start">
         {/* Left Column: Image and Thumbnails */}
         <div className="col-span-1 md:col-span-6 space-y-4 md:space-y-6">
+          {/* Mobile Image Carousel */}
+          <div className="md:hidden relative aspect-[3/4] overflow-hidden select-none bg-slate-100 dark:bg-black/20 border border-black/5 dark:border-white/10 shadow-sm">
+            <div 
+              ref={mobileCarouselRef}
+              className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none w-full h-full"
+              onScroll={handleMobileScroll}
+            >
+              {galleryImages.map((img, idx) => (
+                <div key={idx} className="w-full h-full shrink-0 snap-center relative">
+                  <Image 
+                    src={img} 
+                    alt={`${product.name} - View ${idx + 1}`} 
+                    fill
+                    sizes="100vw"
+                    className="object-cover"
+                    priority={idx === 0}
+                  />
+                </div>
+              ))}
+            </div>
+            
+            {/* Flipkart-style progress line indicator at bottom center */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-24 h-1 bg-black/25 rounded-full overflow-hidden z-20">
+              <div 
+                className="h-full bg-slate-800 dark:bg-[#F1BF0A] rounded-full transition-all duration-150"
+                style={{ 
+                  width: `${100 / galleryImages.length}%`, 
+                  transform: `translateX(${activeImageIndex * 100}%)` 
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Desktop Hover-to-Zoom Main Image */}
           <div 
             ref={zoomContainerRef}
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
-            className="relative overflow-hidden aspect-[3/4] md:aspect-square bg-slate-100 dark:bg-black/20 md:rounded-3xl border border-black/5 dark:border-white/10 shadow-sm md:shadow-md cursor-zoom-in group select-none"
+            className="hidden md:block relative overflow-hidden aspect-square bg-slate-100 dark:bg-black/20 md:rounded-3xl border border-black/5 dark:border-white/10 shadow-md cursor-zoom-in group select-none"
           >
             <Image 
               ref={zoomImageRef}
               src={activeImageSrc} 
               alt={product.name} 
               fill
-              sizes="(max-width: 768px) 100vw, 50vw"
-              className="object-cover rounded-none md:rounded-2xl transition-transform duration-250 ease-out origin-center"
+              sizes="50vw"
+              className="object-cover rounded-2xl transition-transform duration-250 ease-out origin-center"
               priority
             />
-            {/* Dots on mobile */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20 md:hidden bg-black/35 px-2.5 py-1 rounded-full">
-              {galleryImages.map((_, idx) => (
-                <span 
-                  key={idx}
-                  className={`rounded-full transition-all duration-300 ${
-                    idx === activeImageIndex ? 'w-3 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/50'
-                  }`}
-                />
-              ))}
-            </div>
-            
-            <div className="hidden md:block absolute bottom-4 right-4 bg-black/60 backdrop-blur-md text-white text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded-full pointer-events-none opacity-80 group-hover:opacity-0 transition-opacity">
+            <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md text-white text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded-full pointer-events-none opacity-80 group-hover:opacity-0 transition-opacity">
               Hover to Zoom
             </div>
           </div>
@@ -139,7 +193,7 @@ function ProductDetailsContent() {
               {galleryImages.map((img, idx) => (
                 <button 
                   key={idx}
-                  onClick={() => setActiveImageIndex(idx)}
+                  onClick={() => handleImageChange(idx)}
                   className={`thumbnail-btn flex-shrink-0 size-16 md:size-20 rounded-xl overflow-hidden bg-white/40 dark:bg-black/10 focus:outline-none cursor-pointer transition-all border-2 ${
                     idx === activeImageIndex 
                       ? 'border-[#183fad] dark:border-[#F1BF0A]' 
@@ -235,6 +289,45 @@ function ProductDetailsContent() {
                 </span>
               </div>
             </div>
+
+            {/* Color Variant Selector */}
+            {displayVariants.length > 0 && (
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800/60 mt-3.5">
+                <span className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2.5">
+                  Selected Color: <span className="text-slate-800 dark:text-white font-semibold">{product.color || 'Classic Gold'}</span>
+                </span>
+                
+                <div className="relative">
+                  <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-none snap-x snap-mandatory">
+                    {displayVariants.map((variant) => {
+                      const isSelected = String(variant.id) === String(product.id);
+                      return (
+                        <Link
+                          key={variant.id}
+                          href={`/product?id=${variant.id}`}
+                          className={`flex-shrink-0 w-16 h-20 rounded-xl overflow-hidden bg-white dark:bg-slate-900 border-2 transition-all cursor-pointer relative group snap-start ${
+                            isSelected 
+                              ? 'border-slate-900 dark:border-[#F1BF0A] scale-102 shadow-sm' 
+                              : 'border-slate-200 dark:border-slate-850 opacity-75 hover:opacity-100'
+                          }`}
+                        >
+                          <Image 
+                            src={variant.image} 
+                            alt={variant.name} 
+                            fill
+                            sizes="64px"
+                            className="object-cover"
+                          />
+                          {isSelected && (
+                            <div className="absolute inset-0 bg-slate-900/10 dark:bg-amber-500/5 pointer-events-none" />
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Value Propositions */}
