@@ -375,7 +375,7 @@ body > header > div.w-full.flex.justify-center.overflow-hidden.py-4.sm\:py-6.sel
     gap: 8px !important;
   }
   footer {
-    padding-bottom: 84px !important;
+    padding-bottom: 100px !important;
   }
 }
 
@@ -475,3 +475,174 @@ html:not(.dark) footer div.border-t {
 .animate-hover-lift:hover {
   transform: translateY(-2px);
 }
+
+/* ==========================================
+   Floating Bottom Navigation — iPhone Glassy
+   ========================================== */
+.floating-nav-bar {
+  background: rgba(255, 255, 255, 0.72);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 
+    0 4px 30px rgba(0, 0, 0, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.dark .floating-nav-bar {
+  background: rgba(12, 18, 38, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 4px 30px rgba(0, 0, 0, 0.35),
+    0 1px 3px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.floating-nav-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 12px;
+  border-radius: 16px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  text-decoration: none !important;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+}
+
+.floating-nav-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  transform: translateY(-1px);
+}
+
+.floating-nav-btn:active {
+  transform: scale(0.92);
+}
+
+.dark .floating-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.floating-nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  color: #334155;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.floating-nav-btn:hover .floating-nav-icon {
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+  transform: scale(1.08);
+}
+
+.dark .floating-nav-icon {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  color: #e2e8f0;
+}
+
+.dark .floating-nav-btn:hover .floating-nav-icon {
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+}
+
+.floating-nav-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: #475569;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.dark .floating-nav-label {
+  color: #94a3b8;
+}
+
+/* Filter button — accent style */
+.floating-nav-filter-btn {
+  flex-direction: row !important;
+  gap: 6px !important;
+  padding: 8px 16px !important;
+  border-radius: 20px !important;
+  background: linear-gradient(135deg, #183fad, #1e50d4);
+  color: white !important;
+}
+
+.floating-nav-filter-btn:hover {
+  background: linear-gradient(135deg, #1535a0, #183fad) !important;
+  box-shadow: 0 4px 16px rgba(24, 63, 173, 0.35);
+}
+
+.dark .floating-nav-filter-btn {
+  background: linear-gradient(135deg, #F1BF0A, #d9a200);
+  color: #0f172a !important;
+}
+
+.dark .floating-nav-filter-btn:hover {
+  background: linear-gradient(135deg, #d9a200, #c89000) !important;
+  box-shadow: 0 4px 16px rgba(241, 191, 10, 0.35) !important;
+}
+
+.floating-nav-icon-filter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.dark .floating-nav-icon-filter {
+  color: #0f172a;
+}
+
+.floating-nav-label-filter {
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 0.03em;
+}
+
+.dark .floating-nav-label-filter {
+  color: #0f172a;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 639px) {
+  .floating-nav-btn {
+    padding: 5px 8px;
+  }
+
+  .floating-nav-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .floating-nav-icon svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .floating-nav-filter-btn {
+    padding: 6px 12px !important;
+  }
+
+  .floating-nav-label {
+    font-size: 8px;
+  }
+
+  .floating-nav-label-filter {
+    font-size: 10px;
+  }
+}
+

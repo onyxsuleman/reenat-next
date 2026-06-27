@@ -1,6 +1,7 @@
 import { AppProvider } from "../context/AppContext";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import FloatingNav from "../components/FloatingNav";
 import QuickViewModal from "../components/QuickViewModal";
 import "./globals.css";
 
@@ -19,6 +20,7 @@ export default function RootLayout({ children }) {
             {children}
           </main>
           <Footer />
+          <FloatingNav />
           <QuickViewModal />
         </AppProvider>
       </body>
