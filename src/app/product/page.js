@@ -107,9 +107,9 @@ function ProductDetailsContent() {
     .filter(p => String(p.id) !== String(product.id))
     .slice(0, 3);
 
-  // Get color variants (matching weave type or similar prefix)
-  const colorVariants = products.filter(p => p.type === product.type);
-  const displayVariants = colorVariants.length > 1 ? colorVariants : products.slice(0, 6);
+  // Get color variants (matching the exact style ID to show true color variants)
+  const colorVariants = products.filter(p => p.styleId && product.styleId && p.styleId.toLowerCase() === product.styleId.toLowerCase());
+  const displayVariants = colorVariants.length > 1 ? colorVariants : [];
 
   return (
     <div className="space-y-6">

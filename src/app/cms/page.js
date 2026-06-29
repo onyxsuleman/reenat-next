@@ -14,37 +14,12 @@ export default function CMSConsole() {
   const [showDrawer, setShowDrawer] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null); // null means adding new
 
-  // Form Fields State
-  const [formData, setFormData] = useState({
-    name: '',
-    price: '',
-    originalPrice: '',
-    type: 'Silk',
-    origin: 'India',
-    desc: '',
-    gst: '5',
-    hsn: '500720',
-    weight: '450',
-    styleId: '',
-    blouseLen: '0.8',
-    sareeLen: '5.5',
-    blouseType: 'Contrast Blouse',
-    blouseColor: '',
-    color: '',
-    transparency: 'No',
-    qty: 'Single',
-    fabric: 'Mulberry Silk',
-    border: 'Zari',
-    occasion: 'Party Traditional Wedding',
-    loom: 'Handloom',
-    brand: 'REENAT TRENDS',
-    image: '',
-    image2: '',
-    image3: '',
-    image4: '',
-  });
-
-  const [activeUploadSlot, setActiveUploadSlot] = useState('front'); // 'front', 'img2', 'img3', 'img4'
+  // Batch Products State for Meesho-style variations
+  const [batchProducts, setBatchProducts] = useState([]);
+  const [activeTabIndex, setActiveTabIndex] = useState(0);
+  const [copyCommonDetails, setCopyCommonDetails] = useState(true);
+  const [originalProductNames, setOriginalProductNames] = useState([]);
+  const [activeUploadSlot, setActiveUploadSlot] = useState('front');
   const [uploadStatus, setUploadStatus] = useState({
     front: 'CLICK TO UPLOAD',
     img2: 'CLICK TO UPLOAD',
@@ -78,11 +53,76 @@ export default function CMSConsole() {
     }
   };
 
+  // Active product convenience getter
+  const activeProduct = batchProducts[activeTabIndex] || {
+    name: '', price: '', originalPrice: '', type: 'Silk', origin: 'India', desc: '',
+    gst: '5', hsn: '500720', weight: '450', styleId: '', blouseLen: '0.8', sareeLen: '5.5',
+    blouseType: 'Contrast Blouse', blouseColor: '', color: '', transparency: 'No',
+    qty: 'Single', fabric: 'Mulberry Silk', border: 'Zari', occasion: 'Party Traditional Wedding',
+    loom: 'Handloom', brand: 'REENAT TRENDS', image: '', image2: '', image3: '', image4: '', rating: 4.5
+  };
+
+  const isCommonField = (field) => {
+    const specificFields = ['color', 'price', 'originalPrice', 'blouseColor', 'image', 'image2', 'image3', 'image4'];
+    return !specificFields.includes(field);
+  };
+
+  const updateActiveProductField = (field, value) => {
+    setBatchProducts(prev => {
+      return prev.map((item, idx) => {
+        if (idx === activeTabIndex) {
+          return { ...item, [field]: value };
+        }
+        if (copyCommonDetails && isCommonField(field)) {
+          return { ...item, [field]: value };
+        }
+        return item;
+      });
+    });
+  };
+
+  const handleAddVariant = () => {
+    const baseProduct = batchProducts[activeTabIndex] || batchProducts[0];
+    const newVariant = {
+      ...baseProduct,
+      id: `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      color: '',
+      image: '',
+      image2: '',
+      image3: '',
+      image4: '',
+      name: baseProduct.name ? `${baseProduct.name} - New Variant` : ''
+    };
+    setBatchProducts(prev => [...prev, newVariant]);
+    setActiveTabIndex(batchProducts.length);
+  };
+
+  const handleRemoveVariant = (indexToRemove) => {
+    if (confirm("Are you sure you want to remove this product variation?")) {
+      setBatchProducts(prev => prev.filter((_, idx) => idx !== indexToRemove));
+      if (activeTabIndex >= indexToRemove) {
+        setActiveTabIndex(prev => Math.max(0, prev - 1));
+      }
+    }
+  };
+
   const handleOpenDrawer = (index = null) => {
     setEditingIndex(index);
     if (index !== null) {
-      const p = products[index];
-      setFormData({
+      const selectedProduct = products[index];
+      const styleId = selectedProduct.styleId || selectedProduct.styleid;
+      
+      // Find all related products sharing the same styleId
+      const related = styleId
+        ? products.filter(p => {
+            const pStyleId = p.styleId || p.styleid;
+            return pStyleId && pStyleId.toLowerCase() === styleId.toLowerCase();
+          })
+        : [selectedProduct];
+      
+      // Map products to form structure
+      const mappedRelated = related.map(p => ({
+        id: p.id,
         name: p.name || '',
         price: p.price || '',
         originalPrice: p.originalPrice || '',
@@ -92,11 +132,11 @@ export default function CMSConsole() {
         gst: p.gst || '5',
         hsn: p.hsn || '500720',
         weight: p.weight || '450',
-        styleId: p.styleId || '',
-        blouseLen: p.blouseLen || '0.8',
-        sareeLen: p.sareeLen || '5.5',
-        blouseType: p.blouseType || 'Contrast Blouse',
-        blouseColor: p.blouseColor || '',
+        styleId: p.styleId || p.styleid || '',
+        blouseLen: p.blouseLen || p.blouselen || '0.8',
+        sareeLen: p.sareeLen || p.sareelen || '5.5',
+        blouseType: p.blouseType || p.blousetype || 'Contrast Blouse',
+        blouseColor: p.blouseColor || p.blousecolor || '',
         color: p.color || '',
         transparency: p.transparency || 'No',
         qty: p.qty || 'Single',
@@ -109,9 +149,17 @@ export default function CMSConsole() {
         image2: p.image2 || '',
         image3: p.image3 || '',
         image4: p.image4 || '',
-      });
+        rating: p.rating || 4.5
+      }));
+
+      setBatchProducts(mappedRelated);
+      setOriginalProductNames(mappedRelated.map(p => p.name));
+      
+      const activeIdx = mappedRelated.findIndex(p => p.id === selectedProduct.id);
+      setActiveTabIndex(activeIdx >= 0 ? activeIdx : 0);
     } else {
-      setFormData({
+      const newProduct = {
+        id: `temp-${Date.now()}`,
         name: '',
         price: '',
         originalPrice: '',
@@ -138,8 +186,13 @@ export default function CMSConsole() {
         image2: '',
         image3: '',
         image4: '',
-      });
+        rating: 4.5
+      };
+      setBatchProducts([newProduct]);
+      setOriginalProductNames([]);
+      setActiveTabIndex(0);
     }
+    setCopyCommonDetails(true);
     setShowDrawer(true);
   };
 
@@ -173,14 +226,8 @@ export default function CMSConsole() {
 
       const publicUrl = publicUrlData.publicUrl;
 
-      setFormData(prev => {
-        const update = { ...prev };
-        if (slot === 'front') update.image = publicUrl;
-        if (slot === 'img2') update.image2 = publicUrl;
-        if (slot === 'img3') update.image3 = publicUrl;
-        if (slot === 'img4') update.image4 = publicUrl;
-        return update;
-      });
+      const field = slot === 'front' ? 'image' : slot === 'img2' ? 'image2' : slot === 'img3' ? 'image3' : 'image4';
+      updateActiveProductField(field, publicUrl);
 
       setUploadStatus(prev => ({ ...prev, [slot]: 'SUCCESS' }));
       showToast('Image uploaded to cloud successfully!', 'success');
@@ -194,14 +241,8 @@ export default function CMSConsole() {
       const reader = new FileReader();
       reader.onload = (e) => {
         const dataUrl = e.target.result;
-        setFormData(prev => {
-          const update = { ...prev };
-          if (slot === 'front') update.image = dataUrl;
-          if (slot === 'img2') update.image2 = dataUrl;
-          if (slot === 'img3') update.image3 = dataUrl;
-          if (slot === 'img4') update.image4 = dataUrl;
-          return update;
-        });
+        const field = slot === 'front' ? 'image' : slot === 'img2' ? 'image2' : slot === 'img3' ? 'image3' : 'image4';
+        updateActiveProductField(field, dataUrl);
         setUploadStatus(prev => ({ ...prev, [slot]: 'LOCAL BACKUP' }));
         setTimeout(() => {
           setUploadStatus(prev => ({ ...prev, [slot]: 'CLICK TO UPLOAD' }));
@@ -214,105 +255,120 @@ export default function CMSConsole() {
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     try {
-      const formattedProduct = {
-        ...formData,
-        id: editingIndex !== null ? products[editingIndex].id : Date.now(),
-        price: Number(formData.price),
-        originalPrice: Number(formData.originalPrice),
-        weight: Number(formData.weight),
-        rating: editingIndex !== null ? products[editingIndex].rating : 4.5,
-        isLocal: true
-      };
-
-      let updatedProducts = [...products];
-
-      if (editingIndex !== null) {
-        updatedProducts[editingIndex] = formattedProduct;
-      } else {
-        updatedProducts.push(formattedProduct);
+      // Validate all products in batch have a name, price, originalPrice, and image
+      for (let i = 0; i < batchProducts.length; i++) {
+        const p = batchProducts[i];
+        if (!p.name) {
+          alert(`Product ${i + 1} must have a name.`);
+          return;
+        }
+        if (!p.price || isNaN(Number(p.price))) {
+          alert(`Product ${i + 1} must have a valid price.`);
+          return;
+        }
+        if (!p.image) {
+          alert(`Product ${i + 1} must have at least a Front image.`);
+          return;
+        }
       }
 
-      setProducts(updatedProducts);
-      try {
-        localStorage.setItem('products', JSON.stringify(updatedProducts));
-      } catch (storageError) {
-        console.warn("Could not save products cache to localStorage due to quota limits:", storageError);
+      // Sync common fields if copyCommonDetails is checked
+      let finalBatch = [...batchProducts];
+      if (copyCommonDetails && finalBatch.length > 1) {
+        const main = finalBatch[0];
+        finalBatch = finalBatch.map((p, idx) => {
+          if (idx === 0) return p;
+          const updated = { ...p };
+          Object.keys(main).forEach(key => {
+            if (isCommonField(key)) {
+              updated[key] = main[key];
+            }
+          });
+          return updated;
+        });
       }
-      
-      // Save/update in Supabase as well
+
       let dbError = false;
-      try {
+
+      // Handle deletions first
+      const currentOriginalNames = finalBatch.map(p => p.originalName).filter(Boolean);
+      const deletedNames = originalProductNames.filter(name => !currentOriginalNames.includes(name));
+
+      for (const name of deletedNames) {
+        try {
+          const { error } = await supabase.from('products').delete().eq('name', name);
+          if (error) {
+            console.error("Delete error:", error);
+            dbError = true;
+          }
+        } catch (err) {
+          console.error("Delete call failed:", err);
+          dbError = true;
+        }
+      }
+
+      // Handle updates and insertions
+      for (const p of finalBatch) {
         const dbRow = {
-          name: formattedProduct.name,
-          price: formattedProduct.price,
-          originalprice: formattedProduct.originalPrice,
-          type: formattedProduct.type,
-          origin: formattedProduct.origin,
-          desc: formattedProduct.desc,
-          gst: formattedProduct.gst,
-          hsn: formattedProduct.hsn,
-          weight: formattedProduct.weight,
-          styleid: formattedProduct.styleId,
-          blouselen: formattedProduct.blouseLen,
-          sareelen: formattedProduct.sareeLen,
-          blousetype: formattedProduct.blouseType,
-          blousecolor: formattedProduct.blouseColor,
-          color: formattedProduct.color,
-          transparency: formattedProduct.transparency,
-          qty: formattedProduct.qty,
-          fabric: formattedProduct.fabric,
-          border: formattedProduct.border,
-          occasion: formattedProduct.occasion,
-          loom: formattedProduct.loom,
-          brand: formattedProduct.brand,
-          image: formattedProduct.image,
-          image2: formattedProduct.image2,
-          image3: formattedProduct.image3,
-          image4: formattedProduct.image4 || '',
-          rating: formattedProduct.rating
+          name: p.name,
+          price: Number(p.price),
+          originalprice: p.originalPrice ? Number(p.originalPrice) : null,
+          type: p.type,
+          origin: p.origin,
+          desc: p.desc,
+          gst: p.gst,
+          hsn: p.hsn,
+          weight: p.weight ? Number(p.weight) : null,
+          styleid: p.styleId || '',
+          blouselen: p.blouseLen,
+          sareelen: p.sareeLen,
+          blousetype: p.blouseType,
+          blousecolor: p.blouseColor,
+          color: p.color,
+          transparency: p.transparency,
+          qty: p.qty,
+          fabric: p.fabric,
+          border: p.border,
+          occasion: p.occasion,
+          loom: p.loom,
+          brand: p.brand,
+          image: p.image,
+          image2: p.image2,
+          image3: p.image3,
+          image4: p.image4 || '',
+          rating: p.rating ? Number(p.rating) : 4.5
         };
 
-        if (editingIndex !== null) {
-          const { error } = await supabase.from('products').update(dbRow).eq('name', formattedProduct.name);
-          if (error) {
-            console.error("Database update error:", error);
-            dbError = true;
-          }
-        } else {
-          const { error } = await supabase.from('products').insert(dbRow);
-          if (error) {
-            console.error("Database insert error:", error);
-            dbError = true;
-          }
-        }
-
-        if (!dbError) {
-          // If sync succeeded, remove the isLocal flag from state and localStorage
-          const syncedProduct = { ...formattedProduct };
-          delete syncedProduct.isLocal;
-          
-          const finalProducts = [...products];
-          if (editingIndex !== null) {
-            finalProducts[editingIndex] = syncedProduct;
+        try {
+          if (p.originalName) {
+            // Update
+            const { error } = await supabase.from('products').update(dbRow).eq('name', p.originalName);
+            if (error) {
+              console.error("Update error for product", p.name, error);
+              dbError = true;
+            }
           } else {
-            finalProducts.push(syncedProduct);
+            // Insert
+            const { error } = await supabase.from('products').insert(dbRow);
+            if (error) {
+              console.error("Insert error for product", p.name, error);
+              dbError = true;
+            }
           }
-          setProducts(finalProducts);
-          try {
-            localStorage.setItem('products', JSON.stringify(finalProducts));
-          } catch (storageError) {
-            console.warn("Could not save products cache to localStorage due to quota limits:", storageError);
-          }
+        } catch (err) {
+          console.error("Save call failed:", err);
+          dbError = true;
         }
-      } catch (dbErr) {
-        console.warn("Could not sync with live database:", dbErr);
       }
 
       if (dbError) {
-        alert("Warning: Product saved locally in browser cache, but failed to sync to the live database. Please check if your live database is connected and has the correct tables/columns.");
+        alert("Warning: Some catalog items failed to sync to the live database. Local state will sync from DB.");
       } else {
-        alert("Successfully uploaded and synced to the live database!");
+        alert("Successfully uploaded and synced all catalog items to the live database!");
       }
+
+      // Always reload database products at the end
+      await refreshDatabase();
       setShowDrawer(false);
     } catch (err) {
       console.error("Form submission error:", err);
@@ -486,13 +542,13 @@ export default function CMSConsole() {
           <div className="px-8 py-5 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0 shadow-sm">
             <div className="flex items-center gap-4">
               <div className="size-12 rounded-xl bg-slate-100 dark:bg-slate-800 overflow-hidden border border-slate-200 dark:border-slate-700 shrink-0 shadow-sm">
-                <img src={formData.image || "/saree_kanjivaram.png"} className="w-full h-full object-cover" />
+                <img src={activeProduct.image || "/saree_kanjivaram.png"} className="w-full h-full object-cover" />
               </div>
               <div className="min-w-0">
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white truncate max-w-xl">
-                  {formData.name || (editingIndex !== null ? 'Configure Saree Details' : 'New Saree Listing')}
+                  {activeProduct.name || (editingIndex !== null ? 'Configure Saree Details' : 'New Saree Listing')}
                 </h2>
-                <p className="text-xs text-slate-500 font-medium">Style ID: {formData.styleId || 'N/A'}</p>
+                <p className="text-xs text-slate-500 font-medium">Style ID: {activeProduct.styleId || 'N/A'}</p>
               </div>
             </div>
 
@@ -506,6 +562,90 @@ export default function CMSConsole() {
               </svg>
               <span>Back to Dashboard</span>
             </button>
+          </div>
+
+          
+          {/* Meesho-style Tab Container */}
+          <div className="max-w-7xl mx-auto px-8 pt-6 select-none">
+            <div className="bg-white dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4">
+              <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100 dark:border-slate-900 overflow-x-auto scrollbar-none select-none">
+                {batchProducts.map((prod, idx) => {
+                  const isSelected = idx === activeTabIndex;
+                  return (
+                    <div 
+                      key={prod.id || idx}
+                      onClick={() => setActiveTabIndex(idx)}
+                      className={`flex-shrink-0 flex items-center gap-3 px-4 py-2.5 rounded-xl border-2 cursor-pointer transition-all relative group ${
+                        isSelected 
+                          ? 'border-blue-600 bg-blue-50/40 dark:bg-blue-950/20' 
+                          : 'border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                      }`}
+                    >
+                      {/* Thumbnail */}
+                      <div className="size-10 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-900 relative border border-slate-200/50 dark:border-slate-800">
+                        {prod.image ? (
+                          <img src={prod.image} className="w-full h-full object-cover" alt="" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xs text-slate-400 font-bold bg-slate-100 dark:bg-slate-900">📷</div>
+                        )}
+                      </div>
+                      
+                      {/* Tab Text */}
+                      <div className="flex flex-col text-left pr-4">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          {idx === 0 ? 'Main Product' : `Product ${idx + 1}`}
+                        </span>
+                        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[100px]">
+                          {prod.color || 'No Color'}
+                        </span>
+                      </div>
+
+                      {/* Close button for deleting a variant */}
+                      {idx > 0 && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveVariant(idx);
+                          }}
+                          className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white rounded-full size-4.5 flex items-center justify-center text-[10px] shadow-sm cursor-pointer opacity-0 group-hover:opacity-100 hover:scale-110 active:scale-95 transition-all"
+                          title="Delete this variant"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Add Variant Tab */}
+                <button
+                  type="button"
+                  onClick={handleAddVariant}
+                  className="flex-shrink-0 flex items-center gap-2 px-4 py-3.5 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 text-slate-500 hover:text-blue-500 text-xs font-bold transition-all cursor-pointer bg-transparent"
+                >
+                  <span>➕</span>
+                  <span>Add Product</span>
+                </button>
+              </div>
+
+              {/* Copy Input Checkbox */}
+              <div className="flex items-start gap-2.5 select-none pt-1">
+                <input
+                  type="checkbox"
+                  id="copy-common-details"
+                  checked={copyCommonDetails}
+                  onChange={(e) => setCopyCommonDetails(e.target.checked)}
+                  className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label htmlFor="copy-common-details" className="flex flex-col text-left">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Copy input details to all product</span>
+                  <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 mt-0.5">
+                    If you want to change specific fields for particular product like Color, Fabric etc, you can change it by selecting that product.
+                  </span>
+                </label>
+              </div>
+            </div>
           </div>
 
           <form onSubmit={handleFormSubmit} className="flex-1 overflow-y-auto bg-[#f8fafc] dark:bg-slate-900 pb-28">
@@ -527,8 +667,8 @@ export default function CMSConsole() {
                         <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-1.5 cursor-pointer hover:text-slate-650" title="Goods and Services Tax rate">ⓘ</span>
                       </label>
                       <select 
-                        value={formData.gst}
-                        onChange={(e) => setFormData({ ...formData, gst: e.target.value })}
+                        value={activeProduct.gst}
+                        onChange={(e) => updateActiveProductField('gst', e.target.value)}
                         className="w-full bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
                       >
                         <option value="5">5</option>
@@ -544,8 +684,8 @@ export default function CMSConsole() {
                         <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-1.5 cursor-pointer hover:text-slate-650" title="Harmonized System of Nomenclature code">ⓘ</span>
                       </label>
                       <select 
-                        value={formData.hsn}
-                        onChange={(e) => setFormData({ ...formData, hsn: e.target.value })}
+                        value={activeProduct.hsn}
+                        onChange={(e) => updateActiveProductField('hsn', e.target.value)}
                         className="w-full bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
                       >
                         <option value="500720">500720</option>
@@ -561,8 +701,8 @@ export default function CMSConsole() {
                         <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-1.5 cursor-pointer hover:text-slate-650" title="Manufacturing country">ⓘ</span>
                       </label>
                       <select 
-                        value={formData.origin}
-                        onChange={(e) => setFormData({ ...formData, origin: e.target.value })}
+                        value={activeProduct.origin}
+                        onChange={(e) => updateActiveProductField('origin', e.target.value)}
                         className="w-full bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
                       >
                         <option value="India">India</option>
@@ -581,8 +721,8 @@ export default function CMSConsole() {
                       <input 
                         type="number" 
                         required 
-                        value={formData.weight}
-                        onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                        value={activeProduct.weight}
+                        onChange={(e) => updateActiveProductField('weight', e.target.value)}
                         className="w-full bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
                     </div>
@@ -593,8 +733,8 @@ export default function CMSConsole() {
                         <span>Net Quantity (N) *</span>
                       </label>
                       <select 
-                        value={formData.qty}
-                        onChange={(e) => setFormData({ ...formData, qty: e.target.value })}
+                        value={activeProduct.qty}
+                        onChange={(e) => updateActiveProductField('qty', e.target.value)}
                         className="w-full bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
                       >
                         <option value="Single">Single</option>
@@ -610,8 +750,8 @@ export default function CMSConsole() {
                       </label>
                       <input 
                         type="text" 
-                        value={formData.styleId}
-                        onChange={(e) => setFormData({ ...formData, styleId: e.target.value })}
+                        value={activeProduct.styleId}
+                        onChange={(e) => updateActiveProductField('styleId', e.target.value)}
                         className="w-full bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
                     </div>
@@ -626,8 +766,8 @@ export default function CMSConsole() {
                     <input 
                       type="text" 
                       required 
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      value={activeProduct.name}
+                      onChange={(e) => updateActiveProductField('name', e.target.value)}
                       className="w-full bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
                   </div>
@@ -644,8 +784,8 @@ export default function CMSConsole() {
                         <input 
                           type="number" 
                           required 
-                          value={formData.originalPrice}
-                          onChange={(e) => setFormData({ ...formData, originalPrice: e.target.value })}
+                          value={activeProduct.originalPrice}
+                          onChange={(e) => updateActiveProductField('originalPrice', e.target.value)}
                           className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl pl-6 pr-2 py-2 text-xs font-bold focus:outline-none"
                         />
                       </div>
@@ -661,8 +801,8 @@ export default function CMSConsole() {
                         <input 
                           type="number" 
                           required 
-                          value={formData.price}
-                          onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                          value={activeProduct.price}
+                          onChange={(e) => updateActiveProductField('price', e.target.value)}
                           className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl pl-6 pr-2 py-2 text-xs font-bold focus:outline-none"
                         />
                       </div>
@@ -671,8 +811,8 @@ export default function CMSConsole() {
                     <div className="p-4 space-y-2">
                       <label className="block text-[10px] font-extrabold text-slate-550 uppercase tracking-wide">Blouse Length *</label>
                       <select 
-                        value={formData.blouseLen}
-                        onChange={(e) => setFormData({ ...formData, blouseLen: e.target.value })}
+                        value={activeProduct.blouseLen}
+                        onChange={(e) => updateActiveProductField('blouseLen', e.target.value)}
                         className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-2 py-2 text-xs font-semibold focus:outline-none"
                       >
                         <option value="0.8">0.8 m</option>
@@ -685,8 +825,8 @@ export default function CMSConsole() {
                     <div className="p-4 space-y-2">
                       <label className="block text-[10px] font-extrabold text-slate-550 uppercase tracking-wide">Saree Length *</label>
                       <select 
-                        value={formData.sareeLen}
-                        onChange={(e) => setFormData({ ...formData, sareeLen: e.target.value })}
+                        value={activeProduct.sareeLen}
+                        onChange={(e) => updateActiveProductField('sareeLen', e.target.value)}
                         className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-2 py-2 text-xs font-semibold focus:outline-none"
                       >
                         <option value="5.5">5.5 m</option>
@@ -708,8 +848,8 @@ export default function CMSConsole() {
                     <div>
                       <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Blouse *</label>
                       <select 
-                        value={formData.blouseType}
-                        onChange={(e) => setFormData({ ...formData, blouseType: e.target.value })}
+                        value={activeProduct.blouseType}
+                        onChange={(e) => updateActiveProductField('blouseType', e.target.value)}
                         className="w-full bg-white dark:bg-slate-900 border border-slate-255 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:outline-none"
                       >
                         <option value="Running Blouse">Running Blouse</option>
@@ -722,8 +862,8 @@ export default function CMSConsole() {
                     <div>
                       <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Blouse Color</label>
                       <select 
-                        value={formData.blouseColor}
-                        onChange={(e) => setFormData({ ...formData, blouseColor: e.target.value })}
+                        value={activeProduct.blouseColor}
+                        onChange={(e) => updateActiveProductField('blouseColor', e.target.value)}
                         className="w-full bg-white dark:bg-slate-900 border border-slate-255 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:outline-none"
                       >
                         <option value="Aqua Blue">Aqua Blue</option>
@@ -739,8 +879,8 @@ export default function CMSConsole() {
                     <div>
                       <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Color *</label>
                       <select 
-                        value={formData.color}
-                        onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                        value={activeProduct.color}
+                        onChange={(e) => updateActiveProductField('color', e.target.value)}
                         className="w-full bg-white dark:bg-slate-900 border border-slate-255 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:outline-none"
                       >
                         <option value="Aqua Blue">Aqua Blue</option>
@@ -756,8 +896,8 @@ export default function CMSConsole() {
                     <div>
                       <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Transparency *</label>
                       <select 
-                        value={formData.transparency}
-                        onChange={(e) => setFormData({ ...formData, transparency: e.target.value })}
+                        value={activeProduct.transparency}
+                        onChange={(e) => updateActiveProductField('transparency', e.target.value)}
                         className="w-full bg-white dark:bg-slate-900 border border-slate-255 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:outline-none"
                       >
                         <option value="No">No</option>
@@ -770,8 +910,8 @@ export default function CMSConsole() {
                     <div>
                       <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Saree Fabric *</label>
                       <select 
-                        value={formData.fabric}
-                        onChange={(e) => setFormData({ ...formData, fabric: e.target.value })}
+                        value={activeProduct.fabric}
+                        onChange={(e) => updateActiveProductField('fabric', e.target.value)}
                         className="w-full bg-white dark:bg-slate-900 border border-slate-255 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:outline-none"
                       >
                         <option value="Cotton Silk">Cotton Silk</option>
@@ -787,8 +927,8 @@ export default function CMSConsole() {
                     <div>
                       <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Type *</label>
                       <select 
-                        value={formData.type}
-                        onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                        value={activeProduct.type}
+                        onChange={(e) => updateActiveProductField('type', e.target.value)}
                         className="w-full bg-white dark:bg-slate-900 border border-slate-255 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:outline-none"
                       >
                         <option value="Kanjeevaram">Kanjeevaram</option>
@@ -803,8 +943,8 @@ export default function CMSConsole() {
                     <div>
                       <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Border *</label>
                       <select 
-                        value={formData.border}
-                        onChange={(e) => setFormData({ ...formData, border: e.target.value })}
+                        value={activeProduct.border}
+                        onChange={(e) => updateActiveProductField('border', e.target.value)}
                         className="w-full bg-white dark:bg-slate-900 border border-slate-255 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:outline-none"
                       >
                         <option value="Zari">Zari</option>
@@ -818,8 +958,8 @@ export default function CMSConsole() {
                     <div>
                       <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Occasion *</label>
                       <select 
-                        value={formData.occasion}
-                        onChange={(e) => setFormData({ ...formData, occasion: e.target.value })}
+                        value={activeProduct.occasion}
+                        onChange={(e) => updateActiveProductField('occasion', e.target.value)}
                         className="w-full bg-white dark:bg-slate-900 border border-slate-255 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:outline-none"
                       >
                         <option value="Party Traditional Wedding">Party Traditional Wedding</option>
@@ -833,8 +973,8 @@ export default function CMSConsole() {
                     <div className="md:col-span-2">
                       <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Brand *</label>
                       <select 
-                        value={formData.brand}
-                        onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                        value={activeProduct.brand}
+                        onChange={(e) => updateActiveProductField('brand', e.target.value)}
                         className="w-full bg-white dark:bg-slate-900 border border-slate-255 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:outline-none"
                       >
                         <option value="REENAT TRENDS">REENAT TRENDS</option>
@@ -855,12 +995,12 @@ export default function CMSConsole() {
                     {/* Front Image */}
                     <div className="space-y-1.5 flex flex-col items-center">
                       <div className="relative size-24 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden group shadow-sm bg-[#f8fafc] dark:bg-slate-900 flex items-center justify-center">
-                        {formData.image ? (
+                        {activeProduct.image ? (
                           <>
-                            <img src={formData.image} className="w-full h-full object-cover" />
+                            <img src={activeProduct.image} className="w-full h-full object-cover" />
                             <button 
                               type="button" 
-                              onClick={() => setFormData({ ...formData, image: '' })}
+                              onClick={() => updateActiveProductField('image', '')}
                               className="absolute top-1 right-1 size-5 bg-black/75 hover:bg-black rounded-full flex items-center justify-center text-white text-[10px] font-bold transition-all shadow-md"
                             >
                               ✕
@@ -882,7 +1022,7 @@ export default function CMSConsole() {
                       <span className="text-[10px] font-bold text-slate-550">
                         Front Image <span className="text-rose-500">*</span>
                       </span>
-                      {formData.image && (
+                      {activeProduct.image && (
                         <label className="text-[10px] font-extrabold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer uppercase tracking-wider">
                           CHANGE
                           <input 
@@ -898,12 +1038,12 @@ export default function CMSConsole() {
                     {/* Image 2 */}
                     <div className="space-y-1.5 flex flex-col items-center">
                       <div className="relative size-24 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden group shadow-sm bg-[#f8fafc] dark:bg-slate-900 flex items-center justify-center">
-                        {formData.image2 ? (
+                        {activeProduct.image2 ? (
                           <>
-                            <img src={formData.image2} className="w-full h-full object-cover" />
+                            <img src={activeProduct.image2} className="w-full h-full object-cover" />
                             <button 
                               type="button" 
-                              onClick={() => setFormData({ ...formData, image2: '' })}
+                              onClick={() => updateActiveProductField('image2', '')}
                               className="absolute top-1 right-1 size-5 bg-black/75 hover:bg-black rounded-full flex items-center justify-center text-white text-[10px] font-bold transition-all shadow-md"
                             >
                               ✕
@@ -928,12 +1068,12 @@ export default function CMSConsole() {
                     {/* Image 3 */}
                     <div className="space-y-1.5 flex flex-col items-center">
                       <div className="relative size-24 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden group shadow-sm bg-[#f8fafc] dark:bg-slate-900 flex items-center justify-center">
-                        {formData.image3 ? (
+                        {activeProduct.image3 ? (
                           <>
-                            <img src={formData.image3} className="w-full h-full object-cover" />
+                            <img src={activeProduct.image3} className="w-full h-full object-cover" />
                             <button 
                               type="button" 
-                              onClick={() => setFormData({ ...formData, image3: '' })}
+                              onClick={() => updateActiveProductField('image3', '')}
                               className="absolute top-1 right-1 size-5 bg-black/75 hover:bg-black rounded-full flex items-center justify-center text-white text-[10px] font-bold transition-all shadow-md"
                             >
                               ✕
@@ -958,12 +1098,12 @@ export default function CMSConsole() {
                     {/* Image 4 */}
                     <div className="space-y-1.5 flex flex-col items-center">
                       <div className="relative size-24 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden group shadow-sm bg-[#f8fafc] dark:bg-slate-900 flex items-center justify-center">
-                        {formData.image4 ? (
+                        {activeProduct.image4 ? (
                           <>
-                            <img src={formData.image4} className="w-full h-full object-cover" />
+                            <img src={activeProduct.image4} className="w-full h-full object-cover" />
                             <button 
                               type="button" 
-                              onClick={() => setFormData({ ...formData, image4: '' })}
+                              onClick={() => updateActiveProductField('image4', '')}
                               className="absolute top-1 right-1 size-5 bg-black/75 hover:bg-black rounded-full flex items-center justify-center text-white text-[10px] font-bold transition-all shadow-md"
                             >
                               ✕
@@ -999,13 +1139,13 @@ export default function CMSConsole() {
                     rows={8} 
                     required 
                     maxLength={1400}
-                    value={formData.desc}
-                    onChange={(e) => setFormData({ ...formData, desc: e.target.value })}
+                    value={activeProduct.desc}
+                    onChange={(e) => updateActiveProductField('desc', e.target.value)}
                     className="w-full bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 rounded-xl px-3.5 py-3 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium leading-relaxed"
                     placeholder="Enter description here..."
                   />
                   <div className="text-right text-[10px] text-slate-400 dark:text-slate-500 font-bold">
-                    {(formData.desc || '').length}/1400
+                    {(activeProduct.desc || '').length}/1400
                   </div>
                 </div>
               </div>
