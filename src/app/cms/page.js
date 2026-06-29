@@ -29,6 +29,127 @@ export default function CMSConsole() {
     img6: 'CLICK TO UPLOAD',
   });
 
+  const [activeView, setActiveView] = useState('home');
+
+  // Mock Orders state
+  const [orders, setOrders] = useState([
+    {
+      id: 'ORD1024',
+      date: '2026-06-28',
+      customer: 'Priya Sharma',
+      phone: '+91 98765 43210',
+      address: 'Apt 402, Block B, Silver Oak Apartments, Whitefield, Bengaluru - 560066',
+      productName: 'Traditional Kanjeevaram Silk Saree',
+      productImage: '',
+      color: 'Rani Pink',
+      amount: 1599,
+      qty: 1,
+      paymentMethod: 'Pay Online',
+      status: 'Pending'
+    },
+    {
+      id: 'ORD1023',
+      date: '2026-06-27',
+      customer: 'Anjali Gupta',
+      phone: '+91 87654 32109',
+      address: 'House No 12, Sector 15, Faridabad, Haryana - 121007',
+      productName: 'Banarasi Brocade Silk Saree',
+      productImage: '',
+      color: 'Navy Blue',
+      amount: 1799,
+      qty: 1,
+      paymentMethod: 'Cash on Delivery',
+      status: 'Shipped'
+    },
+    {
+      id: 'ORD1022',
+      date: '2026-06-26',
+      customer: 'Kiran Patel',
+      phone: '+91 76543 21098',
+      address: '24, Gokul Society, Near ISKCON Temple, SG Highway, Ahmedabad - 380015',
+      productName: 'Soft Litchi Silk Saree',
+      productImage: '',
+      color: 'Lemon Yellow',
+      amount: 1499,
+      qty: 1,
+      paymentMethod: 'Pay Online',
+      status: 'Delivered'
+    },
+    {
+      id: 'ORD1021',
+      date: '2026-06-25',
+      customer: 'Meenakshi Iyer',
+      phone: '+91 65432 10987',
+      address: 'Flat G3, Mylapore, Chennai - 600004',
+      productName: 'Designer Organza Floral Saree',
+      productImage: '',
+      color: 'Chikku',
+      amount: 1899,
+      qty: 2,
+      paymentMethod: 'Pay Online',
+      status: 'Delivered'
+    }
+  ]);
+
+  // Mock Returns state
+  const [returns, setReturns] = useState([
+    {
+      id: 'RET501',
+      orderId: 'ORD1019',
+      customer: 'Sunita Verma',
+      productName: 'Traditional Kanjeevaram Silk Saree',
+      productImage: '',
+      color: 'Lemon Yellow',
+      amount: 1599,
+      reason: 'Color slightly different from photo',
+      status: 'Pending Approval'
+    },
+    {
+      id: 'RET502',
+      orderId: 'ORD1015',
+      customer: 'Rekha Sen',
+      productName: 'Designer Organza Floral Saree',
+      productImage: '',
+      color: 'Rani Pink',
+      amount: 1899,
+      reason: 'Fabric quality not as expected',
+      status: 'RTO (Returned to Origin)'
+    }
+  ]);
+
+  useEffect(() => {
+    if (products && products.length > 0) {
+      setOrders(prev => prev.map((ord, idx) => {
+        const matchingProd = products[idx % products.length];
+        return {
+          ...ord,
+          productName: matchingProd.name,
+          productImage: matchingProd.image,
+          color: matchingProd.color || ord.color
+        };
+      }));
+      setReturns(prev => prev.map((ret, idx) => {
+        const matchingProd = products[(idx + 2) % products.length];
+        return {
+          ...ret,
+          productName: matchingProd.name,
+          productImage: matchingProd.image,
+          color: matchingProd.color || ret.color
+        };
+      }));
+    }
+  }, [products]);
+
+  const handleUpdateOrderStatus = (orderId, newStatus) => {
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+    showToast(`Order ${orderId} marked as ${newStatus}.`, 'success');
+  };
+
+  const handleUpdateReturnStatus = (returnId, newStatus) => {
+    setReturns(prev => prev.map(r => r.id === returnId ? { ...r, status: newStatus } : r));
+    showToast(`Return ${returnId} marked as ${newStatus}.`, 'info');
+  };
+
   useEffect(() => {
     const unlocked = sessionStorage.getItem('cms_unlocked') === 'true';
     if (unlocked) {
@@ -487,118 +608,730 @@ export default function CMSConsole() {
     );
   }
 
-  // Calculate Metrics
-  const totalSarees = products.length;
-  const avgPrice = totalSarees > 0 
-    ? Math.round(products.reduce((sum, p) => sum + (p.price || 0), 0) / totalSarees) 
-    : 0;
+  const renderHomeView = () => {
+    const pendingOrdersCount = orders.filter(o => o.status === 'Pending').length;
+    const lowStockCount = products.filter(p => p.qty === 'Low Stock' || (p.qty && p.qty.includes('Low'))).length;
+
+    return (
+      <div className="space-y-6">
+        {/* Top Header Banner */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">Welcome back, REENAT PREMIUM SAREES</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Manage and grow your business with Reenat Trends Seller Hub</p>
+          </div>
+          <div className="flex gap-2">
+            <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold tracking-wider px-3 py-1.5 rounded-full border border-emerald-500/20">
+              🟢 ONLINE STATUS: ACTIVE
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column: To-Do list, sales stats, dispatch tier */}
+          <div className="lg:col-span-2 space-y-6">
+            
+            {/* To Do List Card */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
+              <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                <span>📋</span> To do list
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div 
+                  onClick={() => setActiveView('orders')}
+                  className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500/50 hover:bg-blue-50/10 transition-all cursor-pointer group"
+                >
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Pending Orders</span>
+                  <div className="flex items-baseline justify-between mt-2">
+                    <span className="text-2xl font-bold text-slate-800 dark:text-white">{pendingOrdersCount}</span>
+                    <span className="text-xs text-blue-600 dark:text-blue-400 font-bold group-hover:translate-x-1 transition-transform">➔</span>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:slate-700 transition-colors">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Download Labels</span>
+                  <div className="flex items-baseline justify-between mt-2">
+                    <span className="text-2xl font-bold text-slate-800 dark:text-white">7</span>
+                    <span className="text-xs text-slate-400 font-bold">➔</span>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:slate-700 transition-colors">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Out of Stock</span>
+                  <div className="flex items-baseline justify-between mt-2">
+                    <span className="text-2xl font-bold text-slate-800 dark:text-white">0</span>
+                    <span className="text-xs text-slate-400 font-bold">➔</span>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:slate-700 transition-colors">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Low Stock</span>
+                  <div className="flex items-baseline justify-between mt-2">
+                    <span className="text-2xl font-bold text-slate-800 dark:text-white">{lowStockCount}</span>
+                    <span className="text-xs text-slate-400 font-bold">➔</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Business Insights (Sales Chart) */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                  <span>📈</span> Business Insights
+                </h3>
+                <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded uppercase tracking-wider">
+                  Daily
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+                {/* SVG Chart area */}
+                <div className="md:col-span-2 relative">
+                  <svg viewBox="0 0 500 200" className="w-full h-44 overflow-visible">
+                    <defs>
+                      <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.25" />
+                        <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                    <line x1="0" y1="40" x2="500" y2="40" stroke="#e2e8f0" strokeDasharray="4 4" className="dark:stroke-slate-800" />
+                    <line x1="0" y1="80" x2="500" y2="80" stroke="#e2e8f0" strokeDasharray="4 4" className="dark:stroke-slate-800" />
+                    <line x1="0" y1="120" x2="500" y2="120" stroke="#e2e8f0" strokeDasharray="4 4" className="dark:stroke-slate-800" />
+                    <line x1="0" y1="160" x2="500" y2="160" stroke="#e2e8f0" strokeDasharray="4 4" className="dark:stroke-slate-800" />
+
+                    <path 
+                      d="M 10 120 L 90 85 L 170 95 L 250 140 L 330 110 L 410 70 L 490 190 Z" 
+                      fill="url(#chartGrad)" 
+                    />
+
+                    <path 
+                      d="M 10 120 L 90 85 L 170 95 L 250 140 L 330 110 L 410 70 L 490 190" 
+                      fill="none" 
+                      stroke="#3b82f6" 
+                      strokeWidth="3.5" 
+                      strokeLinecap="round"
+                      strokeLinejoin="round" 
+                    />
+
+                    <circle cx="10" cy="120" r="5" fill="#3b82f6" stroke="#ffffff" strokeWidth="1.5" className="dark:stroke-slate-900" />
+                    <circle cx="90" cy="85" r="5" fill="#3b82f6" stroke="#ffffff" strokeWidth="1.5" className="dark:stroke-slate-900" />
+                    <circle cx="170" cy="95" r="5" fill="#3b82f6" stroke="#ffffff" strokeWidth="1.5" className="dark:stroke-slate-900" />
+                    <circle cx="250" cy="140" r="5" fill="#3b82f6" stroke="#ffffff" strokeWidth="1.5" className="dark:stroke-slate-900" />
+                    <circle cx="330" cy="110" r="5" fill="#3b82f6" stroke="#ffffff" strokeWidth="1.5" className="dark:stroke-slate-900" />
+                    <circle cx="410" cy="70" r="5" fill="#3b82f6" stroke="#ffffff" strokeWidth="1.5" className="dark:stroke-slate-900" />
+                    <circle cx="490" cy="190" r="5" fill="#3b82f6" stroke="#ffffff" strokeWidth="1.5" className="dark:stroke-slate-900" />
+
+                    <text x="10" y="210" textAnchor="middle" className="text-[10px] fill-slate-400 font-medium">23rd</text>
+                    <text x="90" y="210" textAnchor="middle" className="text-[10px] fill-slate-400 font-medium">24th</text>
+                    <text x="170" y="210" textAnchor="middle" className="text-[10px] fill-slate-400 font-medium">25th</text>
+                    <text x="250" y="210" textAnchor="middle" className="text-[10px] fill-slate-400 font-medium">26th</text>
+                    <text x="330" y="210" textAnchor="middle" className="text-[10px] fill-slate-400 font-medium">27th</text>
+                    <text x="410" y="210" textAnchor="middle" className="text-[10px] fill-slate-400 font-medium">28th</text>
+                    <text x="490" y="210" textAnchor="middle" className="text-[10px] fill-slate-400 font-medium">29th</text>
+                  </svg>
+                  <div className="text-center text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-4">
+                    June '26 (Daily Sales Trend)
+                  </div>
+                </div>
+
+                <div className="space-y-4 border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-800 md:pl-6 pt-4 md:pt-0">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Views (28 Jun)</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xl font-extrabold text-slate-800 dark:text-white">1,61,069</span>
+                      <span className="text-[10px] font-bold text-rose-500 flex items-center">▼ 8.56%</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Orders (28 Jun)</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xl font-extrabold text-slate-800 dark:text-white">73</span>
+                      <span className="text-[10px] font-bold text-emerald-500 flex items-center">▲ 19.67%</span>
+                    </div>
+                  </div>
+
+                  <button className="w-full text-center text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline py-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg cursor-pointer">
+                    View More Details
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Dispatch Performance */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
+              <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                <span>⚡</span> Dispatch Performance & Insights
+              </h3>
+              
+              <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 p-4 rounded-xl flex items-center gap-3">
+                <span className="text-xl">🏆</span>
+                <div>
+                  <span className="text-xs font-extrabold text-emerald-800 dark:text-emerald-400 block">100% Good keep it up!</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 block mt-0.5">Your dispatch metrics are fully compliant with our priority service guidelines.</span>
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-2">
+                <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  <span>Good (100%-95%)</span>
+                  <span>At Risk (95%-75%)</span>
+                  <span>Blocked (&lt;75%)</span>
+                </div>
+                <div className="h-3.5 rounded-full overflow-hidden flex bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                  <div className="h-full bg-emerald-500" style={{ width: '95%' }}></div>
+                  <div className="h-full bg-amber-500" style={{ width: '4%' }}></div>
+                  <div className="h-full bg-rose-500" style={{ width: '1%' }}></div>
+                </div>
+                <div className="flex justify-between text-[9px] font-bold text-slate-400">
+                  <span>100% - 95%</span>
+                  <span>95% - 75%</span>
+                  <span>Less than 75%</span>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-200 dark:border-slate-800 pt-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-xs text-slate-800 dark:text-white">Great job! You've unlocked</span>
+                    <span className="bg-indigo-600 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded tracking-wide">⚡ FAST</span>
+                    <span className="font-extrabold text-xs text-slate-800 dark:text-white">delivery</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">Pack orders before 12 PM to get up to 7% more orders & fewer RTO returns.</p>
+                </div>
+                <button className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-2 px-4 rounded-xl text-xs shadow transition-transform active:scale-95 cursor-pointer">
+                  Opt in for free
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Right Column */}
+          <div className="space-y-6">
+            
+            {/* Complete Setup */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
+              <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                Complete your account setup
+              </h3>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500">Add the below details to improve your selling journey.</p>
+              
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
+                  <div className="flex items-center gap-2">
+                    <span className="text-emerald-500 font-bold text-xs">✓</span>
+                    <span className="text-[11px] font-bold text-slate-700 dark:text-slate-350">Setup direct payout bank account</span>
+                  </div>
+                  <span className="text-[9px] bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded font-bold">Done</span>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
+                  <div className="flex items-center gap-2">
+                    <span className="text-emerald-500 font-bold text-xs">✓</span>
+                    <span className="text-[11px] font-bold text-slate-700 dark:text-slate-350">Enable WhatsApp buyer updates</span>
+                  </div>
+                  <span className="text-[9px] bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded font-bold">Done</span>
+                </div>
+
+                <div 
+                  onClick={() => alert("Link GSTIN Profile: Enter your GST number in your profile settings page.")}
+                  className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl hover:border-blue-500 cursor-pointer transition-colors group"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-blue-500 font-bold text-xs group-hover:scale-110 transition-transform">➕</span>
+                    <span className="text-[11px] font-bold text-slate-700 dark:text-slate-350">Link GSTIN Profile details</span>
+                  </div>
+                  <span className="text-[9px] bg-blue-500/10 text-blue-600 px-1.5 py-0.5 rounded font-bold">Add</span>
+                </div>
+
+                <div 
+                  onClick={() => alert("Add Business Type: Reenat Premium Handlooms (Manufacturer/Wholesaler).")}
+                  className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl hover:border-blue-500 cursor-pointer transition-colors group"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-blue-500 font-bold text-xs group-hover:scale-110 transition-transform">➕</span>
+                    <span className="text-[11px] font-bold text-slate-700 dark:text-slate-350">Add Business Type detail</span>
+                  </div>
+                  <span className="text-[9px] bg-blue-500/10 text-blue-600 px-1.5 py-0.5 rounded font-bold">Add</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Important Announcements */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
+              <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                Important Announcements
+              </h3>
+              
+              <div className="space-y-3.5 pt-2">
+                <div className="flex items-start gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-950 rounded-xl transition-colors cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-slate-800">
+                  <span className="text-base mt-0.5">📢</span>
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-800 dark:text-white block">Mega Offer LIVE! - Hurry Up!!</span>
+                    <span className="text-[9px] text-slate-450 dark:text-slate-400 block mt-0.5">{"More visibility > More orders > More growth. Opt in before midnight."}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-950 rounded-xl transition-colors cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-slate-800">
+                  <span className="text-base mt-0.5">🏮</span>
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-800 dark:text-white block">Monsoon Handloom Mela</span>
+                    <span className="text-[9px] text-slate-450 dark:text-slate-400 block mt-0.5">Register your products into the monsoon collection banner.</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-950 rounded-xl transition-colors cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-slate-800">
+                  <span className="text-base mt-0.5">🚚</span>
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-800 dark:text-white block">Shipping Rate Discounts</span>
+                    <span className="text-[9px] text-slate-450 dark:text-slate-400 block mt-0.5">Get 5% discount on logistics fees for weight categories under 500g.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderOrdersView = () => {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">Orders Dashboard</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Manage packing lists, print labels, and track customer shipments</p>
+          </div>
+          <span className="bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-bold tracking-wider px-3 py-1.5 rounded-full border border-blue-500/20">
+            📦 TOTAL ORDERS: {orders.length}
+          </span>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/20">
+            <h3 className="font-extrabold text-slate-800 dark:text-white text-xs uppercase tracking-wider">Live Orders log</h3>
+            <span className="text-[9px] bg-indigo-500/10 text-indigo-600 px-2 py-0.5 rounded font-bold">State Synced</span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left border-collapse text-slate-800 dark:text-slate-100">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-slate-800 font-semibold text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <th className="p-4 w-24">Order ID</th>
+                  <th className="p-4 w-28">Date</th>
+                  <th className="p-4">Customer</th>
+                  <th className="p-4">Product Details</th>
+                  <th className="p-4 text-right">Price</th>
+                  <th className="p-4 text-center">Payment</th>
+                  <th className="p-4 text-center">Status</th>
+                  <th className="p-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                {orders.map((item) => (
+                  <tr key={item.id} className="hover:bg-slate-50/40 dark:hover:bg-white/5 transition-colors">
+                    <td className="p-4 font-bold text-slate-950 dark:text-white">{item.id}</td>
+                    <td className="p-4 font-medium text-slate-500 dark:text-slate-400">{item.date}</td>
+                    <td className="p-4">
+                      <div className="font-bold text-slate-800 dark:text-slate-200">{item.customer}</div>
+                      <div className="text-[10px] text-slate-450 dark:text-slate-550 font-medium mt-0.5">{item.phone}</div>
+                      <div className="text-[9px] text-slate-450 dark:text-slate-500 mt-0.5 truncate max-w-[160px]" title={item.address}>{item.address}</div>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="size-10 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shrink-0 relative">
+                          {item.productImage ? (
+                            <img src={item.productImage} className="w-full h-full object-cover" alt="" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-400 font-bold">📷</div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <span className="font-bold text-slate-800 dark:text-slate-200 block truncate max-w-[165px]">{item.productName}</span>
+                          <span className="text-[9px] text-slate-450 dark:text-slate-500 block uppercase font-extrabold mt-0.5">Color: {item.color} | Qty: {item.qty}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4 text-right font-extrabold text-slate-950 dark:text-white">₹{(item.amount * item.qty).toLocaleString('en-IN')}</td>
+                    <td className="p-4 text-center">
+                      <span className={`inline-flex items-center text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                        item.paymentMethod === 'Pay Online' 
+                          ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20' 
+                          : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                      }`}>
+                        {item.paymentMethod}
+                      </span>
+                    </td>
+                    <td className="p-4 text-center">
+                      <span className={`inline-flex items-center text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                        item.status === 'Pending' 
+                          ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' 
+                          : item.status === 'Shipped'
+                            ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400'
+                            : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                      }`}>
+                        {item.status}
+                      </span>
+                    </td>
+                    <td className="p-4 text-right">
+                      {item.status === 'Pending' && (
+                        <button 
+                          onClick={() => handleUpdateOrderStatus(item.id, 'Shipped')}
+                          className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-1.5 px-3 rounded-lg text-[10px] cursor-pointer shadow-sm transition-all"
+                        >
+                          Mark as Shipped
+                        </button>
+                      )}
+                      {item.status === 'Shipped' && (
+                        <button 
+                          onClick={() => handleUpdateOrderStatus(item.id, 'Delivered')}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-1.5 px-3 rounded-lg text-[10px] cursor-pointer shadow-sm transition-all"
+                        >
+                          Mark as Delivered
+                        </button>
+                      )}
+                      {item.status === 'Delivered' && (
+                        <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 flex items-center justify-end gap-1 select-none">
+                          <span>✓</span> Completed
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderReturnsView = () => {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">Returns & RTO Tracker</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Review return requests, verify items, and check customer refund status</p>
+          </div>
+          <span className="bg-rose-500/10 text-rose-600 dark:text-rose-400 text-[10px] font-bold tracking-wider px-3 py-1.5 rounded-full border border-rose-500/20">
+            ↩ TOTAL RETURNS: {returns.length}
+          </span>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/20">
+            <h3 className="font-extrabold text-slate-800 dark:text-white text-xs uppercase tracking-wider">Returns Requests log</h3>
+            <span className="text-[9px] bg-rose-500/10 text-rose-600 px-2 py-0.5 rounded font-bold">Admin Console</span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left border-collapse text-slate-800 dark:text-slate-100">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-slate-800 font-semibold text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <th className="p-4 w-24">Return ID</th>
+                  <th className="p-4 w-24">Order ID</th>
+                  <th className="p-4">Customer</th>
+                  <th className="p-4">Product Details</th>
+                  <th className="p-4 text-right">Refund Amount</th>
+                  <th className="p-4">Reason for Return</th>
+                  <th className="p-4 text-center">Status</th>
+                  <th className="p-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                {returns.map((item) => (
+                  <tr key={item.id} className="hover:bg-slate-50/40 dark:hover:bg-white/5 transition-colors">
+                    <td className="p-4 font-bold text-slate-950 dark:text-white">{item.id}</td>
+                    <td className="p-4 font-semibold text-slate-500 dark:text-slate-400">{item.orderId}</td>
+                    <td className="p-4 font-bold text-slate-800 dark:text-slate-200">{item.customer}</td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="size-10 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shrink-0 relative">
+                          {item.productImage ? (
+                            <img src={item.productImage} className="w-full h-full object-cover" alt="" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-400 font-bold">📷</div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <span className="font-bold text-slate-800 dark:text-slate-200 block truncate max-w-[165px]">{item.productName}</span>
+                          <span className="text-[9px] text-slate-450 block uppercase font-extrabold mt-0.5">Color: {item.color}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4 text-right font-extrabold text-slate-950 dark:text-white">₹{item.amount.toLocaleString('en-IN')}</td>
+                    <td className="p-4 text-slate-650 dark:text-slate-400 font-medium max-w-[200px] truncate" title={item.reason}>{item.reason}</td>
+                    <td className="p-4 text-center">
+                      <span className={`inline-flex items-center text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                        item.status === 'Pending Approval' 
+                          ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' 
+                          : item.status === 'Approved & Refunded'
+                            ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                            : 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
+                      }`}>
+                        {item.status}
+                      </span>
+                    </td>
+                    <td className="p-4 text-right">
+                      {item.status === 'Pending Approval' ? (
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button 
+                            onClick={() => handleUpdateReturnStatus(item.id, 'Approved & Refunded')}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-1.5 px-3 rounded-lg text-[10px] cursor-pointer shadow-sm"
+                          >
+                            Approve
+                          </button>
+                          <button 
+                            onClick={() => handleUpdateReturnStatus(item.id, 'Rejected')}
+                            className="bg-rose-600 hover:bg-rose-700 text-white font-extrabold py-1.5 px-3 rounded-lg text-[10px] cursor-pointer shadow-sm"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 flex items-center justify-end gap-1 select-none">
+                          <span>✓</span> Resolved
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderCatalogView = () => {
+    const totalSarees = products.length;
+    const avgPrice = totalSarees > 0 
+      ? Math.round(products.reduce((sum, p) => sum + (p.price || 0), 0) / totalSarees) 
+      : 0;
+
+    return (
+      <div className="space-y-6">
+        {/* CMS Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div>
+            <span className="text-xs uppercase tracking-[0.25em] text-[#d9a05b] font-bold">Catalog Administrator</span>
+            <h1 className="text-xl md:text-2xl font-bold text-slate-850 dark:text-white mt-1">SAREE DATABASE CONSOLE</h1>
+          </div>
+          
+          <div className="flex gap-2">
+            <button 
+              onClick={() => handleOpenDrawer(null)}
+              className="bg-[#183fad] hover:bg-blue-800 text-white font-semibold py-2.5 px-5 rounded-xl text-xs transition-transform hover:scale-105 active:scale-95 shadow-md cursor-pointer flex items-center gap-1.5"
+            >
+              <span>+ Add New Saree</span>
+            </button>
+            <button 
+              onClick={confirmReset}
+              className="bg-rose-105 hover:bg-rose-200 dark:bg-rose-955/40 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 font-semibold py-2.5 px-5 rounded-xl text-xs border border-rose-200 dark:border-rose-900/30 transition-transform active:scale-95 cursor-pointer"
+            >
+              Reset Database
+            </button>
+          </div>
+        </div>
+
+        {/* Metrics */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex items-center justify-between">
+            <div>
+              <span className="text-[10px] text-slate-450 font-bold uppercase tracking-wider block">Total Catalog Items</span>
+              <span className="text-2xl font-extrabold text-slate-850 dark:text-white mt-1 block">{totalSarees}</span>
+            </div>
+            <span className="text-2xl">👘</span>
+          </div>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex items-center justify-between">
+            <div>
+              <span className="text-[10px] text-slate-450 font-bold uppercase tracking-wider block">Average Price</span>
+              <span className="text-2xl font-extrabold text-slate-850 dark:text-white mt-1 block">₹{avgPrice.toLocaleString('en-IN')}</span>
+            </div>
+            <span className="text-2xl">💰</span>
+          </div>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex items-center justify-between">
+            <div>
+              <span className="text-[10px] text-slate-450 font-bold uppercase tracking-wider block">Availability Status</span>
+              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-2 block">100% In Stock</span>
+            </div>
+            <span className="text-2xl">✓</span>
+          </div>
+        </div>
+
+        {/* Saree List */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/20">
+            <h3 className="font-extrabold text-slate-800 dark:text-white text-xs uppercase tracking-wider">Inventory List</h3>
+            <span className="text-[9px] bg-slate-100 dark:bg-slate-950 text-slate-550 dark:text-slate-400 px-2.5 py-0.5 rounded font-bold">Dynamic CRUD Enabled</span>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left border-collapse text-slate-800 dark:text-slate-100">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-slate-800 font-semibold text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <th className="p-4 w-12 text-center">#</th>
+                  <th className="p-4 w-20">Saree</th>
+                  <th className="p-4">Name</th>
+                  <th className="p-4">Weave Type</th>
+                  <th className="p-4">Cluster / Origin</th>
+                  <th className="p-4 text-right">Price</th>
+                  <th className="p-4 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                {products.map((item, i) => (
+                  <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
+                    <td className="p-4 text-center font-bold">{i + 1}</td>
+                    <td className="p-4">
+                      <img src={item.image} alt={item.name} className="size-10 object-cover rounded-lg border border-black/5" />
+                    </td>
+                    <td className="p-4">
+                      <div className="font-semibold text-slate-900 dark:text-white">{item.name}</div>
+                      <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono mt-0.5">
+                        ID: {item.productId} | SKU: {item.skuId}
+                      </div>
+                    </td>
+                    <td className="p-4">{item.type}</td>
+                    <td className="p-4">{item.origin}</td>
+                    <td className="p-4 text-right font-bold">₹{item.price.toLocaleString('en-IN')}</td>
+                    <td className="p-4 text-center space-x-2">
+                      <button 
+                        onClick={() => handleOpenDrawer(i)}
+                        className="bg-slate-150 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-semibold py-1.5 px-3 rounded-lg border border-slate-250 dark:border-slate-700 transition-colors cursor-pointer text-[10px]"
+                      >
+                        Configure
+                      </button>
+                      <button 
+                        onClick={() => deleteSaree(i)}
+                        className="bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-900/40 text-rose-500 font-semibold py-1.5 px-3 rounded-lg border border-rose-200/50 dark:border-rose-900/30 transition-colors cursor-pointer text-[10px]"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <div className="space-y-8 py-6 text-slate-800 dark:text-white">
-      {/* CMS Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <span className="text-xs uppercase tracking-[0.25em] text-[#d9a05b] font-bold">Catalog Administrator</span>
-          <h1 className="text-4xl font-anton text-slate-850 dark:text-white mt-1">SAREE DATABASE CONSOLE</h1>
+    <div id="cms-console-root" className="flex min-h-screen bg-[#f4f7fe] dark:bg-slate-950 text-slate-800 dark:text-white -m-3.5 sm:-m-5 md:-m-8">
+      {/* Left Sidebar */}
+      <aside className="w-64 bg-slate-900 dark:bg-[#0c1322] text-slate-100 flex flex-col border-r border-slate-200 dark:border-slate-850 shrink-0">
+        {/* Profile Card Header */}
+        <div className="p-6 border-b border-slate-800 flex items-center justify-between gap-3 bg-slate-950/20">
+          <div className="flex items-center gap-2.5">
+            <div className="size-8 rounded-full bg-[#F1BF0A] flex items-center justify-center font-bold text-slate-900 text-sm shadow-inner">
+              👑
+            </div>
+            <div className="min-w-0">
+              <span className="font-extrabold text-[11px] uppercase tracking-wider block text-slate-200 truncate">REENAT PREMIUM</span>
+              <span className="text-[9px] text-slate-500 font-bold block truncate">Seller Dashboard</span>
+            </div>
+          </div>
+          <span className="text-slate-500 font-bold text-xs select-none">▼</span>
         </div>
-        
-        <div className="flex gap-2">
-          <button 
-            onClick={() => handleOpenDrawer(null)}
-            className="bg-[#183fad] hover:bg-blue-800 text-white font-semibold py-2 px-4 rounded-full text-xs transition-transform hover:scale-105 active:scale-95 shadow-md cursor-pointer flex items-center gap-1.5"
-          >
-            <span>+ Add New Saree</span>
-          </button>
-          <button 
-            onClick={confirmReset}
-            className="bg-rose-100 hover:bg-rose-200 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 font-semibold py-2 px-4 rounded-full text-xs border border-rose-200 dark:border-rose-900/30 transition-transform active:scale-95 cursor-pointer"
-          >
-            Reset Database
-          </button>
-        </div>
-      </div>
 
-      {/* Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <div className="bg-white/70 dark:bg-[#0f1f41]/60 border border-black/5 dark:border-white/10 p-5 rounded-3xl glass shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Total Catalog Items</span>
-            <span className="text-3xl font-anton text-slate-800 dark:text-white">{totalSarees}</span>
-          </div>
-          <span className="text-2xl">👘</span>
+        {/* Notices and Support */}
+        <div className="px-4 py-3 border-b border-slate-850 flex items-center justify-between text-[10px] font-bold text-slate-400">
+          <button 
+            onClick={() => alert("Announcements: 1 Active notice.")}
+            className="flex items-center gap-1 hover:text-slate-200 cursor-pointer select-none bg-transparent border-0 text-left text-slate-400 font-bold text-[10px]"
+          >
+            <span>🔔 Notices</span>
+            <span className="bg-rose-500 text-white text-[8px] font-black size-4 rounded-full flex items-center justify-center">1</span>
+          </button>
+          <span className="text-slate-700">|</span>
+          <button 
+            onClick={() => alert("Support Hotline: support@reenattrends.com / Toll Free: 1800-XXX-XXXX")}
+            className="hover:text-slate-200 cursor-pointer select-none bg-transparent border-0 text-slate-400 font-bold text-[10px]"
+          >
+            🎧 Support
+          </button>
         </div>
-        <div className="bg-white/70 dark:bg-[#0f1f41]/60 border border-black/5 dark:border-white/10 p-5 rounded-3xl glass shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Average Price</span>
-            <span className="text-3xl font-anton text-slate-800 dark:text-white">₹{avgPrice.toLocaleString('en-IN')}</span>
-          </div>
-          <span className="text-2xl">💰</span>
-        </div>
-        <div className="bg-white/70 dark:bg-[#0f1f41]/60 border border-black/5 dark:border-white/10 p-5 rounded-3xl glass shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Availability Status</span>
-            <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 mt-2 block">100% In Stock</span>
-          </div>
-          <span className="text-2xl">✓</span>
-        </div>
-      </div>
 
-      {/* Saree List */}
-      <div className="bg-white/70 dark:bg-[#0f1f41]/60 border border-black/5 dark:border-white/10 rounded-3xl glass shadow-md overflow-hidden">
-        <div className="p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between">
-          <h3 className="font-bold text-slate-800 dark:text-white text-sm uppercase tracking-wider">Inventory List</h3>
-          <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2.5 py-1 rounded-full font-bold">Dynamic CRUD Enabled</span>
+        {/* Navigation Menu */}
+        <nav className="flex-1 px-3 py-4 space-y-1.5">
+          <button
+            onClick={() => setActiveView('home')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer border-0 text-left ${
+              activeView === 'home'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 bg-transparent'
+            }`}
+          >
+            <span>🏠</span>
+            <span>Home</span>
+          </button>
+
+          <button
+            onClick={() => setActiveView('catalog')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer border-0 text-left ${
+              activeView === 'catalog'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 bg-transparent'
+            }`}
+          >
+            <span>👘</span>
+            <span>Catalog</span>
+          </button>
+
+          <button
+            onClick={() => setActiveView('orders')}
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer border-0 text-left ${
+              activeView === 'orders'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 bg-transparent'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <span>📦</span>
+              <span>Orders</span>
+            </div>
+            {orders.filter(o => o.status === 'Pending').length > 0 && (
+              <span className="bg-rose-500 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wide animate-pulse">
+                NEW
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveView('returns')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer border-0 text-left ${
+              activeView === 'returns'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 bg-transparent'
+            }`}
+          >
+            <span>↩</span>
+            <span>Returns</span>
+          </button>
+        </nav>
+
+        {/* Sidebar Footer */}
+        <div className="p-4 border-t border-slate-855 text-[9px] font-bold text-slate-500 text-center select-none">
+          Managed with Meesho v4 Engine
         </div>
-        
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left border-collapse text-slate-800 dark:text-slate-100">
-            <thead>
-              <tr className="bg-slate-50 dark:bg-black/20 border-b border-black/5 dark:border-white/5 font-semibold text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                <th className="p-4 w-12 text-center">#</th>
-                <th className="p-4 w-20">Saree</th>
-                <th className="p-4">Name</th>
-                <th className="p-4">Weave Type</th>
-                <th className="p-4">Cluster / Origin</th>
-                <th className="p-4 text-right">Price</th>
-                <th className="p-4 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-black/5 dark:divide-white/5">
-              {products.map((item, i) => (
-                <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
-                  <td className="p-4 text-center font-bold">{i + 1}</td>
-                  <td className="p-4">
-                    <img src={item.image} alt={item.name} className="size-10 object-cover rounded-lg border border-black/5" />
-                  </td>
-                  <td className="p-4">
-                    <div className="font-semibold text-slate-900 dark:text-white">{item.name}</div>
-                    <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono mt-0.5">
-                      ID: {item.productId} | SKU: {item.skuId}
-                    </div>
-                  </td>
-                  <td className="p-4">{item.type}</td>
-                  <td className="p-4">{item.origin}</td>
-                  <td className="p-4 text-right font-bold">₹{item.price.toLocaleString('en-IN')}</td>
-                  <td className="p-4 text-center space-x-2">
-                    <button 
-                      onClick={() => handleOpenDrawer(i)}
-                      className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-semibold py-1.5 px-3 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer text-[10px]"
-                    >
-                      Configure
-                    </button>
-                    <button 
-                      onClick={() => deleteSaree(i)}
-                      className="bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-900/40 text-rose-500 font-semibold py-1.5 px-3 rounded-lg border border-rose-200/50 dark:border-rose-900/30 transition-colors cursor-pointer text-[10px]"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-1 p-6 md:p-8 overflow-y-auto">
+        {activeView === 'home' && renderHomeView()}
+        {activeView === 'catalog' && renderCatalogView()}
+        {activeView === 'orders' && renderOrdersView()}
+        {activeView === 'returns' && renderReturnsView()}
+      </main>
 
       {/* Edit Form Drawer Panel Overlay */}
       {showDrawer && (

@@ -672,3 +672,21 @@ html:not(.dark) footer div.border-t {
   background: #475569;
 }
 
+/* Hide storefront layout elements on the CMS console */
+body:has(#cms-console-root) {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+body:has(#cms-console-root) nav:not(aside nav),
+body:has(#cms-console-root) footer,
+body:has(#cms-console-root) #floating-nav-container,
+body:has(#cms-console-root) .floating-nav {
+  display: none !important;
+}
+body:has(#cms-console-root) main {
+  max-width: 100% !important;
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
