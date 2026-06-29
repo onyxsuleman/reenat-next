@@ -18,7 +18,7 @@ export default function CMSConsole() {
   const [batchProducts, setBatchProducts] = useState([]);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [copyCommonDetails, setCopyCommonDetails] = useState(true);
-  const [originalProductNames, setOriginalProductNames] = useState([]);
+  const [originalProductIds, setOriginalProductIds] = useState([]);
   const [activeUploadSlot, setActiveUploadSlot] = useState('front');
   const [uploadStatus, setUploadStatus] = useState({
     front: 'CLICK TO UPLOAD',
@@ -153,7 +153,7 @@ export default function CMSConsole() {
       }));
 
       setBatchProducts(mappedRelated);
-      setOriginalProductNames(mappedRelated.map(p => p.name));
+      setOriginalProductIds(mappedRelated.map(p => p.id).filter(id => id && !String(id).startsWith('temp-')));
       
       const activeIdx = mappedRelated.findIndex(p => p.id === selectedProduct.id);
       setActiveTabIndex(activeIdx >= 0 ? activeIdx : 0);
@@ -189,7 +189,7 @@ export default function CMSConsole() {
         rating: 4.5
       };
       setBatchProducts([newProduct]);
-      setOriginalProductNames([]);
+      setOriginalProductIds([]);
       setActiveTabIndex(0);
     }
     setCopyCommonDetails(true);
@@ -291,18 +291,18 @@ export default function CMSConsole() {
       let dbError = false;
 
       // Handle deletions first
-      const currentOriginalNames = finalBatch.map(p => p.originalName).filter(Boolean);
-      const deletedNames = originalProductNames.filter(name => !currentOriginalNames.includes(name));
+      const currentIds = finalBatch.map(p => p.id).filter(id => id && !String(id).startsWith('temp-'));
+      const deletedIds = originalProductIds.filter(id => !currentIds.includes(id));
 
-      for (const name of deletedNames) {
+      for (const id of deletedIds) {
         try {
-          const { error } = await supabase.from('products').delete().eq('name', name);
+          const { error } = await supabase.from('products').delete().eq('id', id);
           if (error) {
-            console.error("Delete error:", error);
+            console.error("Delete error for ID", id, error);
             dbError = true;
           }
         } catch (err) {
-          console.error("Delete call failed:", err);
+          console.error("Delete call failed for ID", id, err);
           dbError = true;
         }
       }
@@ -340,15 +340,16 @@ export default function CMSConsole() {
         };
 
         try {
-          if (p.originalName) {
-            // Update
-            const { error } = await supabase.from('products').update(dbRow).eq('name', p.originalName);
+          const isNew = !p.id || String(p.id).startsWith('temp-');
+          if (!isNew) {
+            // Update by unique integer ID!
+            const { error } = await supabase.from('products').update(dbRow).eq('id', p.id);
             if (error) {
-              console.error("Update error for product", p.name, error);
+              console.error("Update error for product ID", p.id, error);
               dbError = true;
             }
           } else {
-            // Insert
+            // Insert new product variant
             const { error } = await supabase.from('products').insert(dbRow);
             if (error) {
               console.error("Insert error for product", p.name, error);
@@ -388,7 +389,7 @@ export default function CMSConsole() {
       }
 
       try {
-        await supabase.from('products').delete().eq('name', itemToDelete.name);
+        await supabase.from('products').delete().eq('id', itemToDelete.id);
       } catch (err) {
         console.warn("Failed to delete from database:", err);
       }
@@ -568,7 +569,7 @@ export default function CMSConsole() {
           {/* Meesho-style Tab Container */}
           <div className="max-w-7xl mx-auto px-8 pt-6 select-none">
             <div className="bg-white dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4">
-              <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100 dark:border-slate-900 overflow-x-auto scrollbar-none select-none">
+              <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100 dark:border-slate-900 overflow-x-auto custom-scrollbar select-none">
                 {batchProducts.map((prod, idx) => {
                   const isSelected = idx === activeTabIndex;
                   return (
@@ -878,18 +879,14 @@ export default function CMSConsole() {
                     {/* Color */}
                     <div>
                       <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Color *</label>
-                      <select 
-                        value={activeProduct.color}
+                      <input 
+                        type="text"
+                        required
+                        value={activeProduct.color || ''}
                         onChange={(e) => updateActiveProductField('color', e.target.value)}
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-255 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:outline-none"
-                      >
-                        <option value="Aqua Blue">Aqua Blue</option>
-                        <option value="Gold">Gold</option>
-                        <option value="Magenta">Magenta</option>
-                        <option value="Organic">Organic</option>
-                        <option value="Black red">Black red</option>
-                        <option value="Mango Green">Mango Green</option>
-                      </select>
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="e.g. Black red, Bottle Red, Grey Black"
+                      />
                     </div>
 
                     {/* Transparency */}
