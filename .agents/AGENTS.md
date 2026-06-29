@@ -80,11 +80,30 @@ The homepage product grid will be split into two distinct sections:
 
 ---
 
-## Upcoming Discussion: Variation, SKU ID, and Product ID Mapping
+## Unified Product Identity & Image Architecture Rules (FINALIZED)
 
-> ⚠️ **Status: ON HOLD FOR TERMINOLOGY ALIGNMENT** — The user has paused further variation system features to define and align on definitions for **Product IDs**, **Catalog IDs**, and **SKU ID** to ensure unified understanding before proceeding.
+All listings, CMS edits, and product displays must strictly adhere to the following identity definitions and DB column structure:
 
-### Keywords & Core Concepts
-- **Variation & SKU ID**: How specific color/size variations map to catalog entries.
-- **Product ID Mapping**: Standardizing how products are identified and linked across client states, local cache, and Supabase tables.
-- **Next Step**: Once the user defines these terms as per their understanding, we will create a new rule set and adjust the CMS / product detail selectors accordingly.
+1. **Catalog ID (Group ID)**:
+   * **Purpose**: Identifies the overall catalog/group page. Groups all color variations together.
+   * **Format**: Numeric string representing the catalog (e.g., `1`, `2`, `3`...).
+   * **Database Mapping**: Stored in `catalog_id` column.
+   * **Automation**: Set automatically in the CMS (incremented based on max ID in the system).
+
+2. **Product ID (Unique Saree ID)**:
+   * **Purpose**: Absolute unique, unchangeable, system-generated identifier for every individual saree variation.
+   * **Format**: `"NYS" + String(db_row_id).padStart(4, '0')` (e.g., `NYS0001`, `NYS0002`).
+   * **Lookup Role**: Used as the primary lookup parameter in URLs (`/product?id=NYS0001`).
+
+3. **SKU ID (Seller SKU Code)**:
+   * **Purpose**: Shipping, billing, sorting, and dispatch tracking code.
+   * **Format**: Custom string entered by admin (e.g., `KJV-RED-01`).
+   * **Behavior**: Fully editable at any time. Non-unique (duplicates are permitted).
+   * **Database Mapping**: Stored in `styleid` column.
+
+4. **Structured Image Roles**:
+   * All products must map up to 4 images with explicit roles:
+     * `image_front` / `image` (Required): Primary front-facing display thumbnail.
+     * `image_back` / `image2` (Optional): Back view / pallu details.
+     * `image_fabric` / `image3` (Optional): Texture/weave close-up.
+     * `image_model` / `image4` (Optional): Styling or model view.

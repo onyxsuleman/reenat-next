@@ -107,8 +107,62 @@ function ProductDetailsContent() {
     .filter(p => String(p.id) !== String(product.id))
     .slice(0, 3);
 
-  // Get color variants (matching the exact style ID to show true color variants)
-  const colorVariants = products.filter(p => p.styleId && product.styleId && p.styleId.toLowerCase() === product.styleId.toLowerCase());
+  // Get color variants (matching the catalog ID or linked product IDs to show true + cross-linked color variants)
+  const colorVariants = (() => {
+    if (!product || !products || products.length === 0) return [];
+    
+    const connectedCatalogs = new Set();
+    if (product.catalogId) connectedCatalogs.add(product.catalogId.toLowerCase());
+    
+    const connectedProductIds = new Set();
+    if (product.productId) connectedProductIds.add(product.productId.toLowerCase());
+    if (product.id) connectedProductIds.add(String(product.id).toLowerCase());
+    
+    let lastSize = 0;
+    while (connectedCatalogs.size + connectedProductIds.size > lastSize) {
+      lastSize = connectedCatalogs.size + connectedProductIds.size;
+      for (const p of products) {
+        const pid = p.productId ? p.productId.toLowerCase() : '';
+        const cid = p.catalogId ? p.catalogId.toLowerCase() : '';
+        const lid = p.linkedTo ? p.linkedTo.toLowerCase() : '';
+        const dbId = p.id ? String(p.id).toLowerCase() : '';
+        
+        const isCatalogConnected = cid && connectedCatalogs.has(cid);
+        const isProductConnected = (pid && connectedProductIds.has(pid)) || (dbId && connectedProductIds.has(dbId));
+        const isLinkConnected = lid && (connectedProductIds.has(lid) || connectedCatalogs.has(lid));
+        
+        if (isCatalogConnected || isProductConnected || isLinkConnected) {
+          if (cid) connectedCatalogs.add(cid);
+          if (pid) connectedProductIds.add(pid);
+          if (dbId) connectedProductIds.add(dbId);
+          if (lid) {
+            connectedProductIds.add(lid);
+            connectedCatalogs.add(lid);
+          }
+        }
+      }
+    }
+    
+    const result = products.filter(p => {
+      const pid = p.productId ? p.productId.toLowerCase() : '';
+      const cid = p.catalogId ? p.catalogId.toLowerCase() : '';
+      const lid = p.linkedTo ? p.linkedTo.toLowerCase() : '';
+      const dbId = p.id ? String(p.id).toLowerCase() : '';
+      
+      return (cid && connectedCatalogs.has(cid)) ||
+             (pid && connectedProductIds.has(pid)) ||
+             (dbId && connectedProductIds.has(dbId)) ||
+             (lid && (connectedProductIds.has(lid) || connectedCatalogs.has(lid)));
+    });
+    
+    // De-duplicate
+    const uniqueMap = new Map();
+    for (const p of result) {
+      uniqueMap.set(p.id, p);
+    }
+    return Array.from(uniqueMap.values());
+  })();
+
   const displayVariants = colorVariants.length > 1 ? colorVariants : [];
 
   return (
@@ -451,8 +505,12 @@ function ProductDetailsContent() {
                         <td className="py-3 text-right font-semibold text-sm">{product.transparency}</td>
                       </tr>
                       <tr className="border-b border-slate-200 dark:border-slate-800/80 animate-in slide-in-from-top-1">
-                        <td className="py-3 text-slate-500 dark:text-slate-400 font-medium text-sm">Style ID</td>
-                        <td className="py-3 text-right font-semibold text-sm">{product.styleId}</td>
+                        <td className="py-3 text-slate-500 dark:text-slate-400 font-medium text-sm">Product ID</td>
+                        <td className="py-3 text-right font-semibold text-sm">{product.productId}</td>
+                      </tr>
+                      <tr className="border-b border-slate-200 dark:border-slate-800/80 animate-in slide-in-from-top-1">
+                        <td className="py-3 text-slate-500 dark:text-slate-400 font-medium text-sm">SKU ID</td>
+                        <td className="py-3 text-right font-semibold text-sm">{product.skuId}</td>
                       </tr>
                       
                       <tr className="animate-in slide-in-from-top-1">
