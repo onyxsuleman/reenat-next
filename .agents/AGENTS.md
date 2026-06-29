@@ -77,3 +77,14 @@ The homepage product grid will be split into two distinct sections:
 - `src/app/page.js` — split product grid into pinned section + custom section
 - `src/app/cms/page.js` — add "⭐ Featured Listings" management panel
 - Supabase — add `pinned_products` table schema
+
+---
+
+## Upcoming Discussion: Variation, SKU ID, and Product ID Mapping
+
+> ⚠️ **Status: ON HOLD FOR TERMINOLOGY ALIGNMENT** — The user has paused further variation system features to define and align on definitions for **Product IDs**, **Catalog IDs**, and **SKU ID** to ensure unified understanding before proceeding.
+
+### Keywords & Core Concepts
+- **Variation & SKU ID**: How specific color/size variations map to catalog entries.
+- **Product ID Mapping**: Standardizing how products are identified and linked across client states, local cache, and Supabase tables.
+- **Next Step**: Once the user defines these terms as per their understanding, we will create a new rule set and adjust the CMS / product detail selectors accordingly.
