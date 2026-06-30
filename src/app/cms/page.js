@@ -30,6 +30,95 @@ export default function CMSConsole() {
   });
 
   const [activeView, setActiveView] = useState('home');
+  const [selectedCatalogId, setSelectedCatalogId] = useState(null);
+
+  // Meesho-Style Dashboard Filters & Stock Editor States
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'out_of_stock' | 'low_stock'
+  const [sortBy, setSortBy] = useState('estimated_orders'); // 'estimated_orders' | 'newest' | 'price_asc' | 'price_desc'
+  const [editingStockId, setEditingStockId] = useState(null); // id of product variant being edited
+  const [editingStockValue, setEditingStockValue] = useState(''); // current stock text value
+
+  // Tasks, Notes, and Schedule State
+  const [tasks, setTasks] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('cms_tasks');
+      return saved ? JSON.parse(saved) : [
+        { id: 1, text: "Verify pending order labels", completed: false },
+        { id: 2, text: "Update prices for Kanjeevaram catalog", completed: true },
+        { id: 3, text: "Prepare weekend collection banner launch", completed: false }
+      ];
+    }
+    return [];
+  });
+  const [newTaskText, setNewTaskText] = useState("");
+
+  const [schedule, setSchedule] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('cms_schedule');
+      return saved ? JSON.parse(saved) : [
+        { id: 1, time: "04:30 PM", text: "Courier dispatch pickup deadline" },
+        { id: 2, time: "06:00 PM", text: "Review client customization request for NYS0003" },
+        { id: 3, time: "Tomorrow 11 AM", text: "Add 5 new arrivals silk styles to catalog" }
+      ];
+    }
+    return [];
+  });
+  const [newScheduleTime, setNewScheduleTime] = useState("");
+  const [newScheduleText, setNewScheduleText] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cms_tasks', JSON.stringify(tasks));
+    }
+  }, [tasks]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cms_schedule', JSON.stringify(schedule));
+    }
+  }, [schedule]);
+
+  const handleAddTask = (e) => {
+    e.preventDefault();
+    if (!newTaskText.trim()) return;
+    const newTask = {
+      id: Date.now(),
+      text: newTaskText.trim(),
+      completed: false
+    };
+    setTasks(prev => [...prev, newTask]);
+    setNewTaskText("");
+    showToast("Task added successfully.", "success");
+  };
+
+  const handleToggleTask = (id) => {
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+  };
+
+  const handleDeleteTask = (id) => {
+    setTasks(prev => prev.filter(t => t.id !== id));
+    showToast("Task deleted.", "info");
+  };
+
+  const handleAddSchedule = (e) => {
+    e.preventDefault();
+    if (!newScheduleTime.trim() || !newScheduleText.trim()) return;
+    const newItem = {
+      id: Date.now(),
+      time: newScheduleTime.trim(),
+      text: newScheduleText.trim()
+    };
+    setSchedule(prev => [...prev, newItem]);
+    setNewScheduleTime("");
+    setNewScheduleText("");
+    showToast("Event scheduled successfully.", "success");
+  };
+
+  const handleDeleteSchedule = (id) => {
+    setSchedule(prev => prev.filter(s => s.id !== id));
+    showToast("Schedule item deleted.", "info");
+  };
 
   // Mock Orders state
   const [orders, setOrders] = useState([
@@ -608,81 +697,111 @@ export default function CMSConsole() {
     );
   }
 
-  const renderHomeView = () => {
+    const renderHomeView = () => {
     const pendingOrdersCount = orders.filter(o => o.status === 'Pending').length;
     const lowStockCount = products.filter(p => p.qty === 'Low Stock' || (p.qty && p.qty.includes('Low'))).length;
 
     return (
       <div className="space-y-6">
         {/* Top Header Banner */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">Welcome back, REENAT PREMIUM SAREES</h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Manage and grow your business with Reenat Trends Seller Hub</p>
+        <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-8 border border-indigo-950 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 text-white">
+          {/* Ambient background glows */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+          <div className="absolute bottom-0 left-1/3 w-32 h-32 bg-amber-500/5 rounded-full blur-2xl pointer-events-none"></div>
+          
+          <div className="relative z-10 space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">✨</span>
+              <span className="text-[10px] font-extrabold tracking-widest text-[#F1BF0A] uppercase">Premium Seller Console</span>
+            </div>
+            <h1 className="text-2xl md:text-3xl font-black tracking-tight" style={{ fontFamily: 'var(--font-outfit), sans-serif' }}>
+              Welcome back, <span className="bg-gradient-to-r from-[#F1BF0A] via-amber-400 to-[#F1BF0A] bg-clip-text text-transparent">REENAT PREMIUM SAREES</span>
+            </h1>
+            <p className="text-xs text-slate-450 max-w-xl">
+              Manage and grow your luxury handloom saree collections, inspect live orders, and monitor artisan shop operations.
+            </p>
           </div>
-          <div className="flex gap-2">
-            <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold tracking-wider px-3 py-1.5 rounded-full border border-emerald-500/20">
-              🟢 ONLINE STATUS: ACTIVE
+
+          <div className="relative z-10 shrink-0">
+            <span className="bg-emerald-500/10 text-emerald-450 text-[10px] font-black tracking-widest px-4 py-2 rounded-full border border-emerald-500/20 flex items-center gap-2 shadow-inner">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              ONLINE STATUS: ACTIVE
             </span>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column: To-Do list, sales stats, dispatch tier */}
+          {/* Left Column: To-Do list, sales stats */}
           <div className="lg:col-span-2 space-y-6">
             
             {/* To Do List Card */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
-              <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                <span>📋</span> To do list
-              </h3>
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800/80 p-6 shadow-sm space-y-5">
+              <div className="flex items-center justify-between">
+                <h3 className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500 flex items-center gap-2">
+                  <span>📋</span> Operational Checklist
+                </h3>
+                <span className="text-[10px] text-slate-400 font-bold bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full">Today</span>
+              </div>
+
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {/* Card 1 */}
                 <div 
                   onClick={() => setActiveView('orders')}
-                  className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500/50 hover:bg-blue-50/10 transition-all cursor-pointer group"
+                  className="relative overflow-hidden bg-gradient-to-br from-blue-50/30 to-slate-50/20 dark:from-blue-950/10 dark:to-slate-950/30 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500/50 hover:shadow-lg transition-all duration-300 cursor-pointer group"
                 >
-                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Pending Orders</span>
-                  <div className="flex items-baseline justify-between mt-2">
-                    <span className="text-2xl font-bold text-slate-800 dark:text-white">{pendingOrdersCount}</span>
-                    <span className="text-xs text-blue-600 dark:text-blue-400 font-bold group-hover:translate-x-1 transition-transform">➔</span>
+                  <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/5 rounded-full blur-xl pointer-events-none"></div>
+                  <span className="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Pending Orders</span>
+                  <div className="flex items-baseline justify-between mt-3">
+                    <span className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">{pendingOrdersCount}</span>
+                    <span className="flex items-center justify-center size-6 rounded-full bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 font-bold group-hover:translate-x-1.5 transition-transform">➔</span>
                   </div>
                 </div>
 
-                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:slate-700 transition-colors">
-                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Download Labels</span>
-                  <div className="flex items-baseline justify-between mt-2">
-                    <span className="text-2xl font-bold text-slate-800 dark:text-white">7</span>
-                    <span className="text-xs text-slate-400 font-bold">➔</span>
+                {/* Card 2 */}
+                <div className="relative overflow-hidden bg-gradient-to-br from-indigo-50/30 to-slate-50/20 dark:from-indigo-950/10 dark:to-slate-950/30 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500/50 hover:shadow-lg transition-all duration-300 cursor-pointer group">
+                  <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-500/5 rounded-full blur-xl pointer-events-none"></div>
+                  <span className="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Download Labels</span>
+                  <div className="flex items-baseline justify-between mt-3">
+                    <span className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">7</span>
+                    <span className="flex items-center justify-center size-6 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-bold group-hover:scale-110 transition-all">⬇</span>
                   </div>
                 </div>
 
-                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:slate-700 transition-colors">
-                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Out of Stock</span>
-                  <div className="flex items-baseline justify-between mt-2">
-                    <span className="text-2xl font-bold text-slate-800 dark:text-white">0</span>
-                    <span className="text-xs text-slate-400 font-bold">➔</span>
+                {/* Card 3 */}
+                <div className="relative overflow-hidden bg-gradient-to-br from-rose-50/30 to-slate-50/20 dark:from-rose-950/10 dark:to-slate-950/30 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-rose-500 dark:hover:border-rose-500/50 hover:shadow-lg transition-all duration-300 cursor-pointer group">
+                  <div className="absolute top-0 right-0 w-16 h-16 bg-rose-500/5 rounded-full blur-xl pointer-events-none"></div>
+                  <span className="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Out of Stock</span>
+                  <div className="flex items-baseline justify-between mt-3">
+                    <span className="text-3xl font-black text-rose-600 dark:text-rose-500 tracking-tight">0</span>
+                    <span className="flex items-center justify-center size-6 rounded-full bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-455 font-bold">⚠️</span>
                   </div>
                 </div>
 
-                <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:slate-700 transition-colors">
-                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Low Stock</span>
-                  <div className="flex items-baseline justify-between mt-2">
-                    <span className="text-2xl font-bold text-slate-800 dark:text-white">{lowStockCount}</span>
-                    <span className="text-xs text-slate-400 font-bold">➔</span>
+                {/* Card 4 */}
+                <div className="relative overflow-hidden bg-gradient-to-br from-amber-50/30 to-slate-50/20 dark:from-amber-950/10 dark:to-slate-950/30 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-amber-500 dark:hover:border-amber-500/50 hover:shadow-lg transition-all duration-300 cursor-pointer group">
+                  <div className="absolute top-0 right-0 w-16 h-16 bg-amber-500/5 rounded-full blur-xl pointer-events-none"></div>
+                  <span className="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Low Stock</span>
+                  <div className="flex items-baseline justify-between mt-3">
+                    <span className="text-3xl font-black text-amber-600 dark:text-amber-500 tracking-tight">{lowStockCount}</span>
+                    <span className="flex items-center justify-center size-6 rounded-full bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-455 font-bold">⚡</span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Business Insights (Sales Chart) */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-5">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                  <span>📈</span> Business Insights
+                <h3 className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500 flex items-center gap-2">
+                  <span>📈</span> Analytics & Performance
                 </h3>
-                <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded uppercase tracking-wider">
-                  Daily
-                </span>
+                <div className="flex gap-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-250 dark:border-slate-850">
+                  <button className="text-[9px] font-extrabold text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-900 px-3 py-1 rounded-lg shadow-sm border border-slate-200/50 dark:border-slate-800">Daily</button>
+                  <button className="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 px-3 py-1 hover:text-slate-600 dark:hover:text-slate-350 bg-transparent border-0 cursor-pointer" onClick={() => alert("Weekly view is generated as a pro feature.")}>Weekly</button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
@@ -691,14 +810,14 @@ export default function CMSConsole() {
                   <svg viewBox="0 0 500 200" className="w-full h-44 overflow-visible">
                     <defs>
                       <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.25" />
+                        <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
                         <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
                       </linearGradient>
                     </defs>
-                    <line x1="0" y1="40" x2="500" y2="40" stroke="#e2e8f0" strokeDasharray="4 4" className="dark:stroke-slate-800" />
-                    <line x1="0" y1="80" x2="500" y2="80" stroke="#e2e8f0" strokeDasharray="4 4" className="dark:stroke-slate-800" />
-                    <line x1="0" y1="120" x2="500" y2="120" stroke="#e2e8f0" strokeDasharray="4 4" className="dark:stroke-slate-800" />
-                    <line x1="0" y1="160" x2="500" y2="160" stroke="#e2e8f0" strokeDasharray="4 4" className="dark:stroke-slate-800" />
+                    <line x1="0" y1="40" x2="500" y2="40" stroke="#e2e8f0" strokeDasharray="4 4" className="dark:stroke-slate-800/60" />
+                    <line x1="0" y1="80" x2="500" y2="80" stroke="#e2e8f0" strokeDasharray="4 4" className="dark:stroke-slate-800/60" />
+                    <line x1="0" y1="120" x2="500" y2="120" stroke="#e2e8f0" strokeDasharray="4 4" className="dark:stroke-slate-800/60" />
+                    <line x1="0" y1="160" x2="500" y2="160" stroke="#e2e8f0" strokeDasharray="4 4" className="dark:stroke-slate-800/60" />
 
                     <path 
                       d="M 10 120 L 90 85 L 170 95 L 250 140 L 330 110 L 410 70 L 490 190 Z" 
@@ -708,29 +827,29 @@ export default function CMSConsole() {
                     <path 
                       d="M 10 120 L 90 85 L 170 95 L 250 140 L 330 110 L 410 70 L 490 190" 
                       fill="none" 
-                      stroke="#3b82f6" 
+                      stroke="#2563eb" 
                       strokeWidth="3.5" 
                       strokeLinecap="round"
                       strokeLinejoin="round" 
                     />
 
-                    <circle cx="10" cy="120" r="5" fill="#3b82f6" stroke="#ffffff" strokeWidth="1.5" className="dark:stroke-slate-900" />
-                    <circle cx="90" cy="85" r="5" fill="#3b82f6" stroke="#ffffff" strokeWidth="1.5" className="dark:stroke-slate-900" />
-                    <circle cx="170" cy="95" r="5" fill="#3b82f6" stroke="#ffffff" strokeWidth="1.5" className="dark:stroke-slate-900" />
-                    <circle cx="250" cy="140" r="5" fill="#3b82f6" stroke="#ffffff" strokeWidth="1.5" className="dark:stroke-slate-900" />
-                    <circle cx="330" cy="110" r="5" fill="#3b82f6" stroke="#ffffff" strokeWidth="1.5" className="dark:stroke-slate-900" />
-                    <circle cx="410" cy="70" r="5" fill="#3b82f6" stroke="#ffffff" strokeWidth="1.5" className="dark:stroke-slate-900" />
-                    <circle cx="490" cy="190" r="5" fill="#3b82f6" stroke="#ffffff" strokeWidth="1.5" className="dark:stroke-slate-900" />
+                    <circle cx="10" cy="120" r="5" fill="#2563eb" stroke="#ffffff" strokeWidth="2" className="dark:stroke-slate-900 shadow-md" />
+                    <circle cx="90" cy="85" r="5" fill="#2563eb" stroke="#ffffff" strokeWidth="2" className="dark:stroke-slate-900 shadow-md" />
+                    <circle cx="170" cy="95" r="5" fill="#2563eb" stroke="#ffffff" strokeWidth="2" className="dark:stroke-slate-900 shadow-md" />
+                    <circle cx="250" cy="140" r="5" fill="#2563eb" stroke="#ffffff" strokeWidth="2" className="dark:stroke-slate-900 shadow-md" />
+                    <circle cx="330" cy="110" r="5" fill="#2563eb" stroke="#ffffff" strokeWidth="2" className="dark:stroke-slate-900 shadow-md" />
+                    <circle cx="410" cy="70" r="5" fill="#2563eb" stroke="#ffffff" strokeWidth="2" className="dark:stroke-slate-900 shadow-md" />
+                    <circle cx="490" cy="190" r="5" fill="#2563eb" stroke="#ffffff" strokeWidth="2" className="dark:stroke-slate-900 shadow-md" />
 
-                    <text x="10" y="210" textAnchor="middle" className="text-[10px] fill-slate-400 font-medium">23rd</text>
-                    <text x="90" y="210" textAnchor="middle" className="text-[10px] fill-slate-400 font-medium">24th</text>
-                    <text x="170" y="210" textAnchor="middle" className="text-[10px] fill-slate-400 font-medium">25th</text>
-                    <text x="250" y="210" textAnchor="middle" className="text-[10px] fill-slate-400 font-medium">26th</text>
-                    <text x="330" y="210" textAnchor="middle" className="text-[10px] fill-slate-400 font-medium">27th</text>
-                    <text x="410" y="210" textAnchor="middle" className="text-[10px] fill-slate-400 font-medium">28th</text>
-                    <text x="490" y="210" textAnchor="middle" className="text-[10px] fill-slate-400 font-medium">29th</text>
+                    <text x="10" y="210" textAnchor="middle" className="text-[10px] fill-slate-400 font-extrabold uppercase tracking-wide">23rd</text>
+                    <text x="90" y="210" textAnchor="middle" className="text-[10px] fill-slate-400 font-extrabold uppercase tracking-wide">24th</text>
+                    <text x="170" y="210" textAnchor="middle" className="text-[10px] fill-slate-400 font-extrabold uppercase tracking-wide">25th</text>
+                    <text x="250" y="210" textAnchor="middle" className="text-[10px] fill-slate-400 font-extrabold uppercase tracking-wide">26th</text>
+                    <text x="330" y="210" textAnchor="middle" className="text-[10px] fill-slate-400 font-extrabold uppercase tracking-wide">27th</text>
+                    <text x="410" y="210" textAnchor="middle" className="text-[10px] fill-slate-400 font-extrabold uppercase tracking-wide">28th</text>
+                    <text x="490" y="210" textAnchor="middle" className="text-[10px] fill-slate-400 font-extrabold uppercase tracking-wide">29th</text>
                   </svg>
-                  <div className="text-center text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-4">
+                  <div className="text-center text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-4">
                     June '26 (Daily Sales Trend)
                   </div>
                 </div>
@@ -739,7 +858,7 @@ export default function CMSConsole() {
                   <div className="space-y-1">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Views (28 Jun)</span>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-xl font-extrabold text-slate-800 dark:text-white">1,61,069</span>
+                      <span className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">1,61,069</span>
                       <span className="text-[10px] font-bold text-rose-500 flex items-center">▼ 8.56%</span>
                     </div>
                   </div>
@@ -747,147 +866,137 @@ export default function CMSConsole() {
                   <div className="space-y-1">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Orders (28 Jun)</span>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-xl font-extrabold text-slate-800 dark:text-white">73</span>
+                      <span className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">73</span>
                       <span className="text-[10px] font-bold text-emerald-500 flex items-center">▲ 19.67%</span>
                     </div>
                   </div>
 
-                  <button className="w-full text-center text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline py-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg cursor-pointer">
+                  <button className="w-full text-center text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline py-2 bg-slate-50 dark:bg-slate-950 border border-slate-250 dark:border-slate-850 rounded-xl cursor-pointer">
                     View More Details
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Dispatch Performance */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
-              <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                <span>⚡</span> Dispatch Performance & Insights
-              </h3>
-              
-              <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 p-4 rounded-xl flex items-center gap-3">
-                <span className="text-xl">🏆</span>
-                <div>
-                  <span className="text-xs font-extrabold text-emerald-800 dark:text-emerald-400 block">100% Good keep it up!</span>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 block mt-0.5">Your dispatch metrics are fully compliant with our priority service guidelines.</span>
-                </div>
-              </div>
-
-              <div className="space-y-2 pt-2">
-                <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  <span>Good (100%-95%)</span>
-                  <span>At Risk (95%-75%)</span>
-                  <span>Blocked (&lt;75%)</span>
-                </div>
-                <div className="h-3.5 rounded-full overflow-hidden flex bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-                  <div className="h-full bg-emerald-500" style={{ width: '95%' }}></div>
-                  <div className="h-full bg-amber-500" style={{ width: '4%' }}></div>
-                  <div className="h-full bg-rose-500" style={{ width: '1%' }}></div>
-                </div>
-                <div className="flex justify-between text-[9px] font-bold text-slate-400">
-                  <span>100% - 95%</span>
-                  <span>95% - 75%</span>
-                  <span>Less than 75%</span>
-                </div>
-              </div>
-
-              <div className="border-t border-slate-200 dark:border-slate-800 pt-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-extrabold text-xs text-slate-800 dark:text-white">Great job! You've unlocked</span>
-                    <span className="bg-indigo-600 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded tracking-wide">⚡ FAST</span>
-                    <span className="font-extrabold text-xs text-slate-800 dark:text-white">delivery</span>
-                  </div>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">Pack orders before 12 PM to get up to 7% more orders & fewer RTO returns.</p>
-                </div>
-                <button className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-2 px-4 rounded-xl text-xs shadow transition-transform active:scale-95 cursor-pointer">
-                  Opt in for free
-                </button>
-              </div>
-            </div>
-
           </div>
 
-          {/* Right Column */}
+          {/* Right Column: Planner, Tasks & Notes */}
           <div className="space-y-6">
             
-            {/* Complete Setup */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
-              <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                Complete your account setup
-              </h3>
-              <p className="text-[10px] text-slate-400 dark:text-slate-500">Add the below details to improve your selling journey.</p>
-              
-              <div className="space-y-3 pt-2">
-                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
-                  <div className="flex items-center gap-2">
-                    <span className="text-emerald-500 font-bold text-xs">✓</span>
-                    <span className="text-[11px] font-bold text-slate-700 dark:text-slate-350">Setup direct payout bank account</span>
-                  </div>
-                  <span className="text-[9px] bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded font-bold">Done</span>
+            {/* Tasks, Notes, and Schedule Card */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col space-y-5">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                <h3 className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500 flex items-center gap-2">
+                  <span>⚡</span> Planner & Tasks
+                </h3>
+                <span className="text-[8px] bg-blue-500/10 text-blue-600 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Live Cache</span>
+              </div>
+
+              {/* Task list and Add Form */}
+              <div className="space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-slate-700 dark:text-slate-350">Active Notes</span>
+                  <span className="text-[10px] text-slate-400 font-bold">{tasks.filter(t => !t.completed).length} pending</span>
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
-                  <div className="flex items-center gap-2">
-                    <span className="text-emerald-500 font-bold text-xs">✓</span>
-                    <span className="text-[11px] font-bold text-slate-700 dark:text-slate-350">Enable WhatsApp buyer updates</span>
-                  </div>
-                  <span className="text-[9px] bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded font-bold">Done</span>
-                </div>
+                <form onSubmit={handleAddTask} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newTaskText}
+                    onChange={(e) => setNewTaskText(e.target.value)}
+                    placeholder="Type task/note..."
+                    className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-250 dark:border-slate-800/80 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <button type="submit" className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold text-xs px-3.5 py-1.5 rounded-xl transition-all cursor-pointer shadow-sm">
+                    Add
+                  </button>
+                </form>
 
-                <div 
-                  onClick={() => alert("Link GSTIN Profile: Enter your GST number in your profile settings page.")}
-                  className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl hover:border-blue-500 cursor-pointer transition-colors group"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-blue-500 font-bold text-xs group-hover:scale-110 transition-transform">➕</span>
-                    <span className="text-[11px] font-bold text-slate-700 dark:text-slate-350">Link GSTIN Profile details</span>
-                  </div>
-                  <span className="text-[9px] bg-blue-500/10 text-blue-600 px-1.5 py-0.5 rounded font-bold">Add</span>
-                </div>
-
-                <div 
-                  onClick={() => alert("Add Business Type: Reenat Premium Handlooms (Manufacturer/Wholesaler).")}
-                  className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl hover:border-blue-500 cursor-pointer transition-colors group"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-blue-500 font-bold text-xs group-hover:scale-110 transition-transform">➕</span>
-                    <span className="text-[11px] font-bold text-slate-700 dark:text-slate-350">Add Business Type detail</span>
-                  </div>
-                  <span className="text-[9px] bg-blue-500/10 text-blue-600 px-1.5 py-0.5 rounded font-bold">Add</span>
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1 select-none" style={{ scrollbarWidth: 'thin' }}>
+                  {tasks.length === 0 ? (
+                    <div className="text-center py-6 text-slate-450 dark:text-slate-500 text-[11px] font-bold">No tasks added yet. Add some notes above!</div>
+                  ) : (
+                    tasks.map(task => (
+                      <div key={task.id} className="flex items-center justify-between p-2.5 bg-slate-50/50 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-800/50 rounded-xl transition-all group">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <input
+                            type="checkbox"
+                            checked={task.completed}
+                            onChange={() => handleToggleTask(task.id)}
+                            className="rounded border-slate-350 dark:border-slate-700 text-blue-600 focus:ring-blue-500 size-3.5 cursor-pointer"
+                          />
+                          <span className={`text-xs font-bold truncate transition-all ${task.completed ? 'line-through text-slate-400 dark:text-slate-600 font-medium' : 'text-slate-700 dark:text-slate-300'}`}>
+                            {task.text}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTask(task.id)}
+                          className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-500 transition-opacity cursor-pointer p-0.5 text-xs bg-transparent border-0 font-bold"
+                          title="Delete task"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
-            </div>
 
-            {/* Important Announcements */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
-              <h3 className="text-xs font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                Important Announcements
-              </h3>
-              
-              <div className="space-y-3.5 pt-2">
-                <div className="flex items-start gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-950 rounded-xl transition-colors cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-slate-800">
-                  <span className="text-base mt-0.5">📢</span>
-                  <div>
-                    <span className="text-[11px] font-bold text-slate-800 dark:text-white block">Mega Offer LIVE! - Hurry Up!!</span>
-                    <span className="text-[9px] text-slate-450 dark:text-slate-400 block mt-0.5">{"More visibility > More orders > More growth. Opt in before midnight."}</span>
-                  </div>
+              {/* Schedule list and Add Form */}
+              <div className="space-y-3.5 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-slate-700 dark:text-slate-350">Today's Schedule</span>
+                  <span className="text-[10px] text-slate-400 font-bold">Timeline</span>
                 </div>
 
-                <div className="flex items-start gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-950 rounded-xl transition-colors cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-slate-800">
-                  <span className="text-base mt-0.5">🏮</span>
-                  <div>
-                    <span className="text-[11px] font-bold text-slate-800 dark:text-white block">Monsoon Handloom Mela</span>
-                    <span className="text-[9px] text-slate-450 dark:text-slate-400 block mt-0.5">Register your products into the monsoon collection banner.</span>
+                <form onSubmit={handleAddSchedule} className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-950/30 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-800/80">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newScheduleTime}
+                      onChange={(e) => setNewScheduleTime(e.target.value)}
+                      placeholder="e.g. 05:00 PM"
+                      className="w-24 bg-white dark:bg-slate-950 border border-slate-250 dark:border-slate-800/80 rounded-lg px-2.5 py-1 text-[11px] text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                    <input
+                      type="text"
+                      value={newScheduleText}
+                      onChange={(e) => setNewScheduleText(e.target.value)}
+                      placeholder="Describe event..."
+                      className="flex-1 bg-white dark:bg-slate-950 border border-slate-250 dark:border-slate-800/80 rounded-lg px-2.5 py-1 text-[11px] text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
                   </div>
-                </div>
+                  <button type="submit" className="w-full bg-slate-800 hover:bg-slate-750 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-extrabold text-[10px] py-1.5 rounded-lg transition-all cursor-pointer">
+                    Schedule Event
+                  </button>
+                </form>
 
-                <div className="flex items-start gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-950 rounded-xl transition-colors cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-slate-800">
-                  <span className="text-base mt-0.5">🚚</span>
-                  <div>
-                    <span className="text-[11px] font-bold text-slate-800 dark:text-white block">Shipping Rate Discounts</span>
-                    <span className="text-[9px] text-slate-450 dark:text-slate-400 block mt-0.5">Get 5% discount on logistics fees for weight categories under 500g.</span>
-                  </div>
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
+                  {schedule.length === 0 ? (
+                    <div className="text-center py-6 text-slate-450 dark:text-slate-500 text-[11px] font-bold">No scheduled events today. Add some above!</div>
+                  ) : (
+                    schedule.map(item => (
+                      <div key={item.id} className="flex items-start justify-between p-2.5 bg-slate-55/30 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-800/50 rounded-xl group">
+                        <div className="flex gap-2.5 min-w-0">
+                          <span className="text-[8px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded h-fit shrink-0">
+                            {item.time}
+                          </span>
+                          <span className="text-xs font-bold text-slate-700 dark:text-slate-350 leading-relaxed truncate">
+                            {item.text}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSchedule(item.id)}
+                          className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-500 transition-opacity cursor-pointer p-0.5 text-xs bg-transparent border-0 shrink-0 ml-2"
+                          title="Remove event"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
@@ -896,7 +1005,7 @@ export default function CMSConsole() {
         </div>
       </div>
     );
-  };
+  };;
 
   const renderOrdersView = () => {
     return (
@@ -1109,130 +1218,473 @@ export default function CMSConsole() {
     );
   };
 
+    const getStockNumber = (qty) => {
+    if (!qty) return 150; // default stock
+    const num = parseInt(qty, 10);
+    if (!isNaN(num)) return num;
+    const lower = qty.toLowerCase();
+    if (lower.includes('out') || lower.includes('zero') || lower === '0') return 0;
+    if (lower.includes('low')) return 5;
+    if (lower.includes('single')) return 1;
+    return 100; // default fallback
+  };
+
+  const handleEditStockClick = (variant) => {
+    setEditingStockId(variant.id);
+    setEditingStockValue(String(variant.stockNumber));
+  };
+
+  const handleSaveStock = async (variant) => {
+    const newStockVal = parseInt(editingStockValue, 10);
+    if (isNaN(newStockVal) || newStockVal < 0) {
+      showToast("Please enter a valid stock number.", "error");
+      setEditingStockId(null);
+      return;
+    }
+
+    // Update local state
+    const updatedProducts = products.map((p, idx) => {
+      if (idx === variant.globalIndex) {
+        return { ...p, qty: String(newStockVal) };
+      }
+      return p;
+    });
+    setProducts(updatedProducts);
+
+    try {
+      localStorage.setItem('products', JSON.stringify(updatedProducts));
+    } catch (storageError) {
+      console.warn("Could not save products cache to localStorage:", storageError);
+    }
+
+    // Update Supabase
+    try {
+      const { error } = await supabase.from('products').update({ qty: String(newStockVal) }).eq('id', variant.id);
+      if (error) {
+        console.error("Failed to update stock in database:", error);
+        showToast("Database update failed, synced locally.", "warning");
+      } else {
+        showToast("Stock updated successfully.", "success");
+      }
+    } catch (err) {
+      console.warn("Supabase update error:", err);
+      showToast("Stock updated locally.", "info");
+    }
+
+    setEditingStockId(null);
+  };
+
   const renderCatalogView = () => {
     const totalSarees = products.length;
-    const avgPrice = totalSarees > 0 
-      ? Math.round(products.reduce((sum, p) => sum + (p.price || 0), 0) / totalSarees) 
-      : 0;
+
+    // Group products by catalogId
+    const catalogGroupsMap = {};
+    products.forEach((p, idx) => {
+      const cid = p.catalogId || 'UNCATALOGED';
+      const stockVal = getStockNumber(p.qty);
+      
+      if (!catalogGroupsMap[cid]) {
+        catalogGroupsMap[cid] = {
+          catalogId: cid,
+          name: p.name || 'Unnamed Catalog Saree',
+          weaveType: p.type || 'Silk',
+          origin: p.origin || 'India',
+          coverImage: p.image || '/saree_kanjivaram.png',
+          variants: [],
+          variantsCount: 0,
+          totalStock: 0,
+          minPrice: p.price || 0,
+          maxPrice: p.price || 0,
+          estimatedOrders: (parseInt(p.id || 0) * 123) % 1000 + 50, // simulated order history
+          rating: p.rating || 4.2,
+          createdDate: new Date(Date.now() - (parseInt(p.id || 0) * 24 * 60 * 60 * 1000)), // simulated date
+          firstVariantGlobalIndex: idx
+        };
+      }
+      
+      catalogGroupsMap[cid].variants.push({ ...p, globalIndex: idx, stockNumber: stockVal });
+      catalogGroupsMap[cid].variantsCount += 1;
+      catalogGroupsMap[cid].totalStock += stockVal;
+      catalogGroupsMap[cid].minPrice = Math.min(catalogGroupsMap[cid].minPrice, p.price || 0);
+      catalogGroupsMap[cid].maxPrice = Math.max(catalogGroupsMap[cid].maxPrice, p.price || 0);
+    });
+
+    const allCatalogsCount = Object.keys(catalogGroupsMap).length;
+    const outOfStockCount = Object.values(catalogGroupsMap).filter(group => 
+      group.variants.every(v => v.stockNumber === 0)
+    ).length;
+    const lowStockCount = Object.values(catalogGroupsMap).filter(group => 
+      group.variants.some(v => v.stockNumber > 0 && v.stockNumber < 10)
+    ).length;
+
+    // Filter Catalogs List
+    let filteredGroups = Object.values(catalogGroupsMap).filter(group => {
+      const query = searchQuery.toLowerCase().trim();
+      if (!query) return true;
+      return (
+        group.catalogId.toLowerCase().includes(query) ||
+        group.name.toLowerCase().includes(query) ||
+        group.weaveType.toLowerCase().includes(query) ||
+        group.origin.toLowerCase().includes(query) ||
+        group.variants.some(v => v.skuId && v.skuId.toLowerCase().includes(query))
+      );
+    });
+
+    // Apply Status Tabs Filters
+    if (statusFilter === 'out_of_stock') {
+      filteredGroups = filteredGroups.filter(group => group.variants.every(v => v.stockNumber === 0));
+    } else if (statusFilter === 'low_stock') {
+      filteredGroups = filteredGroups.filter(group => group.variants.some(v => v.stockNumber > 0 && v.stockNumber < 10));
+    }
+
+    // Apply Sorting
+    filteredGroups.sort((a, b) => {
+      if (sortBy === 'estimated_orders') {
+        return b.estimatedOrders - a.estimatedOrders;
+      } else if (sortBy === 'newest') {
+        return b.firstVariantGlobalIndex - a.firstVariantGlobalIndex;
+      } else if (sortBy === 'price_asc') {
+        return a.minPrice - b.minPrice;
+      } else if (sortBy === 'price_desc') {
+        return b.maxPrice - a.maxPrice;
+      }
+      return 0;
+    });
+
+    const activeCatalogId = selectedCatalogId || (filteredGroups[0] ? filteredGroups[0].catalogId : null);
 
     return (
-      <div className="space-y-6">
-        {/* CMS Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div>
-            <span className="text-xs uppercase tracking-[0.25em] text-[#d9a05b] font-bold">Catalog Administrator</span>
-            <h1 className="text-xl md:text-2xl font-bold text-slate-850 dark:text-white mt-1">SAREE DATABASE CONSOLE</h1>
-          </div>
+      <div className="space-y-6 flex flex-col h-[calc(100vh-120px)] overflow-hidden select-none">
+        
+        {/* TOP CONTROLS BAR */}
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm shrink-0">
           
-          <div className="flex gap-2">
+          {/* Tabs (All, Out of stock, Low stock) */}
+          <div className="flex items-center gap-2 border-b xl:border-b-0 pb-3 xl:pb-0 border-slate-100 dark:border-slate-800">
+            <button 
+              onClick={() => setStatusFilter('all')}
+              className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer border-0 ${
+                statusFilter === 'all' 
+                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20' 
+                  : 'text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-350 bg-transparent'
+              }`}
+            >
+              All Catalog ({allCatalogsCount})
+            </button>
+            <button 
+              onClick={() => setStatusFilter('out_of_stock')}
+              className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer border-0 ${
+                statusFilter === 'out_of_stock' 
+                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20' 
+                  : 'text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-355 bg-transparent'
+              }`}
+            >
+              Out of Stock ({outOfStockCount})
+            </button>
+            <button 
+              onClick={() => setStatusFilter('low_stock')}
+              className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer border-0 ${
+                statusFilter === 'low_stock' 
+                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20' 
+                  : 'text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-[#F1BF0A] bg-transparent'
+              }`}
+            >
+              Low Stock ({lowStockCount})
+            </button>
+          </div>
+
+          {/* Sort, Search, Upload Actions */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Sort catalogs by Dropdown */}
+            <div className="flex items-center gap-2 text-xs text-slate-500 font-bold">
+              <span>Sort catalogs by:</span>
+              <select 
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="bg-slate-50 dark:bg-slate-950 border border-slate-255 dark:border-slate-800 rounded-xl px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold text-slate-700 dark:text-slate-355 cursor-pointer"
+              >
+                <option value="estimated_orders">Highest Estimated Orders</option>
+                <option value="newest">Newest Arrivals</option>
+                <option value="price_asc">Price: Low to High</option>
+                <option value="price_desc">Price: High to Low</option>
+              </select>
+            </div>
+
+            {/* Search Input */}
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none text-xs">🔍</span>
+              <input 
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by Catalog ID/Style ID/SKU ID"
+                className="bg-slate-50 dark:bg-slate-955 border border-slate-250 dark:border-slate-800 rounded-xl pl-8 pr-4 py-1.5 text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 w-64"
+              />
+            </div>
+
+            {/* Catalog Upload Purple Button */}
             <button 
               onClick={() => handleOpenDrawer(null)}
-              className="bg-[#183fad] hover:bg-blue-800 text-white font-semibold py-2.5 px-5 rounded-xl text-xs transition-transform hover:scale-105 active:scale-95 shadow-md cursor-pointer flex items-center gap-1.5"
+              className="bg-indigo-650 hover:bg-indigo-750 text-white font-extrabold py-2.5 px-4 rounded-xl text-xs transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-indigo-950/20 cursor-pointer flex items-center gap-1.5 border-0"
             >
-              <span>+ Add New Saree</span>
-            </button>
-            <button 
-              onClick={confirmReset}
-              className="bg-rose-105 hover:bg-rose-200 dark:bg-rose-955/40 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 font-semibold py-2.5 px-5 rounded-xl text-xs border border-rose-200 dark:border-rose-900/30 transition-transform active:scale-95 cursor-pointer"
-            >
-              Reset Database
+              <span>⬆</span> Catalog Upload
             </button>
           </div>
         </div>
 
-        {/* Metrics */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex items-center justify-between">
-            <div>
-              <span className="text-[10px] text-slate-450 font-bold uppercase tracking-wider block">Total Catalog Items</span>
-              <span className="text-2xl font-extrabold text-slate-850 dark:text-white mt-1 block">{totalSarees}</span>
-            </div>
-            <span className="text-2xl">👘</span>
-          </div>
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex items-center justify-between">
-            <div>
-              <span className="text-[10px] text-slate-450 font-bold uppercase tracking-wider block">Average Price</span>
-              <span className="text-2xl font-extrabold text-slate-850 dark:text-white mt-1 block">₹{avgPrice.toLocaleString('en-IN')}</span>
-            </div>
-            <span className="text-2xl">💰</span>
-          </div>
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex items-center justify-between">
-            <div>
-              <span className="text-[10px] text-slate-450 font-bold uppercase tracking-wider block">Availability Status</span>
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-2 block">100% In Stock</span>
-            </div>
-            <span className="text-2xl">✓</span>
-          </div>
-        </div>
-
-        {/* Saree List */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/20">
-            <h3 className="font-extrabold text-slate-800 dark:text-white text-xs uppercase tracking-wider">Inventory List</h3>
-            <span className="text-[9px] bg-slate-100 dark:bg-slate-950 text-slate-550 dark:text-slate-400 px-2.5 py-0.5 rounded font-bold">Dynamic CRUD Enabled</span>
-          </div>
+        {/* SPLIT MASTER-DETAIL COLUMNS */}
+        <div className="flex flex-1 gap-6 overflow-hidden min-h-0">
           
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left border-collapse text-slate-800 dark:text-slate-100">
-              <thead>
-                <tr className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-slate-800 font-semibold text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  <th className="p-4 w-12 text-center">#</th>
-                  <th className="p-4 w-20">Saree</th>
-                  <th className="p-4">Name</th>
-                  <th className="p-4">Weave Type</th>
-                  <th className="p-4">Cluster / Origin</th>
-                  <th className="p-4 text-right">Price</th>
-                  <th className="p-4 text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                {products.map((item, i) => (
-                  <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
-                    <td className="p-4 text-center font-bold">{i + 1}</td>
-                    <td className="p-4">
-                      <img src={item.image} alt={item.name} className="size-10 object-cover rounded-lg border border-black/5" />
-                    </td>
-                    <td className="p-4">
-                      <div className="font-semibold text-slate-900 dark:text-white">{item.name}</div>
-                      <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono mt-0.5">
-                        ID: {item.productId} | SKU: {item.skuId}
+          {/* LEFT COLUMN: CATALOG LIST PANEL (1/3 width) */}
+          <div className="w-80 md:w-96 flex flex-col bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800/80 rounded-2xl shadow-sm overflow-hidden shrink-0">
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 flex justify-between items-center shrink-0">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-550">Catalog Groups ({filteredGroups.length})</span>
+              <button 
+                onClick={confirmReset}
+                className="text-[9.5px] bg-rose-50 hover:bg-rose-100 dark:bg-rose-955/20 dark:hover:bg-rose-900/40 text-rose-500 hover:text-rose-600 font-extrabold px-2 py-0.5 rounded border border-rose-200/50 dark:border-rose-900/30 cursor-pointer transition-colors"
+              >
+                Reset DB
+              </button>
+            </div>
+
+            {/* Scrollable list */}
+            <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 custom-scrollbar p-3 space-y-3" style={{ scrollbarWidth: 'thin' }}>
+              {filteredGroups.length === 0 ? (
+                <div className="text-center py-12 text-slate-400 dark:text-slate-550 text-xs">No matching catalogs found.</div>
+              ) : (
+                filteredGroups.map(group => {
+                  const isSelected = activeCatalogId && activeCatalogId.toLowerCase() === group.catalogId.toLowerCase();
+                  const extraCount = group.variantsCount > 1 ? `+${group.variantsCount - 1}` : '';
+
+                  return (
+                    <div 
+                      key={group.catalogId}
+                      onClick={() => setSelectedCatalogId(group.catalogId)}
+                      className={`p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer relative flex gap-3.5 ${
+                        isSelected 
+                          ? 'bg-blue-50/40 dark:bg-blue-950/15 border-blue-500/80 shadow-sm shadow-blue-500/5' 
+                          : 'bg-transparent border-slate-150 dark:border-slate-800 hover:bg-slate-50/40 dark:hover:bg-slate-950/30'
+                      }`}
+                    >
+                      {/* Collage Thumbnail Box */}
+                      <div className="relative size-16 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shrink-0 shadow-sm">
+                        <img src={group.coverImage} className="w-full h-full object-cover" alt="" />
+                        {extraCount && (
+                          <span className="absolute bottom-1 right-1 bg-black/75 text-white text-[8px] font-black px-1.5 py-0.5 rounded shadow">
+                            {extraCount}
+                          </span>
+                        )}
                       </div>
-                    </td>
-                    <td className="p-4">{item.type}</td>
-                    <td className="p-4">{item.origin}</td>
-                    <td className="p-4 text-right font-bold">₹{item.price.toLocaleString('en-IN')}</td>
-                    <td className="p-4 text-center space-x-2">
-                      <button 
-                        onClick={() => handleOpenDrawer(i)}
-                        className="bg-slate-150 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-semibold py-1.5 px-3 rounded-lg border border-slate-250 dark:border-slate-700 transition-colors cursor-pointer text-[10px]"
-                      >
-                        Configure
-                      </button>
-                      <button 
-                        onClick={() => deleteSaree(i)}
-                        className="bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-900/40 text-rose-500 font-semibold py-1.5 px-3 rounded-lg border border-rose-200/50 dark:border-rose-900/30 transition-colors cursor-pointer text-[10px]"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+                      {/* Details */}
+                      <div className="min-w-0 flex-1 flex flex-col justify-between py-0.5">
+                        <div>
+                          <span className="text-[10px] font-extrabold text-blue-600 dark:text-blue-400 font-mono tracking-wide">
+                            Catalog ID: {group.catalogId}
+                          </span>
+                          <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 truncate mt-1 leading-snug">
+                            {group.name}
+                          </h4>
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 font-bold mt-2">
+                          <span className="truncate max-w-[80px]">{group.weaveType}</span>
+                          <span>•</span>
+                          <span className="truncate max-w-[80px]">{group.origin}</span>
+                        </div>
+                      </div>
+
+                      {/* Selected Indicator Glow Dot */}
+                      {isSelected && (
+                        <span className="absolute top-3.5 right-3.5 size-2 rounded-full bg-blue-500 shadow shadow-blue-500/50 animate-pulse"></span>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN: PRODUCTS TABLE (2/3 width, scrollable) */}
+          <div className="flex-1 flex flex-col bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800/80 rounded-2xl shadow-sm overflow-hidden select-none min-w-0">
+            {activeCatalogId ? (
+              (() => {
+                const selectedCatalog = catalogGroupsMap[activeCatalogId];
+                if (!selectedCatalog) return <div className="flex-1 flex items-center justify-center text-xs text-slate-400">Loading catalog...</div>;
+                
+                return (
+                  <>
+                    {/* Header Title Bar */}
+                    <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+                      <div>
+                        <h2 className="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2 tracking-tight">
+                          SKUs and Products of Catalog ID: <span className="font-mono text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded font-black text-xs">{selectedCatalog.catalogId}</span>
+                        </h2>
+                        <p className="text-[10px] text-slate-450 dark:text-slate-550 mt-1.5 flex items-center gap-3">
+                          <span>📦 <strong>{selectedCatalog.estimatedOrders} Orders</strong> in last 30 days</span>
+                          <span>•</span>
+                          <span className="bg-emerald-500/10 text-emerald-650 dark:text-emerald-450 px-1.5 py-0.5 rounded text-[9px] font-black">⭐ {selectedCatalog.rating.toFixed(1)} Rating</span>
+                        </p>
+                      </div>
+                      <div className="flex gap-2 shrink-0">
+                        <button 
+                          onClick={() => handleOpenDrawer(selectedCatalog.firstVariantGlobalIndex)}
+                          className="bg-indigo-650 hover:bg-indigo-750 text-white font-extrabold py-2 px-4 rounded-xl text-xs transition-transform active:scale-95 shadow cursor-pointer flex items-center gap-1.5 border-0"
+                        >
+                          <span>⚙️</span> Configure (Batch)
+                        </button>
+                        <button 
+                          onClick={() => deleteCatalog(selectedCatalog.catalogId)}
+                          className="bg-rose-50 hover:bg-rose-100 dark:bg-rose-955/20 dark:hover:bg-rose-900/40 text-rose-500 font-bold py-2 px-4 rounded-xl text-xs border border-rose-200/50 dark:border-rose-900/30 transition-transform active:scale-95 cursor-pointer"
+                        >
+                          Delete Catalog
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Table wrapper */}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar">
+                      <table className="w-full text-xs text-left border-collapse text-slate-800 dark:text-slate-100">
+                        <thead>
+                          <tr className="bg-slate-50 dark:bg-black/20 border-b border-slate-150 dark:border-slate-800/80 font-bold text-[9.5px] uppercase tracking-wider text-slate-400 dark:text-slate-555 shrink-0">
+                            <th className="p-4 w-10 text-center select-all"><input type="checkbox" className="rounded text-blue-600 focus:ring-blue-500" /></th>
+                            <th className="p-4 w-20">SKU Image</th>
+                            <th className="p-4">SKU Info</th>
+                            <th className="p-4 w-28">Product ID</th>
+                            <th className="p-4 w-32">SKU ID (optional)</th>
+                            <th className="p-4 text-right w-24">Price</th>
+                            <th className="p-4 text-center w-36">Stock</th>
+                            <th className="p-4 text-right w-24">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                          {selectedCatalog.variants.map((item, i) => {
+                            const isEditingThisStock = editingStockId === item.id;
+                            
+                            return (
+                              <tr key={item.id} className="hover:bg-slate-50/40 dark:hover:bg-white/5 transition-colors">
+                                {/* Checkbox */}
+                                <td className="p-4 text-center">
+                                  <input type="checkbox" className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 size-3.5 cursor-pointer" />
+                                </td>
+
+                                {/* Image */}
+                                <td className="p-4">
+                                  <img src={item.image} alt={item.color} className="size-11 object-cover rounded-lg border border-black/5" />
+                                </td>
+
+                                {/* SKU Info */}
+                                <td className="p-4">
+                                  <div className="font-extrabold text-slate-900 dark:text-white truncate max-w-[200px]">{item.name}</div>
+                                  <div className="text-[10px] text-slate-450 dark:text-slate-550 font-bold mt-1 flex items-center gap-1.5">
+                                    <span className="size-2.5 rounded-full border border-black/10 inline-block" style={{ backgroundColor: item.blouseColor || '#ccc' }}></span>
+                                    {item.color || 'No color'}
+                                  </div>
+                                </td>
+
+                                {/* Product ID */}
+                                <td className="p-4 font-mono font-bold text-slate-455 dark:text-slate-550">
+                                  {item.productId.replace('NYS', 'NSY')}
+                                </td>
+
+                                {/* SKU ID */}
+                                <td className="p-4 font-mono text-slate-500 dark:text-slate-450">
+                                  {item.skuId || 'N/A'}
+                                </td>
+
+                                {/* Price */}
+                                <td className="p-4 text-right font-black text-slate-850 dark:text-slate-100">
+                                  ₹{(item.price || 0).toLocaleString('en-IN')}
+                                </td>
+
+                                {/* Stock inline editor */}
+                                <td className="p-4 text-center">
+                                  {isEditingThisStock ? (
+                                    <div className="flex items-center justify-center gap-1.5">
+                                      <input 
+                                        type="text" 
+                                        value={editingStockValue}
+                                        onChange={(e) => setEditingStockValue(e.target.value)}
+                                        className="w-16 bg-slate-50 dark:bg-slate-955 border border-slate-300 dark:border-slate-800 rounded-lg px-1.5 py-0.5 text-center text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        autoFocus
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') handleSaveStock(item);
+                                          if (e.key === 'Escape') setEditingStockId(null);
+                                        }}
+                                      />
+                                      <button 
+                                        onClick={() => handleSaveStock(item)}
+                                        className="bg-emerald-650 hover:bg-emerald-750 text-white rounded p-0.5 text-[9px] cursor-pointer font-bold border-0"
+                                      >
+                                        ✓
+                                      </button>
+                                      <button 
+                                        onClick={() => setEditingStockId(null)}
+                                        className="bg-slate-300 text-slate-700 rounded p-0.5 text-[9px] hover:bg-slate-400 cursor-pointer font-bold border-0"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center justify-center gap-1.5 border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-955/20 px-2.5 py-1 rounded-xl w-28 mx-auto hover:border-slate-350 dark:hover:border-slate-750 transition-colors">
+                                      <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                                        Stock: <strong className="text-slate-850 dark:text-slate-200 font-extrabold">{item.stockNumber}</strong>
+                                      </div>
+                                      <button 
+                                        onClick={() => handleEditStockClick(item)}
+                                        className="text-slate-400 hover:text-blue-500 cursor-pointer select-none font-bold text-[10px] bg-transparent border-0 p-0"
+                                        title="Edit Stock inline"
+                                      >
+                                        ✏️
+                                      </button>
+                                    </div>
+                                  )}
+                                </td>
+
+                                {/* Actions */}
+                                <td className="p-4 text-right space-x-2.5 whitespace-nowrap">
+                                  <button 
+                                    onClick={() => handleOpenDrawer(item.globalIndex)}
+                                    className="text-blue-600 dark:text-blue-450 hover:underline font-extrabold bg-transparent border-0 p-0 cursor-pointer text-xs"
+                                  >
+                                    Edit
+                                  </button>
+                                  <span className="text-slate-300 dark:text-slate-750 select-none">|</span>
+                                  <button 
+                                    onClick={() => deleteSaree(item.globalIndex)}
+                                    className="text-rose-500 hover:text-rose-600 font-extrabold bg-transparent border-0 p-0 cursor-pointer text-xs"
+                                  >
+                                    Delete
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                );
+              })()
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center p-12 text-slate-400 dark:text-slate-550 space-y-3">
+                <span className="text-3xl">🗂️</span>
+                <span className="text-xs font-bold">Select a catalog on the left to configure variants.</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
     );
-  };
+  };;
 
   return (
-    <div id="cms-console-root" className="flex min-h-screen bg-[#f4f7fe] dark:bg-slate-950 text-slate-800 dark:text-white -m-3.5 sm:-m-5 md:-m-8">
+    <div id="cms-console-root" className="flex h-screen w-full overflow-hidden bg-[#f4f7fe] dark:bg-slate-950 text-slate-800 dark:text-white">
       {/* Left Sidebar */}
-      <aside className="w-64 bg-slate-900 dark:bg-[#0c1322] text-slate-100 flex flex-col border-r border-slate-200 dark:border-slate-850 shrink-0">
+      <aside className="w-64 bg-gradient-to-b from-[#0f172a] via-[#090d16] to-[#020408] text-slate-100 flex flex-col border-r border-slate-200 dark:border-slate-850 shrink-0">
         {/* Profile Card Header */}
         <div className="p-6 border-b border-slate-800 flex items-center justify-between gap-3 bg-slate-950/20">
-          <div className="flex items-center gap-2.5">
-            <div className="size-8 rounded-full bg-[#F1BF0A] flex items-center justify-center font-bold text-slate-900 text-sm shadow-inner">
+          <div className="flex items-center gap-2.5 select-none">
+            <div className="size-8 rounded-full bg-gradient-to-tr from-amber-400 to-[#F1BF0A] flex items-center justify-center font-bold text-slate-900 text-sm shadow-md animate-pulse">
               👑
             </div>
             <div className="min-w-0">
@@ -1244,31 +1696,31 @@ export default function CMSConsole() {
         </div>
 
         {/* Notices and Support */}
-        <div className="px-4 py-3 border-b border-slate-850 flex items-center justify-between text-[10px] font-bold text-slate-400">
+        <div className="px-4 py-3 border-b border-slate-855 flex items-center justify-between text-[10px] font-bold text-slate-400 select-none">
           <button 
             onClick={() => alert("Announcements: 1 Active notice.")}
-            className="flex items-center gap-1 hover:text-slate-200 cursor-pointer select-none bg-transparent border-0 text-left text-slate-400 font-bold text-[10px]"
+            className="flex items-center gap-1.5 hover:text-slate-200 cursor-pointer select-none bg-transparent border-0 text-left text-slate-400 font-bold text-[10px] transition-colors"
           >
             <span>🔔 Notices</span>
-            <span className="bg-rose-500 text-white text-[8px] font-black size-4 rounded-full flex items-center justify-center">1</span>
+            <span className="bg-rose-500 text-white text-[8px] font-black size-4 rounded-full flex items-center justify-center animate-pulse">1</span>
           </button>
           <span className="text-slate-700">|</span>
           <button 
             onClick={() => alert("Support Hotline: support@reenattrends.com / Toll Free: 1800-XXX-XXXX")}
-            className="hover:text-slate-200 cursor-pointer select-none bg-transparent border-0 text-slate-400 font-bold text-[10px]"
+            className="hover:text-slate-200 cursor-pointer select-none bg-transparent border-0 text-slate-400 font-bold text-[10px] transition-colors"
           >
             🎧 Support
           </button>
         </div>
 
         {/* Navigation Menu */}
-        <nav className="flex-1 px-3 py-4 space-y-1.5">
+        <nav className="flex-1 px-3 py-4 space-y-2 select-none">
           <button
             onClick={() => setActiveView('home')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer border-0 text-left ${
               activeView === 'home'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 bg-transparent'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-650 text-white shadow-md shadow-blue-950/40 border-l-4 border-[#F1BF0A]'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 bg-transparent'
             }`}
           >
             <span>🏠</span>
@@ -1279,8 +1731,8 @@ export default function CMSConsole() {
             onClick={() => setActiveView('catalog')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer border-0 text-left ${
               activeView === 'catalog'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 bg-transparent'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-655 text-white shadow-md shadow-blue-950/40 border-l-4 border-[#F1BF0A]'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 bg-transparent'
             }`}
           >
             <span>👘</span>
@@ -1291,8 +1743,8 @@ export default function CMSConsole() {
             onClick={() => setActiveView('orders')}
             className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer border-0 text-left ${
               activeView === 'orders'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 bg-transparent'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-655 text-white shadow-md shadow-blue-950/40 border-l-4 border-[#F1BF0A]'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 bg-transparent'
             }`}
           >
             <div className="flex items-center gap-3">
@@ -1310,8 +1762,8 @@ export default function CMSConsole() {
             onClick={() => setActiveView('returns')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer border-0 text-left ${
               activeView === 'returns'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 bg-transparent'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-655 text-white shadow-md shadow-blue-950/40 border-l-4 border-[#F1BF0A]'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 bg-transparent'
             }`}
           >
             <span>↩</span>
