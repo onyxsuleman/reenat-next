@@ -1094,11 +1094,7 @@ export default function CMSConsole() {
                         </div>
                       </div>
                     </td>
-                    <td 
-                      className="p-4 font-mono text-slate-500 dark:text-slate-455 cursor-copy hover:underline select-text font-bold"
-                      onClick={() => { if (item.skuId) handleCopyToClipboard(item.skuId, "SKU ID"); }}
-                      title="Click to copy SKU ID"
-                    >
+                    <td className="p-4 font-mono text-slate-500 dark:text-slate-455 select-text font-bold">
                       {item.skuId || 'N/A'}
                     </td>
                     <td className="p-4 text-right font-extrabold text-slate-950 dark:text-white">₹{(item.amount * item.qty).toLocaleString('en-IN')}</td>
@@ -1254,12 +1250,7 @@ export default function CMSConsole() {
     );
   };
 
-    const handleCopyToClipboard = (text, label = "Catalog ID") => {
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(text);
-      showToast(`${label} "${text}" copied to clipboard.`, 'success');
-    }
-  };
+  
 
   const getStockNumber = (qty) => {
     if (!qty) return 150; // default stock
@@ -1525,14 +1516,7 @@ export default function CMSConsole() {
 
                       {/* Details */}
                       <div className="min-w-0 flex-1 flex flex-col justify-center py-0.5">
-                        <span 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCopyToClipboard(group.catalogId);
-                          }}
-                          className="text-[15px] font-black text-blue-600 dark:text-blue-400 font-mono tracking-wide hover:underline cursor-copy select-text"
-                          title="Click to copy Catalog ID"
-                        >
+                        <span className="text-[15px] font-black text-blue-600 dark:text-blue-400 font-mono tracking-wide select-text">
                           Catalog ID: {group.catalogId}
                         </span>
                         <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 truncate mt-1.5 leading-snug">
@@ -1564,11 +1548,7 @@ export default function CMSConsole() {
                     <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
                       <div>
                         <h2 className="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2 tracking-tight">
-                          SKUs and Products of Catalog ID: <span 
-                            onClick={() => handleCopyToClipboard(selectedCatalog.catalogId)}
-                            className="font-mono text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded-xl font-black text-sm hover:bg-blue-500/20 transition-colors cursor-copy select-text"
-                            title="Click to copy Catalog ID"
-                          >
+                          SKUs and Products of Catalog ID: <span className="font-mono text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded-xl font-black text-sm select-text">
                             {selectedCatalog.catalogId}
                           </span>
                         </h2>
@@ -1657,20 +1637,12 @@ export default function CMSConsole() {
                                 </td>
 
                                 {/* Product ID */}
-                                <td 
-                                  className="p-4 font-mono font-bold text-slate-455 dark:text-slate-550 cursor-copy hover:underline select-text"
-                                  onClick={() => handleCopyToClipboard(item.productId.replace('NYS', 'NSY'), "Product ID")}
-                                  title="Click to copy Product ID"
-                                >
+                                <td className="p-4 font-mono font-bold text-slate-455 dark:text-slate-550 select-text">
                                   {item.productId.replace('NYS', 'NSY')}
                                 </td>
 
                                 {/* SKU ID */}
-                                <td 
-                                  className="p-4 font-mono text-slate-500 dark:text-slate-450 cursor-copy hover:underline select-text"
-                                  onClick={() => { if (item.skuId) handleCopyToClipboard(item.skuId, "SKU ID"); }}
-                                  title="Click to copy SKU ID"
-                                >
+                                <td className="p-4 font-mono text-slate-500 dark:text-slate-450 select-text">
                                   {item.skuId || 'N/A'}
                                 </td>
 
