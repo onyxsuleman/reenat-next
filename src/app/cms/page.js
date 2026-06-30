@@ -667,6 +667,34 @@ export default function CMSConsole() {
     }
   };
 
+  const deleteCatalog = async (catalogId) => {
+    const itemsToDelete = products.filter(p => p.catalogId && p.catalogId.toLowerCase() === catalogId.toLowerCase());
+    if (confirm(`Are you sure you want to delete catalog "${catalogId}" and all its ${itemsToDelete.length} variations?`)) {
+      const updated = products.filter(p => !p.catalogId || p.catalogId.toLowerCase() !== catalogId.toLowerCase());
+      setProducts(updated);
+      try {
+        localStorage.setItem('products', JSON.stringify(updated));
+      } catch (storageError) {
+        console.warn("Could not save products cache to localStorage:", storageError);
+      }
+
+      try {
+        const idsToDelete = itemsToDelete.map(item => item.id).filter(id => id);
+        if (idsToDelete.length > 0) {
+          const { error } = await supabase.from('products').delete().in('id', idsToDelete);
+          if (error) console.error("Database delete error:", error);
+        }
+      } catch (err) {
+        console.warn("Failed to delete from database:", err);
+      }
+
+      showToast(`Catalog ${catalogId} deleted.`, 'info');
+      if (selectedCatalogId && selectedCatalogId.toLowerCase() === catalogId.toLowerCase()) {
+        setSelectedCatalogId(null);
+      }
+    }
+  };
+
   if (!isUnlocked) {
     return (
       <div className="max-w-md mx-auto my-12 bg-white/70 dark:bg-[#0f1f41]/60 border border-black/5 dark:border-white/10 p-8 rounded-3xl glass shadow-lg text-center space-y-6">
@@ -1034,6 +1062,7 @@ export default function CMSConsole() {
                   <th className="p-4 w-28">Date</th>
                   <th className="p-4">Customer</th>
                   <th className="p-4">Product Details</th>
+                  <th className="p-4 w-32">SKU ID</th>
                   <th className="p-4 text-right">Price</th>
                   <th className="p-4 text-center">Payment</th>
                   <th className="p-4 text-center">Status</th>
@@ -1061,9 +1090,16 @@ export default function CMSConsole() {
                         </div>
                         <div className="min-w-0">
                           <span className="font-bold text-slate-800 dark:text-slate-200 block truncate max-w-[165px]">{item.productName}</span>
-                          <span className="text-[9px] text-slate-450 dark:text-slate-500 block uppercase font-extrabold mt-0.5">Color: {item.color} | Qty: {item.qty}</span>
+                          <span className="text-[9px] text-slate-455 dark:text-slate-550 block uppercase font-extrabold mt-0.5">Color: {item.color} | Qty: {item.qty}</span>
                         </div>
                       </div>
+                    </td>
+                    <td 
+                      className="p-4 font-mono text-slate-500 dark:text-slate-455 cursor-copy hover:underline select-text font-bold"
+                      onClick={() => { if (item.skuId) handleCopyToClipboard(item.skuId, "SKU ID"); }}
+                      title="Click to copy SKU ID"
+                    >
+                      {item.skuId || 'N/A'}
                     </td>
                     <td className="p-4 text-right font-extrabold text-slate-950 dark:text-white">₹{(item.amount * item.qty).toLocaleString('en-IN')}</td>
                     <td className="p-4 text-center">
@@ -1218,7 +1254,14 @@ export default function CMSConsole() {
     );
   };
 
-    const getStockNumber = (qty) => {
+    const handleCopyToClipboard = (text, label = "Catalog ID") => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      showToast(`${label} "${text}" copied to clipboard.`, 'success');
+    }
+  };
+
+  const getStockNumber = (qty) => {
     if (!qty) return 150; // default stock
     const num = parseInt(qty, 10);
     if (!isNaN(num)) return num;
@@ -1354,7 +1397,7 @@ export default function CMSConsole() {
     const activeCatalogId = selectedCatalogId || (filteredGroups[0] ? filteredGroups[0].catalogId : null);
 
     return (
-      <div className="space-y-6 flex flex-col h-[calc(100vh-120px)] overflow-hidden select-none">
+      <div className="space-y-6 flex flex-col h-[calc(100vh-120px)] overflow-hidden">
         
         {/* TOP CONTROLS BAR */}
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm shrink-0">
@@ -1478,7 +1521,14 @@ export default function CMSConsole() {
 
                       {/* Details */}
                       <div className="min-w-0 flex-1 flex flex-col justify-center py-0.5">
-                        <span className="text-[13px] font-black text-blue-600 dark:text-blue-400 font-mono tracking-wide">
+                        <span 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopyToClipboard(group.catalogId);
+                          }}
+                          className="text-[15px] font-black text-blue-600 dark:text-blue-400 font-mono tracking-wide hover:underline cursor-copy select-text"
+                          title="Click to copy Catalog ID"
+                        >
                           Catalog ID: {group.catalogId}
                         </span>
                         <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 truncate mt-1.5 leading-snug">
@@ -1498,7 +1548,7 @@ export default function CMSConsole() {
           </div>
 
           {/* RIGHT COLUMN: PRODUCTS TABLE (2/3 width, scrollable) */}
-          <div className="flex-1 flex flex-col bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800/80 rounded-2xl shadow-sm overflow-hidden select-none min-w-0">
+          <div className="flex-1 flex flex-col bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800/80 rounded-2xl shadow-sm overflow-hidden min-w-0">
             {activeCatalogId ? (
               (() => {
                 const selectedCatalog = catalogGroupsMap[activeCatalogId];
@@ -1510,7 +1560,13 @@ export default function CMSConsole() {
                     <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
                       <div>
                         <h2 className="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2 tracking-tight">
-                          SKUs and Products of Catalog ID: <span className="font-mono text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded font-black text-xs">{selectedCatalog.catalogId}</span>
+                          SKUs and Products of Catalog ID: <span 
+                            onClick={() => handleCopyToClipboard(selectedCatalog.catalogId)}
+                            className="font-mono text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded-xl font-black text-sm hover:bg-blue-500/20 transition-colors cursor-copy select-text"
+                            title="Click to copy Catalog ID"
+                          >
+                            {selectedCatalog.catalogId}
+                          </span>
                         </h2>
                         <p className="text-[10px] text-slate-450 dark:text-slate-550 mt-1.5 flex items-center gap-3">
                           <span>📦 <strong>{selectedCatalog.estimatedOrders} Orders</strong> in last 30 days</span>
@@ -1575,12 +1631,20 @@ export default function CMSConsole() {
                                 </td>
 
                                 {/* Product ID */}
-                                <td className="p-4 font-mono font-bold text-slate-455 dark:text-slate-550">
+                                <td 
+                                  className="p-4 font-mono font-bold text-slate-455 dark:text-slate-550 cursor-copy hover:underline select-text"
+                                  onClick={() => handleCopyToClipboard(item.productId.replace('NYS', 'NSY'), "Product ID")}
+                                  title="Click to copy Product ID"
+                                >
                                   {item.productId.replace('NYS', 'NSY')}
                                 </td>
 
                                 {/* SKU ID */}
-                                <td className="p-4 font-mono text-slate-500 dark:text-slate-450">
+                                <td 
+                                  className="p-4 font-mono text-slate-500 dark:text-slate-450 cursor-copy hover:underline select-text"
+                                  onClick={() => { if (item.skuId) handleCopyToClipboard(item.skuId, "SKU ID"); }}
+                                  title="Click to copy SKU ID"
+                                >
                                   {item.skuId || 'N/A'}
                                 </td>
 
