@@ -107,3 +107,6 @@ All listings, CMS edits, and product displays must strictly adhere to the follow
      * `image_back` / `image2` (Optional): Back view / pallu details.
      * `image_fabric` / `image3` (Optional): Texture/weave close-up.
      * `image_model` / `image4` (Optional): Styling or model view.
+
+## Scripting & Path Guidelines (Windows)
+- When writing file paths inside JavaScript/Node.js helper scripts on Windows, always use forward slashes (`/`) instead of backslashes (`\`) to prevent backslash escape sequence runtime errors.
