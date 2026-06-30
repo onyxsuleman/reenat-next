@@ -1477,20 +1477,13 @@ export default function CMSConsole() {
                       </div>
 
                       {/* Details */}
-                      <div className="min-w-0 flex-1 flex flex-col justify-between py-0.5">
-                        <div>
-                          <span className="text-[10px] font-extrabold text-blue-600 dark:text-blue-400 font-mono tracking-wide">
-                            Catalog ID: {group.catalogId}
-                          </span>
-                          <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 truncate mt-1 leading-snug">
-                            {group.name}
-                          </h4>
-                        </div>
-                        <div className="flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 font-bold mt-2">
-                          <span className="truncate max-w-[80px]">{group.weaveType}</span>
-                          <span>•</span>
-                          <span className="truncate max-w-[80px]">{group.origin}</span>
-                        </div>
+                      <div className="min-w-0 flex-1 flex flex-col justify-center py-0.5">
+                        <span className="text-[13px] font-black text-blue-600 dark:text-blue-400 font-mono tracking-wide">
+                          Catalog ID: {group.catalogId}
+                        </span>
+                        <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 truncate mt-1.5 leading-snug">
+                          {group.name}
+                        </h4>
                       </div>
 
                       {/* Selected Indicator Glow Dot */}
