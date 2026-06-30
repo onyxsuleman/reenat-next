@@ -1773,7 +1773,7 @@ export default function CMSConsole() {
 
         {/* Sidebar Footer */}
         <div className="p-4 border-t border-slate-855 text-[9px] font-bold text-slate-500 text-center select-none">
-          Managed with Meesho v4 Engine
+          Powered by Reenat Trends Console
         </div>
       </aside>
 

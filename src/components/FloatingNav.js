@@ -84,57 +84,7 @@ export default function FloatingNav() {
         style={barStyle}
         className="flex items-center gap-1.5 sm:gap-2 px-2 py-2 rounded-[22px] dark:!bg-[rgba(12,18,38,0.75)] dark:!border-[rgba(255,255,255,0.1)] dark:!shadow-[0_4px_30px_rgba(0,0,0,0.35),0_1px_3px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.06)]"
       >
-        {/* Home */}
-        <Link 
-          href="/"
-          className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl hover:bg-black/5 dark:hover:bg-white/8 active:scale-92 transition-all cursor-pointer no-underline"
-          title="Home"
-          style={{ WebkitTapHighlightColor: 'transparent', textDecoration: 'none' }}
-        >
-          <div style={iconStyle} className="dark:!bg-[rgba(255,255,255,0.1)] dark:!border-[rgba(255,255,255,0.08)] dark:!text-slate-200">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" style={{ width: '18px', height: '18px' }}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
-            </svg>
-          </div>
-          <span style={{ fontSize: '9px', fontWeight: 600, color: '#475569', letterSpacing: '0.02em', lineHeight: 1 }} className="dark:!text-slate-400">Home</span>
-        </Link>
 
-        {/* Cart */}
-        <Link 
-          href="/cart"
-          className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl hover:bg-black/5 dark:hover:bg-white/8 active:scale-92 transition-all cursor-pointer relative no-underline"
-          title="Cart"
-          style={{ WebkitTapHighlightColor: 'transparent', textDecoration: 'none' }}
-        >
-          <div style={{...iconStyle, position: 'relative'}} className="dark:!bg-[rgba(255,255,255,0.1)] dark:!border-[rgba(255,255,255,0.08)] dark:!text-slate-200">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" style={{ width: '18px', height: '18px' }}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121 0 2.09-.773 2.342-1.872l1.819-7.94a1.125 1.125 0 0 0-1.093-1.388H6.107" />
-            </svg>
-            {cartCount > 0 && (
-              <span style={{
-                position: 'absolute',
-                top: '-4px',
-                right: '-4px',
-                minWidth: '16px',
-                height: '16px',
-                background: '#ef4444',
-                color: 'white',
-                fontSize: '9px',
-                fontWeight: 700,
-                borderRadius: '9999px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '0 4px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
-                border: '1.5px solid rgba(255,255,255,0.5)',
-              }}>
-                {cartCount > 9 ? '9+' : cartCount}
-              </span>
-            )}
-          </div>
-          <span style={{ fontSize: '9px', fontWeight: 600, color: '#475569', letterSpacing: '0.02em', lineHeight: 1 }} className="dark:!text-slate-400">Cart</span>
-        </Link>
 
         {/* My Account */}
         <Link 
