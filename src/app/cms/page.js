@@ -1369,7 +1369,11 @@ export default function CMSConsole() {
         group.name.toLowerCase().includes(query) ||
         group.weaveType.toLowerCase().includes(query) ||
         group.origin.toLowerCase().includes(query) ||
-        group.variants.some(v => v.skuId && v.skuId.toLowerCase().includes(query))
+        group.variants.some(v => 
+          (v.skuId && v.skuId.toLowerCase().includes(query)) ||
+          (v.productId && v.productId.toLowerCase().includes(query)) ||
+          (v.productId && v.productId.replace('NYS', 'NSY').toLowerCase().includes(query))
+        )
       );
     });
 
@@ -1606,7 +1610,29 @@ export default function CMSConsole() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                          {selectedCatalog.variants.map((item, i) => {
+                          {(() => {
+                            const query = searchQuery.toLowerCase().trim();
+                            const displayVariants = query 
+                              ? selectedCatalog.variants.filter(v => 
+                                  v.name.toLowerCase().includes(query) ||
+                                  (v.color && v.color.toLowerCase().includes(query)) ||
+                                  (v.skuId && v.skuId.toLowerCase().includes(query)) ||
+                                  (v.productId && v.productId.toLowerCase().includes(query)) ||
+                                  (v.productId && v.productId.replace('NYS', 'NSY').toLowerCase().includes(query))
+                                )
+                              : selectedCatalog.variants;
+
+                            if (displayVariants.length === 0) {
+                              return (
+                                <tr>
+                                  <td colSpan="8" className="p-8 text-center text-slate-400 dark:text-slate-550 font-bold">
+                                    No variants match your search query.
+                                  </td>
+                                </tr>
+                              );
+                            }
+
+                            return displayVariants.map((item, i) => {
                             const isEditingThisStock = editingStockId === item.id;
                             
                             return (
@@ -1715,7 +1741,8 @@ export default function CMSConsole() {
                                 </td>
                               </tr>
                             );
-                          })}
+                          })
+                        })()}
                         </tbody>
                       </table>
                     </div>
