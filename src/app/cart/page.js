@@ -1,13 +1,33 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { supabase } from '../../utils/supabase';
 
 export default function Cart() {
-  const { cart, updateCartQty, removeFromCart, updateCounts, showToast } = useApp();
+  const router = useRouter();
+  const { cart, updateCartQty, removeFromCart, showToast, userSession } = useApp();
   const [promoCode, setPromoCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(0); // e.g. 0.1 for 10%
+  const [showCheckoutForm, setShowCheckoutForm] = useState(false);
+
+  // Form states
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('Cash on Delivery');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (userSession) {
+      setEmail(userSession.email || '');
+      setFullName(userSession.username || '');
+      setAddress('12, Weaver Street, Silk Nagar, Kanchipuram, Tamil Nadu - 631501');
+    }
+  }, [userSession]);
 
   const subtotal = cart.reduce((sum, item) => sum + (item.price * (item.qty || 1)), 0);
   const taxRate = 0.08; // 8% sales tax
@@ -29,11 +49,9 @@ export default function Cart() {
 
   const handleClearCart = () => {
     if (cart.length > 0) {
-      // Loop to remove all
       cart.forEach(item => {
         removeFromCart(item.id);
       });
-      // Direct update through app context or local storage
       localStorage.setItem('cart', JSON.stringify([]));
       window.location.reload(); // Quick reset
     }
@@ -44,13 +62,85 @@ export default function Cart() {
       showToast('Your cart is empty!', 'info');
       return;
     }
-    showToast('Processing Checkout... Payment integration simulated.', 'success');
-    setTimeout(() => {
-      localStorage.setItem('cart', JSON.stringify([]));
-      showToast('Purchase successful!', 'success');
-      alert('Thank you for your order! Your purchase of traditional handloom sarees was successful.');
-      window.location.href = '/';
-    }, 1000);
+    setShowCheckoutForm(true);
+  };
+
+  const handleConfirmOrder = async (e) => {
+    e.preventDefault();
+    if (!fullName || !email || !phone || !address) {
+      showToast('Please fill in all checkout fields.', 'warning');
+      return;
+    }
+
+    if (phone.replace(/\D/g, '').length < 10) {
+      showToast('Please enter a valid 10-digit phone number.', 'warning');
+      return;
+    }
+
+    setIsSubmitting(true);
+    showToast('Creating order in database...', 'info');
+
+    try {
+      const orderItems = cart.map(item => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        qty: item.qty,
+        image: item.image,
+        color: item.color || '',
+        skuId: item.skuId || item.styleId || ''
+      }));
+
+      const { data, error } = await supabase
+        .from('orders')
+        .insert({
+          customer_name: fullName,
+          email: email,
+          phone: phone,
+          address: address,
+          subtotal: Number(subtotal),
+          tax: Number(tax),
+          discount: Number(discountAmount),
+          total: Number(total),
+          payment_method: paymentMethod,
+          payment_status: paymentMethod === 'Pay Online' ? 'paid' : 'pending',
+          order_status: 'Pending',
+          items: orderItems
+        })
+        .select();
+
+      if (error) {
+        console.error("Order creation failed:", error);
+        showToast('Checkout failed. Please try again.', 'error');
+      } else {
+        // Successfully placed order!
+        // Decrement product stock levels in background
+        for (const item of cart) {
+          if (item.id && !String(item.id).startsWith('temp-')) {
+            const currentStock = item.stockQty || 10;
+            const updatedStock = Math.max(0, currentStock - item.qty);
+            await supabase
+              .from('products')
+              .update({ stock_qty: updatedStock })
+              .eq('id', item.id);
+          }
+        }
+
+        // Clear cart
+        localStorage.setItem('cart', JSON.stringify([]));
+        showToast('Order placed successfully!', 'success');
+        
+        // Wait 1.5 seconds and redirect
+        setTimeout(() => {
+          router.push('/account');
+        }, 1500);
+      }
+    } catch (err) {
+      console.error("Checkout exception:", err);
+      showToast('Database connection failed.', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -188,6 +278,127 @@ export default function Cart() {
           </div>
         </div>
       )}
+
+      {/* Checkout details form drawer modal */}
+      {showCheckoutForm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[9500] flex items-center justify-center p-4">
+          <div className="bg-white/95 dark:bg-[#0c1e44]/95 text-slate-800 dark:text-white max-w-lg w-full rounded-3xl shadow-2xl glass border border-white/20 dark:border-white/10 overflow-hidden relative animate-in fade-in zoom-in-95 duration-200">
+            {/* Close button */}
+            <button 
+              onClick={() => setShowCheckoutForm(false)}
+              className="absolute top-4 right-4 p-2 text-slate-500 hover:text-slate-850 dark:text-slate-400 dark:hover:text-white rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors cursor-pointer z-50 font-bold" 
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            <form onSubmit={handleConfirmOrder} className="p-6 sm:p-8 space-y-4">
+              <h2 className="text-xl md:text-2xl font-anton text-slate-800 dark:text-white uppercase tracking-wider">
+                Shipping & Payment Details
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Please complete your information to confirm the saree shipment.
+              </p>
+
+              <hr className="border-slate-200 dark:border-slate-850" />
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Full Name</label>
+                  <input 
+                    type="text" 
+                    required 
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="w-full bg-white/50 dark:bg-black/10 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#183fad] dark:focus:ring-[#F1BF0A]" 
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Email Address</label>
+                  <input 
+                    type="email" 
+                    required 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full bg-white/50 dark:bg-black/10 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#183fad] dark:focus:ring-[#F1BF0A]" 
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Phone Number (10 Digits)</label>
+                  <input 
+                    type="tel" 
+                    required 
+                    maxLength={10}
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="e.g. 9876543210"
+                    className="w-full bg-white/50 dark:bg-black/10 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#183fad] dark:focus:ring-[#F1BF0A]" 
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Delivery Address</label>
+                  <textarea 
+                    required 
+                    rows={2}
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    className="w-full bg-white/50 dark:bg-black/10 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#183fad] dark:focus:ring-[#F1BF0A]" 
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Payment Method</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('Cash on Delivery')}
+                      className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                        paymentMethod === 'Cash on Delivery'
+                          ? 'bg-[#183fad] border-[#183fad] text-white'
+                          : 'bg-white/40 dark:bg-black/10 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-350'
+                      }`}
+                    >
+                      Cash on Delivery (COD)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('Pay Online')}
+                      className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                        paymentMethod === 'Pay Online'
+                          ? 'bg-[#183fad] border-[#183fad] text-white'
+                          : 'bg-white/40 dark:bg-black/10 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-350'
+                      }`}
+                    >
+                      Pay Online (Simulated)
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-200 dark:border-slate-850 flex items-center justify-between text-sm font-bold">
+                <span>Total Amount:</span>
+                <span className="text-[#183fad] dark:text-[#F1BF0A] text-lg">₹{Math.round(total).toLocaleString('en-IN')}</span>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full bg-[#183fad] hover:bg-blue-800 disabled:opacity-50 text-white font-semibold py-3 px-6 rounded-full border border-[#183fad] transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md cursor-pointer block text-center text-sm"
+              >
+                {isSubmitting ? 'Processing Order...' : 'Confirm and Place Order'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
+
+
+

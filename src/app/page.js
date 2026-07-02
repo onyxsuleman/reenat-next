@@ -5,47 +5,8 @@ import { useApp } from '../context/AppContext';
 import ProductCard from '../components/ProductCard';
 import { ProductSkeletonGrid } from '../components/ProductSkeleton';
 
-const carouselSlides = [
-  {
-    subtitle: "Luxury Weaves",
-    title: "KANJIVARAM SILK",
-    desc: "Exquisite pure mulberry silk sarees woven with genuine gold zari borders, carrying centuries of wedding-day heritage.",
-    image: "/assets/hero (1).png"
-  },
-  {
-    subtitle: "Royal Heritage",
-    title: "BANARASI WEAVE",
-    desc: "Dense and luxurious brocades from Varanasi, featuring elaborate floral vines and silver filigree for celebrations.",
-    image: "/assets/hero (2).png"
-  },
-  {
-    subtitle: "Sheer Elegance",
-    title: "CHANDERI CHARM",
-    desc: "Whisper-light silk cotton blends adorned with delicate handwoven buttis, perfect for warm summers and day events.",
-    image: "/assets/hero (3).png"
-  },
-  {
-    subtitle: "Organic Splendor",
-    title: "TUSSAR ELEGANCE",
-    desc: "Naturally textured wild silk sarees with a soft golden sheen, celebrating raw elegance and earth-toned charm.",
-    image: "/assets/hero (4).png"
-  },
-  {
-    subtitle: "Regal Drape",
-    title: "ROYAL PAITHANI",
-    desc: "Vibrant Maharashtrian silks detailed with spectacular peacock pallus and signature square borders.",
-    image: "/assets/hero (5).png"
-  },
-  {
-    subtitle: "Rare Golden Thread",
-    title: "MUGA MARVEL",
-    desc: "Assam’s exclusive golden silk, renowned for its glossy natural color and durability that outlasts a lifetime.",
-    image: "/assets/hero (6).png"
-  }
-];
-
 export default function Home() {
-  const { products } = useApp();
+  const { products, heroSlides, categoryCards, collectionCards } = useApp();
   const [slideIndex, setSlideIndex] = useState(0);
   const [fadeText, setFadeText] = useState(false);
   const [timeLeft, setTimeLeft] = useState('12H:12M:31S');
@@ -57,7 +18,7 @@ export default function Home() {
       handleNextSlide();
     }, 8000);
     return () => clearInterval(timer);
-  }, []);
+  }, [heroSlides]);
 
   // Live Countdown Timer
   useEffect(() => {
@@ -81,17 +42,17 @@ export default function Home() {
   const handleNextSlide = () => {
     setFadeText(true);
     setTimeout(() => {
-      setSlideIndex((prev) => (prev + 1) % carouselSlides.length);
+      setSlideIndex((prev) => (prev + 1) % (heroSlides?.length || 1));
       setFadeText(false);
-    }, 450);
+    }, 455);
   };
 
   const handlePrevSlide = () => {
     setFadeText(true);
     setTimeout(() => {
-      setSlideIndex((prev) => (prev - 1 + carouselSlides.length) % carouselSlides.length);
+      setSlideIndex((prev) => (prev - 1 + (heroSlides?.length || 1)) % (heroSlides?.length || 1));
       setFadeText(false);
-    }, 450);
+    }, 455);
   };
 
   const scrollCollections = (direction) => {
@@ -101,7 +62,7 @@ export default function Home() {
     }
   };
 
-  const activeSlide = carouselSlides[slideIndex];
+  const activeSlide = (heroSlides && heroSlides[slideIndex]) || { subtitle: '', title: '', desc: '', image: '' };
 
   return (
     <div className="space-y-12">
@@ -269,33 +230,14 @@ export default function Home() {
       <section className="w-full max-w-5xl mx-auto py-4">
         <h2 className="font-anton text-center text-2xl tracking-widest text-slate-800 dark:text-slate-100 mb-8">CATEGORY</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 px-4">
-          <a href="#product-list" className="flex flex-col items-center group gap-3 hover:no-underline">
-            <div className="size-24 sm:size-28 rounded-full overflow-hidden border-2 border-amber-500/30 group-hover:border-amber-500 group-hover:shadow-md transition-all duration-300 relative">
-              <img src="/saree_kanjivaram.png" alt="Sarees" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-            </div>
-            <span className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-wider group-hover:text-amber-500 transition-colors">SAREES</span>
-          </a>
-
-          <a href="#product-list" className="flex flex-col items-center group gap-3 hover:no-underline">
-            <div className="size-24 sm:size-28 rounded-full overflow-hidden border-2 border-amber-500/30 group-hover:border-amber-500 group-hover:shadow-md transition-all duration-300 relative">
-              <img src="/saree_banarasi.png" alt="Trending Styles" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-            </div>
-            <span className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-wider group-hover:text-amber-500 transition-colors">TRENDING STYLES</span>
-          </a>
-
-          <a href="#product-list" className="flex flex-col items-center group gap-3 hover:no-underline">
-            <div className="size-24 sm:size-28 rounded-full overflow-hidden border-2 border-amber-500/30 group-hover:border-amber-500 group-hover:shadow-md transition-all duration-300 relative">
-              <img src="/saree_chanderi.png" alt="Popular This Week" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-            </div>
-            <span className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-wider group-hover:text-amber-500 transition-colors">POPULAR THIS WEEK</span>
-          </a>
-
-          <a href="#product-list" className="flex flex-col items-center group gap-3 hover:no-underline">
-            <div className="size-24 sm:size-28 rounded-full overflow-hidden border-2 border-amber-500/30 group-hover:border-amber-500 group-hover:shadow-md transition-all duration-300 relative">
-              <img src="/saree_hero.png" alt="Clearance Zone" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-            </div>
-            <span className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-wider group-hover:text-amber-500 transition-colors">CLEARANCE ZONE</span>
-          </a>
+          {categoryCards?.map((card, idx) => (
+            <a key={idx} href={card.link || "#product-list"} className="flex flex-col items-center group gap-3 hover:no-underline">
+              <div className="size-24 sm:size-28 rounded-full overflow-hidden border-2 border-amber-500/30 group-hover:border-amber-500 group-hover:shadow-md transition-all duration-300 relative">
+                <img src={card.image || "/saree_kanjivaram.png"} alt={card.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+              </div>
+              <span className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-wider group-hover:text-amber-500 transition-colors uppercase">{card.name}</span>
+            </a>
+          ))}
         </div>
       </section>
 
@@ -331,26 +273,14 @@ export default function Home() {
           ref={collectionsRef}
           className="flex gap-4 overflow-x-auto px-4 pb-4 snap-x scrollbar-none scroll-smooth"
         >
-          <div className="w-72 sm:w-80 shrink-0 snap-center relative rounded-2xl overflow-hidden aspect-[4/3] group shadow-lg border border-slate-200 dark:border-white/5">
-            <img src="/saree_kanjivaram.png" alt="Sarees" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-transparent flex flex-col justify-end p-5">
-              <a href="#product-list" className="font-anton text-lg tracking-wider text-[#F1BF0A] hover:text-white uppercase transition-colors hover:no-underline">SAREES</a>
+          {collectionCards?.map((card, idx) => (
+            <div key={idx} className="w-72 sm:w-80 shrink-0 snap-center relative rounded-2xl overflow-hidden aspect-[4/3] group shadow-lg border border-slate-200 dark:border-white/5">
+              <img src={card.image || "/saree_kanjivaram.png"} alt={card.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-transparent flex flex-col justify-end p-5">
+                <a href={card.link || "#product-list"} className="font-anton text-lg tracking-wider text-[#F1BF0A] hover:text-white uppercase transition-colors hover:no-underline">{card.name}</a>
+              </div>
             </div>
-          </div>
-
-          <div className="w-72 sm:w-80 shrink-0 snap-center relative rounded-2xl overflow-hidden aspect-[4/3] group shadow-lg border border-slate-200 dark:border-white/5">
-            <img src="/saree_chanderi.png" alt="Popular This Week" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-transparent flex flex-col justify-end p-5">
-              <a href="#product-list" className="font-anton text-lg tracking-wider text-[#F1BF0A] hover:text-white uppercase transition-colors hover:no-underline">POPULAR THIS WEEK</a>
-            </div>
-          </div>
-
-          <div className="w-72 sm:w-80 shrink-0 snap-center relative rounded-2xl overflow-hidden aspect-[4/3] group shadow-lg border border-slate-200 dark:border-white/5">
-            <img src="/saree_banarasi.png" alt="Trending Styles" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-transparent flex flex-col justify-end p-5">
-              <a href="#product-list" className="font-anton text-lg tracking-wider text-[#F1BF0A] hover:text-white uppercase transition-colors hover:no-underline">TRENDING STYLES</a>
-            </div>
-          </div>
+          ))}
         </div>
       </section>
 

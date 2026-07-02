@@ -93,14 +93,16 @@ function ProductDetailsContent() {
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
   };
 
-  // Get active image src
+  // Get active image src / media gallery
   const galleryImages = [
-    product.image,
-    product.image2 || product.image,
-    product.image3 || product.image
+    ...(product.videoUrl ? [{ type: 'video', src: product.videoUrl }] : []),
+    { type: 'image', src: product.image },
+    ...(product.image2 ? [{ type: 'image', src: product.image2 }] : []),
+    ...(product.image3 ? [{ type: 'image', src: product.image3 }] : []),
+    ...(product.image4 ? [{ type: 'image', src: product.image4 }] : [])
   ];
 
-  const activeImageSrc = galleryImages[activeImageIndex];
+  const activeImageSrc = galleryImages[activeImageIndex]?.src;
 
   // Recommended weaves
   const recommended = products
@@ -189,14 +191,24 @@ function ProductDetailsContent() {
             >
               {galleryImages.map((img, idx) => (
                 <div key={idx} className="w-full h-full shrink-0 snap-center relative">
-                  <Image 
-                    src={img} 
-                    alt={`${product.name} - View ${idx + 1}`} 
-                    fill
-                    sizes="100vw"
-                    className="object-cover"
-                    priority={idx === 0}
-                  />
+                  {img.type === 'video' ? (
+                    <video 
+                      src={img.src} 
+                      className="w-full h-full object-cover" 
+                      controls
+                      playsInline
+                      muted
+                    />
+                  ) : (
+                    <Image 
+                      src={img.src} 
+                      alt={`${product.name} - View ${idx + 1}`} 
+                      fill
+                      sizes="100vw"
+                      className="object-cover"
+                      priority={idx === 0}
+                    />
+                  )}
                 </div>
               ))}
             </div>
@@ -209,14 +221,24 @@ function ProductDetailsContent() {
             >
               {galleryImages.map((img, idx) => (
                 <div key={idx} className="w-full h-full shrink-0 snap-center relative">
-                  <Image 
-                    src={img} 
-                    alt={`${product.name} - View ${idx + 1}`} 
-                    fill
-                    sizes="50vw"
-                    className="object-cover"
-                    priority={idx === 0}
-                  />
+                  {img.type === 'video' ? (
+                    <video 
+                      src={img.src} 
+                      className="w-full h-full object-cover" 
+                      controls
+                      playsInline
+                      muted
+                    />
+                  ) : (
+                    <Image 
+                      src={img.src} 
+                      alt={`${product.name} - View ${idx + 1}`} 
+                      fill
+                      sizes="50vw"
+                      className="object-cover"
+                      priority={idx === 0}
+                    />
+                  )}
                 </div>
               ))}
             </div>

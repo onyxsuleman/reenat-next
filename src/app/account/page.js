@@ -1,12 +1,15 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '../../context/AppContext';
+import { supabase } from '../../utils/supabase';
 
 export default function Account() {
   const router = useRouter();
   const { userSession, handleLogout } = useApp();
+  const [orders, setOrders] = useState([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
 
   useEffect(() => {
     // Wait for hydration before checking session
@@ -14,6 +17,29 @@ export default function Account() {
     if (!stored && !userSession) {
       router.push('/login');
     }
+  }, [userSession]);
+
+  useEffect(() => {
+    async function fetchOrders() {
+      if (!userSession?.email) return;
+      try {
+        setIsLoadingOrders(true);
+        const { data, error } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('email', userSession.email)
+          .order('created_at', { ascending: false });
+
+        if (!error && data) {
+          setOrders(data);
+        }
+      } catch (err) {
+        console.error("Error fetching orders:", err);
+      } finally {
+        setIsLoadingOrders(false);
+      }
+    }
+    fetchOrders();
   }, [userSession]);
 
   if (!userSession) {
@@ -31,7 +57,10 @@ export default function Account() {
     router.push('/login');
   };
 
+  const primaryAddress = orders[0]?.address || '12, Weaver Street, Silk Nagar, Kanchipuram, Tamil Nadu - 631501';
+
   return (
+
     <main className="max-w-5xl mx-auto w-full flex-1 py-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
         {/* Left Profile Details Box */}
@@ -82,31 +111,64 @@ export default function Account() {
             </h3>
             
             <div className="mt-4 space-y-4">
-              {/* Mock Order 1 */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-white/40 dark:bg-black/10 border border-black/5 dark:border-white/5 rounded-2xl gap-3">
-                <div className="space-y-1">
-                  <div className="font-semibold text-slate-900 dark:text-white text-sm">Order #RT-9082</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Placed on June 10, 2026</div>
-                  <div className="text-xs text-slate-600 dark:text-slate-350">Items: 1x Kanjivaram Silk, 1x Banarasi Weave</div>
+              {isLoadingOrders ? (
+                <div className="py-8 text-center text-xs text-slate-505 dark:text-slate-400 animate-pulse font-medium">
+                  Loading your purchase records...
                 </div>
-                <div className="text-right flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-2">
-                  <span className="text-sm font-bold text-slate-800 dark:text-white">₹6,000</span>
-                  <span className="text-xs bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 rounded-full font-semibold">Delivered</span>
+              ) : orders.length === 0 ? (
+                <div className="py-12 text-center text-xs text-slate-500 dark:text-slate-400 bg-white/20 dark:bg-black/10 rounded-2xl border border-black/5 dark:border-white/5 font-medium">
+                  No orders placed yet. Click <Link href="/new-arrivals" className="text-[#183fad] dark:text-[#F1BF0A] font-bold underline">here</Link> to browse our handloom collections.
                 </div>
-              </div>
+              ) : (
+                orders.map((order) => {
+                  const dateStr = new Date(order.created_at).toLocaleDateString('en-IN', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  });
+                  return (
+                    <div key={order.id} className="flex flex-col p-4 bg-white/40 dark:bg-black/10 border border-black/5 dark:border-white/5 rounded-2xl gap-3 text-slate-800 dark:text-slate-100">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div className="space-y-1">
+                          <div className="font-semibold text-slate-900 dark:text-white text-sm">Order #RT-{order.id}</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400">Placed on {dateStr}</div>
+                          <div className="text-xs text-slate-600 dark:text-slate-350">
+                            Ship to: <span className="font-semibold">{order.customer_name}</span> ({order.phone})
+                          </div>
+                        </div>
+                        <div className="text-right flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-2">
+                          <span className="text-sm font-bold text-slate-800 dark:text-white">₹{Math.round(order.total).toLocaleString('en-IN')}</span>
+                          <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+                            order.order_status === 'Pending' 
+                              ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400' 
+                              : order.order_status === 'Shipped'
+                                ? 'bg-blue-100 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400'
+                                : 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400'
+                          }`}>
+                            {order.order_status}
+                          </span>
+                        </div>
+                      </div>
 
-              {/* Mock Order 2 */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-white/40 dark:bg-black/10 border border-black/5 dark:border-white/5 rounded-2xl gap-3">
-                <div className="space-y-1">
-                  <div className="font-semibold text-slate-900 dark:text-white text-sm">Order #RT-8741</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Placed on May 24, 2026</div>
-                  <div className="text-xs text-slate-600 dark:text-slate-350">Items: 1x Chanderi Charm</div>
-                </div>
-                <div className="text-right flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-2">
-                  <span className="text-sm font-bold text-slate-800 dark:text-white">₹2,000</span>
-                  <span className="text-xs bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 rounded-full font-semibold">Delivered</span>
-                </div>
-              </div>
+                      {/* Display items with thumbnails */}
+                      <div className="flex flex-wrap gap-3 border-t border-black/5 dark:border-white/5 pt-2">
+                        {Array.isArray(order.items) && order.items.map((item, idx) => (
+                          <div key={idx} className="flex items-center gap-3 bg-white/30 dark:bg-black/20 p-2 rounded-xl border border-black/5 dark:border-white/5 min-w-[200px] flex-1 max-w-xs">
+                            <img src={item.image} className="size-12 object-cover rounded-lg shadow-sm" alt="" />
+                            <div className="text-[11px] min-w-0 flex-1">
+                              <div className="font-bold text-slate-800 dark:text-white truncate">{item.name}</div>
+                              <div className="text-slate-500 dark:text-slate-400 mt-0.5">₹{item.price.toLocaleString('en-IN')} x {item.qty}</div>
+                              {item.color && (
+                                <div className="text-[9px] text-[#d9a05b] font-extrabold uppercase mt-0.5">Color: {item.color}</div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
 
@@ -119,9 +181,7 @@ export default function Account() {
               <p className="font-semibold text-slate-850 dark:text-white">
                 {userSession.username ? userSession.username.toUpperCase() : 'User Name'}
               </p>
-              <p>12, Weaver Street, Silk Nagar</p>
-              <p>Kanchipuram, Tamil Nadu - 631501</p>
-              <p>India</p>
+              <p>{primaryAddress}</p>
             </div>
           </div>
         </div>

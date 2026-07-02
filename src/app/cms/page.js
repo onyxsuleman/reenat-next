@@ -5,7 +5,25 @@ import { useApp } from '../../context/AppContext';
 import { supabase } from '../../utils/supabase';
 
 export default function CMSConsole() {
-  const { products, setProducts, refreshDatabase, showToast } = useApp();
+  const { products, setProducts, refreshDatabase, showToast, heroSlides, categoryCards, collectionCards, saveHomepageConfig } = useApp();
+  
+  // Homepage Dynamic Configurations State
+  const [localHeroSlides, setLocalHeroSlides] = useState([]);
+  const [localCategoryCards, setLocalCategoryCards] = useState([]);
+  const [localCollectionCards, setLocalCollectionCards] = useState([]);
+
+  useEffect(() => {
+    if (heroSlides) setLocalHeroSlides(heroSlides);
+  }, [heroSlides]);
+
+  useEffect(() => {
+    if (categoryCards) setLocalCategoryCards(categoryCards);
+  }, [categoryCards]);
+
+  useEffect(() => {
+    if (collectionCards) setLocalCollectionCards(collectionCards);
+  }, [collectionCards]);
+
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [passcode, setPasscode] = useState('');
   
@@ -58,7 +76,7 @@ export default function CMSConsole() {
       const saved = localStorage.getItem('cms_schedule');
       return saved ? JSON.parse(saved) : [
         { id: 1, time: "04:30 PM", text: "Courier dispatch pickup deadline" },
-        { id: 2, time: "06:00 PM", text: "Review client customization request for NYS0003" },
+        { id: 2, time: "06:00 PM", text: "Review client customization request for NSY0003" },
         { id: 3, time: "Tomorrow 11 AM", text: "Add 5 new arrivals silk styles to catalog" }
       ];
     }
@@ -120,65 +138,48 @@ export default function CMSConsole() {
     showToast("Schedule item deleted.", "info");
   };
 
-  // Mock Orders state
-  const [orders, setOrders] = useState([
-    {
-      id: 'ORD1024',
-      date: '2026-06-28',
-      customer: 'Priya Sharma',
-      phone: '+91 98765 43210',
-      address: 'Apt 402, Block B, Silver Oak Apartments, Whitefield, Bengaluru - 560066',
-      productName: 'Traditional Kanjeevaram Silk Saree',
-      productImage: '',
-      color: 'Rani Pink',
-      amount: 1599,
-      qty: 1,
-      paymentMethod: 'Pay Online',
-      status: 'Pending'
-    },
-    {
-      id: 'ORD1023',
-      date: '2026-06-27',
-      customer: 'Anjali Gupta',
-      phone: '+91 87654 32109',
-      address: 'House No 12, Sector 15, Faridabad, Haryana - 121007',
-      productName: 'Banarasi Brocade Silk Saree',
-      productImage: '',
-      color: 'Navy Blue',
-      amount: 1799,
-      qty: 1,
-      paymentMethod: 'Cash on Delivery',
-      status: 'Shipped'
-    },
-    {
-      id: 'ORD1022',
-      date: '2026-06-26',
-      customer: 'Kiran Patel',
-      phone: '+91 76543 21098',
-      address: '24, Gokul Society, Near ISKCON Temple, SG Highway, Ahmedabad - 380015',
-      productName: 'Soft Litchi Silk Saree',
-      productImage: '',
-      color: 'Lemon Yellow',
-      amount: 1499,
-      qty: 1,
-      paymentMethod: 'Pay Online',
-      status: 'Delivered'
-    },
-    {
-      id: 'ORD1021',
-      date: '2026-06-25',
-      customer: 'Meenakshi Iyer',
-      phone: '+91 65432 10987',
-      address: 'Flat G3, Mylapore, Chennai - 600004',
-      productName: 'Designer Organza Floral Saree',
-      productImage: '',
-      color: 'Chikku',
-      amount: 1899,
-      qty: 2,
-      paymentMethod: 'Pay Online',
-      status: 'Delivered'
+  // Database Orders state
+  const [orders, setOrders] = useState([]);
+
+  const fetchDbOrders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .order('id', { ascending: false });
+
+      if (!error && data) {
+        const mapped = data.map(order => {
+          const firstItem = (order.items && order.items.length > 0) ? order.items[0] : {};
+          const totalQty = (order.items || []).reduce((sum, i) => sum + (i.qty || 1), 0);
+          return {
+            id: `RT-${order.id}`,
+            dbId: order.id,
+            date: new Date(order.created_at).toISOString().split('T')[0],
+            customer: order.customer_name,
+            phone: order.phone,
+            address: order.address,
+            productName: firstItem.name || 'Saree',
+            productImage: firstItem.image || '',
+            color: firstItem.color || '',
+            amount: firstItem.price || order.subtotal,
+            qty: firstItem.qty || 1,
+            totalQty: totalQty,
+            paymentMethod: order.payment_method,
+            status: order.order_status,
+            items: order.items || []
+          };
+        });
+        setOrders(mapped);
+      }
+    } catch (err) {
+      console.error("Failed to load orders from Supabase:", err);
     }
-  ]);
+  };
+
+  useEffect(() => {
+    fetchDbOrders();
+  }, []);
 
   // Mock Returns state
   const [returns, setReturns] = useState([
@@ -208,15 +209,6 @@ export default function CMSConsole() {
 
   useEffect(() => {
     if (products && products.length > 0) {
-      setOrders(prev => prev.map((ord, idx) => {
-        const matchingProd = products[idx % products.length];
-        return {
-          ...ord,
-          productName: matchingProd.name,
-          productImage: matchingProd.image,
-          color: matchingProd.color || ord.color
-        };
-      }));
       setReturns(prev => prev.map((ret, idx) => {
         const matchingProd = products[(idx + 2) % products.length];
         return {
@@ -229,7 +221,28 @@ export default function CMSConsole() {
     }
   }, [products]);
 
-  const handleUpdateOrderStatus = (orderId, newStatus) => {
+  const handleUpdateOrderStatus = async (orderId, newStatus) => {
+    const orderToUpdate = orders.find(o => o.id === orderId);
+    const dbId = orderToUpdate?.dbId;
+
+    if (dbId) {
+      try {
+        const { error } = await supabase
+          .from('orders')
+          .update({ order_status: newStatus })
+          .eq('id', dbId);
+
+        if (error) {
+          showToast(`Sync failed: ${error.message}`, 'error');
+          return;
+        }
+      } catch (err) {
+        console.error("Update order status failed:", err);
+        showToast("Database connection failed", "error");
+        return;
+      }
+    }
+
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
     showToast(`Order ${orderId} marked as ${newStatus}.`, 'success');
   };
@@ -271,11 +284,12 @@ export default function CMSConsole() {
     gst: '5', hsn: '500720', weight: '450', styleId: '', blouseLen: '0.8', sareeLen: '5.5',
     blouseType: 'Contrast Blouse', blouseColor: '', color: '', transparency: 'No',
     qty: 'Single', fabric: 'Mulberry Silk', border: 'Zari', occasion: 'Party Traditional Wedding',
-    loom: 'Handloom', brand: 'REENAT TRENDS', image: '', image2: '', image3: '', image4: '', image5: '', image6: '', linkedTo: '', rating: 4.5
+    loom: 'Handloom', brand: 'REENAT TRENDS', image: '', image2: '', image3: '', image4: '', image5: '', image6: '', linkedTo: '', rating: 4.5,
+    videoUrl: '', stockQty: 10
   };
 
   const isCommonField = (field) => {
-    const specificFields = ['color', 'price', 'originalPrice', 'blouseColor', 'skuId', 'image', 'image2', 'image3', 'image4', 'image5', 'image6', 'linkedTo'];
+    const specificFields = ['color', 'price', 'originalPrice', 'blouseColor', 'skuId', 'image', 'image2', 'image3', 'image4', 'image5', 'image6', 'linkedTo', 'videoUrl', 'stockQty'];
     return !specificFields.includes(field);
   };
 
@@ -371,7 +385,9 @@ export default function CMSConsole() {
         image5: p.image5 || '',
         image6: p.image6 || '',
         linkedTo: p.linkedTo || p.linked_to || '',
-        rating: p.rating || 4.5
+        rating: p.rating || 4.5,
+        videoUrl: p.videoUrl || p.video_url || '',
+        stockQty: p.stockQty !== undefined ? p.stockQty : (p.stock_qty !== undefined ? p.stock_qty : 10)
       }));
 
       setBatchProducts(mappedRelated);
@@ -414,7 +430,9 @@ export default function CMSConsole() {
         image5: '',
         image6: '',
         linkedTo: '',
-        rating: 4.5
+        rating: 4.5,
+        videoUrl: '',
+        stockQty: 10
       };
       setBatchProducts([newProduct]);
       setOriginalProductIds([]);
@@ -587,7 +605,9 @@ export default function CMSConsole() {
           image5: p.image5 || '',
           image6: p.image6 || '',
           linked_to: p.linkedTo || '',
-          rating: p.rating ? Number(p.rating) : 4.5
+          rating: p.rating ? Number(p.rating) : 4.5,
+          video_url: p.videoUrl || '',
+          stock_qty: p.stockQty !== undefined ? Number(p.stockQty) : 10
         };
 
         try {
@@ -608,7 +628,20 @@ export default function CMSConsole() {
                 dbError = true;
               } else if (data && data.length > 0) {
                 const inserted = data[0];
-                sharedCatalogId = 'NYS' + String(inserted.id).padStart(4, '0');
+                // Auto-generate the next 'M' series catalog ID (e.g. M1, M2, M3...)
+                let nextCatalogNum = 1;
+                if (products && products.length > 0) {
+                  const mNumbers = products
+                    .map(item => {
+                      const match = String(item.catalogId || '').match(/^M(\d+)$/i);
+                      return match ? parseInt(match[1]) : 0;
+                    })
+                    .filter(num => num > 0);
+                  if (mNumbers.length > 0) {
+                    nextCatalogNum = Math.max(...mNumbers) + 1;
+                  }
+                }
+                sharedCatalogId = `M${nextCatalogNum}`;
                 // Update the first variant's styleid in database to include the new catalog ID
                 const updatedStyleId = `${sharedCatalogId}||${p.skuId || ''}`;
                 await supabase.from('products').update({ styleid: updatedStyleId }).eq('id', inserted.id);
@@ -725,7 +758,433 @@ export default function CMSConsole() {
     );
   }
 
-    const renderHomeView = () => {
+  const handleHomepageConfigImageUpload = async (e, section, index, fieldName) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `homepage_${section}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      showToast("Uploading image...", "info");
+
+      const { data, error } = await supabase.storage
+        .from('saree-images')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) throw error;
+
+      const { data: publicUrlData } = supabase.storage
+        .from('saree-images')
+        .getPublicUrl(filePath);
+
+      const publicUrl = publicUrlData.publicUrl;
+
+      if (section === 'hero') {
+        const updated = [...localHeroSlides];
+        updated[index][fieldName] = publicUrl;
+        setLocalHeroSlides(updated);
+      } else if (section === 'categories') {
+        const updated = [...localCategoryCards];
+        updated[index][fieldName] = publicUrl;
+        setLocalCategoryCards(updated);
+      } else if (section === 'collections') {
+        const updated = [...localCollectionCards];
+        updated[index][fieldName] = publicUrl;
+        setLocalCollectionCards(updated);
+      }
+      showToast('Image uploaded successfully!', 'success');
+    } catch (err) {
+      console.error("Image upload failed:", err);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target.result;
+        if (section === 'hero') {
+          const updated = [...localHeroSlides];
+          updated[index][fieldName] = dataUrl;
+          setLocalHeroSlides(updated);
+        } else if (section === 'categories') {
+          const updated = [...localCategoryCards];
+          updated[index][fieldName] = dataUrl;
+          setLocalCategoryCards(updated);
+        } else if (section === 'collections') {
+          const updated = [...localCollectionCards];
+          updated[index][fieldName] = dataUrl;
+          setLocalCollectionCards(updated);
+        }
+        showToast('Image loaded as local backup.', 'warning');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const renderHomepageConfigView = () => {
+    return (
+      <div className="space-y-8 pb-12">
+        {/* Top Header Card */}
+        <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-8 border border-indigo-950 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 text-white">
+          <div className="relative z-10 space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">⭐</span>
+              <span className="text-[10px] font-extrabold tracking-widest text-[#F1BF0A] uppercase">Homepage Banners & Collections</span>
+            </div>
+            <h1 className="text-2xl md:text-3xl font-black tracking-tight font-sans">
+              Cards & Features Management
+            </h1>
+            <p className="text-xs text-slate-400 max-w-xl">
+              Modify the Hero slides, Category circles, and Collection layouts dynamically. Upload new banner images instantly.
+            </p>
+          </div>
+        </div>
+
+        {/* SECTION 1: HERO CAROUSEL */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-6">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div>
+              <h2 className="text-md font-extrabold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                <span>🎭</span> Hero Carousel Slides
+              </h2>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Customize sliding banner content and product model assets.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setLocalHeroSlides(prev => [
+                  ...prev,
+                  { subtitle: "New Subtitle", title: "NEW CAROUSEL SLIDE", desc: "Short description of slide.", image: "/saree_kanjivaram.png" }
+                ]);
+              }}
+              className="bg-indigo-650 hover:bg-indigo-750 text-white font-extrabold py-2 px-4 rounded-xl text-xs cursor-pointer border-0 shadow-sm transition-transform hover:scale-[1.02]"
+            >
+              ➕ Add New Slide
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {localHeroSlides.map((slide, index) => (
+              <div key={index} className="relative bg-slate-50/50 dark:bg-slate-950/30 border border-slate-100 dark:border-slate-850 p-5 rounded-2xl space-y-4 shadow-sm group">
+                <div className="absolute top-4 right-4 flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                  <button
+                    type="button"
+                    disabled={index === 0}
+                    onClick={() => {
+                      const updated = [...localHeroSlides];
+                      const temp = updated[index];
+                      updated[index] = updated[index - 1];
+                      updated[index - 1] = temp;
+                      setLocalHeroSlides(updated);
+                    }}
+                    className="p-1 text-xs bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded disabled:opacity-40"
+                  >
+                    ▲
+                  </button>
+                  <button
+                    type="button"
+                    disabled={index === localHeroSlides.length - 1}
+                    onClick={() => {
+                      const updated = [...localHeroSlides];
+                      const temp = updated[index];
+                      updated[index] = updated[index + 1];
+                      updated[index + 1] = temp;
+                      setLocalHeroSlides(updated);
+                    }}
+                    className="p-1 text-xs bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded disabled:opacity-40"
+                  >
+                    ▼
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm("Are you sure you want to delete this hero slide?")) {
+                        setLocalHeroSlides(prev => prev.filter((_, i) => i !== index));
+                      }
+                    }}
+                    className="p-1 text-xs bg-rose-500 hover:bg-rose-600 text-white rounded"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="flex gap-4">
+                  {/* Slide Image */}
+                  <div className="w-24 h-32 shrink-0 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden relative group/img bg-slate-150 dark:bg-slate-900 flex items-center justify-center">
+                    <img src={slide.image || "/saree_kanjivaram.png"} className="w-full h-full object-contain" />
+                    <label className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 flex items-center justify-center text-white text-[9px] font-black cursor-pointer uppercase transition-opacity">
+                      Upload
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleHomepageConfigImageUpload(e, 'hero', index, 'image')}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="flex-1 space-y-3">
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">Subtitle</label>
+                      <input
+                        type="text"
+                        value={slide.subtitle}
+                        onChange={(e) => {
+                          const updated = [...localHeroSlides];
+                          updated[index].subtitle = e.target.value;
+                          setLocalHeroSlides(updated);
+                        }}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 dark:text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">Title</label>
+                      <input
+                        type="text"
+                        value={slide.title}
+                        onChange={(e) => {
+                          const updated = [...localHeroSlides];
+                          updated[index].title = e.target.value;
+                          setLocalHeroSlides(updated);
+                        }}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 dark:text-white font-bold"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">Description</label>
+                  <textarea
+                    rows={2}
+                    value={slide.desc}
+                    onChange={(e) => {
+                      const updated = [...localHeroSlides];
+                      updated[index].desc = e.target.value;
+                      setLocalHeroSlides(updated);
+                    }}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 dark:text-white"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-end pt-3">
+            <button
+              type="button"
+              onClick={() => saveHomepageConfig('hero', localHeroSlides)}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-2.5 px-6 rounded-xl text-xs transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md cursor-pointer border-0"
+            >
+              💾 Save Hero Configuration
+            </button>
+          </div>
+        </div>
+
+        {/* SECTION 2: CATEGORY CIRCLES */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-6">
+          <div>
+            <h2 className="text-md font-extrabold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+              <span>⭕</span> Category Circular Banners
+            </h2>
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Customize the round category links displayed on the Homepage grid.</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            {localCategoryCards.map((card, index) => (
+              <div key={index} className="bg-slate-50/50 dark:bg-slate-950/30 border border-slate-100 dark:border-slate-850 p-4 rounded-2xl flex flex-col items-center gap-4 relative">
+                {/* Round Thumbnail */}
+                <div className="size-24 rounded-full border-2 border-amber-500/30 overflow-hidden relative group/img bg-slate-150 dark:bg-slate-900 flex items-center justify-center">
+                  <img src={card.image || "/saree_kanjivaram.png"} className="w-full h-full object-cover" />
+                  <label className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 flex items-center justify-center text-white text-[9px] font-black cursor-pointer uppercase transition-opacity">
+                    Upload
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleHomepageConfigImageUpload(e, 'categories', index, 'image')}
+                    />
+                  </label>
+                </div>
+
+                <div className="w-full space-y-3">
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">Category Name</label>
+                    <input
+                      type="text"
+                      value={card.name}
+                      onChange={(e) => {
+                        const updated = [...localCategoryCards];
+                        updated[index].name = e.target.value;
+                        setLocalCategoryCards(updated);
+                      }}
+                      className="w-full text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-white font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">Link URL</label>
+                    <input
+                      type="text"
+                      value={card.link || ''}
+                      onChange={(e) => {
+                        const updated = [...localCategoryCards];
+                        updated[index].link = e.target.value;
+                        setLocalCategoryCards(updated);
+                      }}
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-850 dark:text-slate-350"
+                      placeholder="e.g. #product-list"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-end pt-3">
+            <button
+              type="button"
+              onClick={() => saveHomepageConfig('categories', localCategoryCards)}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-2.5 px-6 rounded-xl text-xs transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md cursor-pointer border-0"
+            >
+              💾 Save Categories Configuration
+            </button>
+          </div>
+        </div>
+
+        {/* SECTION 3: COLLECTION CARDS */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-6">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div>
+              <h2 className="text-md font-extrabold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                <span>🧥</span> Featured Collection Cards
+              </h2>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Customize large banner cards displayed under the Collection horizontal scroll list.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setLocalCollectionCards(prev => [
+                  ...prev,
+                  { name: "NEW ARRIVALS", image: "/saree_kanjivaram.png", link: "#product-list" }
+                ]);
+              }}
+              className="bg-indigo-650 hover:bg-indigo-750 text-white font-extrabold py-2 px-4 rounded-xl text-xs cursor-pointer border-0 shadow-sm transition-transform hover:scale-[1.02]"
+            >
+              ➕ Add Collection Card
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {localCollectionCards.map((card, index) => (
+              <div key={index} className="bg-slate-50/50 dark:bg-slate-950/30 border border-slate-100 dark:border-slate-850 p-4 rounded-2xl space-y-4 shadow-sm relative group">
+                <div className="absolute top-4 right-4 flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                  <button
+                    type="button"
+                    disabled={index === 0}
+                    onClick={() => {
+                      const updated = [...localCollectionCards];
+                      const temp = updated[index];
+                      updated[index] = updated[index - 1];
+                      updated[index - 1] = temp;
+                      setLocalCollectionCards(updated);
+                    }}
+                    className="p-1 text-xs bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded disabled:opacity-40"
+                  >
+                    ◀
+                  </button>
+                  <button
+                    type="button"
+                    disabled={index === localCollectionCards.length - 1}
+                    onClick={() => {
+                      const updated = [...localCollectionCards];
+                      const temp = updated[index];
+                      updated[index] = updated[index + 1];
+                      updated[index + 1] = temp;
+                      setLocalCollectionCards(updated);
+                    }}
+                    className="p-1 text-xs bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded disabled:opacity-40"
+                  >
+                    ▶
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm("Are you sure you want to delete this collection card?")) {
+                        setLocalCollectionCards(prev => prev.filter((_, i) => i !== index));
+                      }
+                    }}
+                    className="p-1 text-xs bg-rose-500 hover:bg-rose-600 text-white rounded"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* Card Banner Image */}
+                <div className="w-full aspect-[4/3] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden relative group/img bg-slate-150 dark:bg-slate-900 flex items-center justify-center">
+                  <img src={card.image || "/saree_kanjivaram.png"} className="w-full h-full object-cover" />
+                  <label className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 flex items-center justify-center text-white text-[9px] font-black cursor-pointer uppercase transition-opacity">
+                    Upload
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleHomepageConfigImageUpload(e, 'collections', index, 'image')}
+                    />
+                  </label>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">Card Name</label>
+                    <input
+                      type="text"
+                      value={card.name}
+                      onChange={(e) => {
+                        const updated = [...localCollectionCards];
+                        updated[index].name = e.target.value;
+                        setLocalCollectionCards(updated);
+                      }}
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 dark:text-white font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">Link URL</label>
+                    <input
+                      type="text"
+                      value={card.link || ''}
+                      onChange={(e) => {
+                        const updated = [...localCollectionCards];
+                        updated[index].link = e.target.value;
+                        setLocalCollectionCards(updated);
+                      }}
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-855 dark:text-slate-350"
+                      placeholder="e.g. #product-list"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-end pt-3">
+            <button
+              type="button"
+              onClick={() => saveHomepageConfig('collections', localCollectionCards)}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-2.5 px-6 rounded-xl text-xs transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md cursor-pointer border-0"
+            >
+              💾 Save Collections Configuration
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderHomeView = () => {
     const pendingOrdersCount = orders.filter(o => o.status === 'Pending').length;
     const lowStockCount = products.filter(p => p.qty === 'Low Stock' || (p.qty && p.qty.includes('Low'))).length;
 
@@ -1825,6 +2284,18 @@ export default function CMSConsole() {
             <span>↩</span>
             <span>Returns</span>
           </button>
+
+          <button
+            onClick={() => setActiveView('homepage_config')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer border-0 text-left ${
+              activeView === 'homepage_config'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-650 text-white shadow-md shadow-blue-950/40 border-l-4 border-[#F1BF0A]'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 bg-transparent'
+            }`}
+          >
+            <span>⭐</span>
+            <span>Cards & Features</span>
+          </button>
         </nav>
 
         {/* Sidebar Footer */}
@@ -1839,6 +2310,7 @@ export default function CMSConsole() {
         {activeView === 'catalog' && renderCatalogView()}
         {activeView === 'orders' && renderOrdersView()}
         {activeView === 'returns' && renderReturnsView()}
+        {activeView === 'homepage_config' && renderHomepageConfigView()}
       </main>
 
       {/* Edit Form Drawer Panel Overlay */}
@@ -2072,14 +2544,14 @@ export default function CMSConsole() {
                     <div>
                       <label className="flex items-center text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                         <span>Link to Product ID (Optional)</span>
-                        <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-1.5 cursor-pointer hover:text-slate-600" title="Cross-link this product variation to another product catalog (e.g. NYS0010)">ⓘ</span>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-1.5 cursor-pointer hover:text-slate-600" title="Cross-link this product variation to another product catalog (e.g. NSY0010)">ⓘ</span>
                       </label>
                       <input 
                         type="text" 
                         value={activeProduct.linkedTo || ''}
                         onChange={(e) => updateActiveProductField('linkedTo', e.target.value)}
                         className="w-full bg-white dark:bg-slate-900 border border-slate-255 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        placeholder="e.g. NYS0010"
+                        placeholder="e.g. NSY0010"
                       />
                     </div>
                   </div>
@@ -2157,6 +2629,31 @@ export default function CMSConsole() {
                         <option value="6.0">6.0 m</option>
                         <option value="6.3">6.3 m</option>
                       </select>
+                    </div>
+                  </div>
+
+                  {/* Stock & Video URL */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border border-slate-200 dark:border-slate-800 rounded-xl p-3 bg-[#f8fafc] dark:bg-slate-900">
+                    <div>
+                      <label className="block text-[9px] font-extrabold text-slate-550 uppercase tracking-wide mb-1">Stock Quantity *</label>
+                      <input 
+                        type="number" 
+                        required 
+                        min="0"
+                        value={activeProduct.stockQty !== undefined ? activeProduct.stockQty : 10}
+                        onChange={(e) => updateActiveProductField('stockQty', e.target.value)}
+                        className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1.5 text-xs font-bold focus:outline-none"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-[9px] font-extrabold text-slate-550 uppercase tracking-wide mb-1">Video Demonstration URL (MP4 link)</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. https://example.com/video.mp4"
+                        value={activeProduct.videoUrl || ''}
+                        onChange={(e) => updateActiveProductField('videoUrl', e.target.value)}
+                        className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1.5 text-xs font-semibold focus:outline-none"
+                      />
                     </div>
                   </div>
                 </div>
