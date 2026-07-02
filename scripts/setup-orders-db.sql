@@ -8,6 +8,7 @@ ALTER TABLE public.products ADD COLUMN IF NOT EXISTS image5 text;
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS image6 text;
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS video_url text;
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS stock_qty integer DEFAULT 10;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS linked_to text;
 
 -- 2. Create orders table for secure checkout
 CREATE TABLE IF NOT EXISTS public.orders (

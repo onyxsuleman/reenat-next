@@ -45,6 +45,7 @@ CREATE TABLE public.products (
   occasion text,
   loom text,
   brand text DEFAULT 'REENAT TRENDS',
+  linked_to text,
   rating numeric DEFAULT 4.5,
   created_at timestamp with time zone DEFAULT now()
 );
