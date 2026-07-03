@@ -110,3 +110,17 @@ All listings, CMS edits, and product displays must strictly adhere to the follow
 
 ## Scripting & Path Guidelines (Windows)
 - When writing file paths inside JavaScript/Node.js helper scripts on Windows, always use forward slashes (`/`) instead of backslashes (`\`) to prevent backslash escape sequence runtime errors.
+
+---
+
+## Known Issue: Duplicate ID Clashing & Cache Merging
+
+> ⚠️ **Status: WORK IN PROGRESS / ON HOLD** — The live database is updated and the bugs are resolved, but the actual product variations must be re-added.
+> 
+> ### Current Situation
+> 1. The database columns `catalog_id` and `linked_to` are set up and working.
+> 2. Hardcoded secret sweeping and passcode environment variable integrations have been deployed and verified.
+> 3. Refactored the merge logic in `src/context/AppContext.js` and batch saving in `src/app/cms/page.js` to ensure that duplicate Product IDs (clashing on `id: 42` / `NSY0042`) from browser `localStorage` local cache are filtered out.
+> 4. Only one variation (`Navy Blue` / `NSY0042`) is currently stored in the live Supabase database. The other variations (`Gold`, `Grey`, `Mango Rani`, `Mango Green`) were lost/deleted from the database during earlier failed sync attempts (due to missing database columns at that time).
+> 5. **Next steps**: Edit the remaining `NSY0042` row in the CMS console, change it back to `Mango Green` (if you want Mango Green to be the front cover item), and then use the **"Add Saree variation / color"** button to re-add the other variants. Submit the request to write them as new rows into the live database.
+
