@@ -2835,6 +2835,11 @@ export default function CMSConsole() {
                         className="w-full bg-white dark:bg-slate-900 border border-slate-255 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-medium focus:outline-none"
                       >
                         <option value="Silk">Silk</option>
+                        <option value="Paithani">Paithani</option>
+                        <option value="Hathi Design">Hathi Design</option>
+                        <option value="Hathi Raja Pattern">Hathi Raja Pattern</option>
+                        <option value="Kalyani">Kalyani</option>
+                        <option value="Meena Mor">Meena Mor</option>
                         <option value="Kanjeevaram">Kanjeevaram</option>
                         <option value="Brocade">Brocade</option>
                         <option value="Lightweight">Lightweight</option>
