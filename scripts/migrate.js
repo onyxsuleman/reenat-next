@@ -1,11 +1,18 @@
+const { loadEnvConfig } = require('@next/env');
+loadEnvConfig(process.cwd());
 const { createClient } = require('@supabase/supabase-js');
 
 async function migrate() {
-  const db1_url = 'https://utqweirxeimfolchyskv.supabase.co';
-  const db1_key = 'sb_publishable_6XCmyw3Zyi_xuno3lC0_Dw_yvHZgwjM';
+  const db1_url = process.env.OLD_SUPABASE_URL;
+  const db1_key = process.env.OLD_SUPABASE_ANON_KEY;
 
-  const db2_url = 'https://eilxtuedgtimrxfvqojv.supabase.co';
-  const db2_key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpbHh0dWVkZ3RpbXJ4ZnZxb2p2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzNzI3NTQsImV4cCI6MjA5Nzk0ODc1NH0.W656PBpffUxSn-CTpHD7bDef_B5u2WXBdk8y7r9QmdE';
+  const db2_url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const db2_key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!db1_url || !db1_key || !db2_url || !db2_key) {
+    console.error("Missing DB 1 or DB 2 credentials in env!");
+    return;
+  }
 
   console.log("Fetching products from old database (DB 1)...");
   const supabaseOld = createClient(db1_url, db1_key);

@@ -26,11 +26,11 @@ function loadEnv() {
 async function backup() {
   loadEnv();
   
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://eilxtuedgtimrxfvqojv.supabase.co';
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   
-  if (!supabaseKey) {
-    console.error("Error: NEXT_PUBLIC_SUPABASE_ANON_KEY is not defined in .env.local");
+  if (!supabaseUrl || !supabaseKey) {
+    console.error("Error: NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY is not defined in .env.local");
     process.exit(1);
   }
 

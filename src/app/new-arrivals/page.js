@@ -142,13 +142,23 @@ export default function NewArrivals() {
             <p className="font-semibold text-base text-slate-750 dark:text-white">No sarees match your filter criteria.</p>
             <p className="text-xs mt-1">Try resetting search query or filters to view our full lineage.</p>
           </div>
-        ) : (
-          <ul id="product-list" className="grid grid-cols-2 gap-2 md:gap-4 md:grid-cols-3">
-            {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </ul>
-        )}
+        ) : (() => {
+          const seenCatalogs = new Set();
+          const uniqueFilteredProducts = filteredProducts.filter(product => {
+            if (!product.catalogId) return true;
+            const cid = product.catalogId.toLowerCase();
+            if (seenCatalogs.has(cid)) return false;
+            seenCatalogs.add(cid);
+            return true;
+          });
+          return (
+            <ul id="product-list" className="grid grid-cols-2 gap-2 md:gap-4 md:grid-cols-3">
+              {uniqueFilteredProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </ul>
+          );
+        })()}
       </main>
     </div>
   );

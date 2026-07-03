@@ -9,12 +9,14 @@ const defaultProducts = [];
 function mapRawProduct(item) {
   if (!item) return item;
   const rawStyleId = item.styleid || item.styleId || '';
-  let catalogId = rawStyleId;
+  let catalogId = item.catalog_id || item.catalogId || '';
   let skuId = rawStyleId;
-  if (rawStyleId.includes('||')) {
+  if (!catalogId && rawStyleId.includes('||')) {
     const parts = rawStyleId.split('||');
     catalogId = parts[0];
     skuId = parts[1];
+  } else if (!catalogId) {
+    catalogId = rawStyleId;
   }
   const productId = 'NSY' + String(item.id).padStart(4, '0');
   return {

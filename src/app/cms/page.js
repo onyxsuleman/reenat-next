@@ -261,7 +261,7 @@ export default function CMSConsole() {
 
   const handleUnlock = (e) => {
     e.preventDefault();
-    if (passcode === 'admin123') {
+    if (passcode === process.env.NEXT_PUBLIC_CMS_PASSCODE) {
       setIsUnlocked(true);
       sessionStorage.setItem('cms_unlocked', 'true');
       showToast('Console database unlocked.', 'success');
@@ -586,6 +586,7 @@ export default function CMSConsole() {
           hsn: p.hsn,
           weight: p.weight ? Number(p.weight) : null,
           styleid: `${currentCatalogId}||${p.skuId || ''}`,
+          catalog_id: currentCatalogId,
           blouselen: p.blouseLen,
           sareelen: p.sareeLen,
           blousetype: p.blouseType,
@@ -642,14 +643,15 @@ export default function CMSConsole() {
                   }
                 }
                 sharedCatalogId = `M${nextCatalogNum}`;
-                // Update the first variant's styleid in database to include the new catalog ID
+                // Update the first variant's styleid and catalog_id in database to include the new catalog ID
                 const updatedStyleId = `${sharedCatalogId}||${p.skuId || ''}`;
-                await supabase.from('products').update({ styleid: updatedStyleId }).eq('id', inserted.id);
+                await supabase.from('products').update({ styleid: updatedStyleId, catalog_id: sharedCatalogId }).eq('id', inserted.id);
               }
             } else {
               // For subsequent new variants, use the sharedCatalogId
               if (sharedCatalogId) {
                 dbRow.styleid = `${sharedCatalogId}||${p.skuId || ''}`;
+                dbRow.catalog_id = sharedCatalogId;
               }
               const { error } = await supabase.from('products').insert(dbRow);
               if (error) {
@@ -743,7 +745,7 @@ export default function CMSConsole() {
           <div>
             <input 
               type="password" 
-              placeholder="Default: admin123" 
+              placeholder="Enter passcode key" 
               required 
               value={passcode}
               onChange={(e) => setPasscode(e.target.value)}

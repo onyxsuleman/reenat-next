@@ -104,9 +104,19 @@ function ProductDetailsContent() {
 
   const activeImageSrc = galleryImages[activeImageIndex]?.src;
 
-  // Recommended weaves
+  // Recommended weaves (exclude current product and other variants in the same catalog group)
+  const currentCatalogId = product.catalogId ? product.catalogId.toLowerCase() : '';
+  const seenRecommendedCatalogs = new Set();
+  if (currentCatalogId) seenRecommendedCatalogs.add(currentCatalogId);
+
   const recommended = products
-    .filter(p => String(p.id) !== String(product.id))
+    .filter(p => {
+      if (String(p.id) === String(product.id)) return false;
+      const cid = p.catalogId ? p.catalogId.toLowerCase() : '';
+      if (cid && seenRecommendedCatalogs.has(cid)) return false;
+      if (cid) seenRecommendedCatalogs.add(cid);
+      return true;
+    })
     .slice(0, 3);
 
   // Get color variants (matching the catalog ID or linked product IDs to show true + cross-linked color variants)
