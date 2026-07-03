@@ -11,9 +11,9 @@ function mapRawProduct(item) {
   const rawStyleId = item.styleid || item.styleId || '';
   let catalogId = item.catalog_id || item.catalogId || '';
   let skuId = rawStyleId;
-  if (!catalogId && rawStyleId.includes('||')) {
+  if (rawStyleId.includes('||')) {
     const parts = rawStyleId.split('||');
-    catalogId = parts[0];
+    catalogId = catalogId || parts[0];
     skuId = parts[1];
   } else if (!catalogId) {
     catalogId = rawStyleId;
