@@ -167,8 +167,11 @@ export function AppProvider({ children }) {
         const mappedData = data.map(mapRawProduct);
 
         // Merge fetched data with local-only items (either marked isLocal or not present in the database)
+        const dbIds = new Set(mappedData.map(p => String(p.id)));
         const dbNames = new Set(mappedData.map(p => p.name));
-        const existingLocal = Array.isArray(cached) ? cached.filter(p => p.isLocal || !dbNames.has(p.name)) : [];
+        const existingLocal = Array.isArray(cached) 
+          ? cached.filter(p => (p.isLocal || !dbNames.has(p.name)) && !dbIds.has(String(p.id))) 
+          : [];
         const combined = [...mappedData, ...existingLocal];
         setProducts(combined);
         try {
@@ -188,7 +191,6 @@ export function AppProvider({ children }) {
       }
     }
   };
-
 
   // Initialize from LocalStorage (Client Side only)
   useEffect(() => {
