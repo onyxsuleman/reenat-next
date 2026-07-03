@@ -282,8 +282,8 @@ export default function CMSConsole() {
   const activeProduct = batchProducts[activeTabIndex] || {
     name: '', price: '', originalPrice: '', type: 'Silk', origin: 'India', desc: '',
     gst: '5', hsn: '500720', weight: '450', styleId: '', blouseLen: '0.8', sareeLen: '5.5',
-    blouseType: 'Contrast Blouse', blouseColor: '', color: '', transparency: 'No',
-    qty: 'Single', fabric: 'Mulberry Silk', border: 'Zari', occasion: 'Party Traditional Wedding',
+    blouseType: 'Zari Woven', blouseColor: '', color: '', transparency: 'No',
+    qty: 'Single', fabric: 'Mulberry Silk', border: 'Zari', occasion: 'Traditional',
     loom: 'Handloom', brand: 'REENAT TRENDS', image: '', image2: '', image3: '', image4: '', image5: '', image6: '', linkedTo: '', rating: 4.5,
     videoUrl: '', stockQty: 10
   };
@@ -413,14 +413,14 @@ export default function CMSConsole() {
         productId: '',
         blouseLen: '0.8',
         sareeLen: '5.5',
-        blouseType: 'Contrast Blouse',
+        blouseType: 'Zari Woven',
         blouseColor: 'Golden',
         color: 'Multicolor',
         transparency: 'No',
         qty: 'Single',
         fabric: 'Mulberry Silk',
         border: 'Zari',
-        occasion: 'Party Traditional Wedding',
+        occasion: 'Traditional',
         loom: 'Handloom',
         brand: 'REENAT TRENDS',
         image: '',
@@ -2771,11 +2771,8 @@ export default function CMSConsole() {
                         onChange={(e) => updateActiveProductField('blouseType', e.target.value)}
                         className="w-full bg-white dark:bg-slate-900 border border-slate-255 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-medium focus:outline-none"
                       >
-                        <option value="Zari Woven / Printed">Zari Woven / Printed</option>
+                        <option value="Zari Woven">Zari Woven</option>
                         <option value="Printed">Printed</option>
-                        <option value="Woven">Woven</option>
-                        <option value="Embroidered">Embroidered</option>
-                        <option value="Plain">Plain</option>
                       </select>
                     </div>
 
@@ -2801,7 +2798,9 @@ export default function CMSConsole() {
                         onChange={(e) => updateActiveProductField('occasion', e.target.value)}
                         className="w-full bg-white dark:bg-slate-900 border border-slate-255 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-medium focus:outline-none"
                       >
-                        <option value="Party Traditional Wedding">Party Traditional Wedding</option>
+                        <option value="Party">Party</option>
+                        <option value="Traditional">Traditional</option>
+                        <option value="Wedding">Wedding</option>
                         <option value="Festive">Festive</option>
                         <option value="Casual">Casual</option>
                         <option value="Formal">Formal</option>
@@ -2817,6 +2816,8 @@ export default function CMSConsole() {
                         className="w-full bg-white dark:bg-slate-900 border border-slate-255 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-medium focus:outline-none"
                       >
                         <option value="Cotton Silk">Cotton Silk</option>
+                        <option value="Silk">Silk</option>
+                        <option value="Linen">Linen</option>
                         <option value="Mulberry Silk">Mulberry Silk</option>
                         <option value="Mysore Silk">Mysore Silk</option>
                         <option value="Banarasi Brocade">Banarasi Brocade</option>
