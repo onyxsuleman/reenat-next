@@ -99,7 +99,9 @@ function ProductDetailsContent() {
     { type: 'image', src: product.image },
     ...(product.image2 ? [{ type: 'image', src: product.image2 }] : []),
     ...(product.image3 ? [{ type: 'image', src: product.image3 }] : []),
-    ...(product.image4 ? [{ type: 'image', src: product.image4 }] : [])
+    ...(product.image4 ? [{ type: 'image', src: product.image4 }] : []),
+    ...(product.image5 ? [{ type: 'image', src: product.image5 }] : []),
+    ...(product.image6 ? [{ type: 'image', src: product.image6 }] : [])
   ];
 
   const activeImageSrc = galleryImages[activeImageIndex]?.src;

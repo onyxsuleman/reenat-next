@@ -1,0 +1,14 @@
+{
+    "sqltools.connections": [
+        {
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "db.eilxtuedgtimrxfvqojv.supabase.co",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "name": "Supabase Reenat",
+            "database": "postgres",
+            "username": "postgres"
+        }
+    ]
+}

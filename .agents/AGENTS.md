@@ -85,28 +85,32 @@ The homepage product grid will be split into two distinct sections:
 All listings, CMS edits, and product displays must strictly adhere to the following identity definitions and DB column structure:
 
 1. **Catalog ID (Group ID)**:
-   * **Purpose**: Identifies the overall catalog/group page. Groups all color variations together.
-   * **Format**: Numeric string representing the catalog (e.g., `1`, `2`, `3`...).
+   * **Purpose**: Identifies the overall catalog/group page. Groups all color/style variations together.
+   * **Format**: Alphanumeric string representing the catalog (e.g., `1`, `2`, `3`, `M1`, `M2`, `M3`...).
    * **Database Mapping**: Stored in `catalog_id` column.
-   * **Automation**: Set automatically in the CMS (incremented based on max ID in the system).
+   * **Automation**: Set automatically in the CMS (incremented based on max ID in the system), or custom alphanumeric input.
+   * **Grouping Behavior**: All products with the same Catalog ID are shown under the same catalog layout to customers. If a catalog already has 6 live products, adding another variation makes it the 7th product in that catalog.
 
 2. **Product ID (Unique Saree ID)**:
    * **Purpose**: Absolute unique, unchangeable, system-generated identifier for every individual saree variation.
-   * **Format**: `"NYS" + String(db_row_id).padStart(4, '0')` (e.g., `NYS0001`, `NYS0002`).
-   * **Lookup Role**: Used as the primary lookup parameter in URLs (`/product?id=NYS0001`).
+   * **Format**: `"NSY" + String(db_row_id).padStart(4, '0')` (e.g., `NSY0042`, `NSY0043`, `NSY0099`). (Note: The rule previously had a typo as `NYS`; it must strictly be `NSY` as per code implementation).
+   * **Lookup Role**: Used as the primary lookup parameter in URLs (`/product?id=NSY0042`).
+   * **Uniqueness / Adding new variations**: When adding a new product variation or style to an existing catalog, the database assigns a new higher sequential database ID. It does NOT merge or overwrite older products. New variations are simply appended to the catalog as new entries.
 
 3. **SKU ID (Seller SKU Code)**:
    * **Purpose**: Shipping, billing, sorting, and dispatch tracking code.
-   * **Format**: Custom string entered by admin (e.g., `KJV-RED-01`).
-   * **Behavior**: Fully editable at any time. Non-unique (duplicates are permitted).
+   * **Format**: Custom string entered by admin (e.g., `MANGO GREEN PAI X1`).
+   * **Behavior**: Fully editable at any time. Non-unique (duplicates are permitted). For example, Catalog `M1` and Catalog `M3` can both contain a product with the same SKU ID `"MANGO GREEN PAI X1"`. Since they have distinct, unique Product IDs (`NSY0042` vs `NSY0043`), the system is not confused.
    * **Database Mapping**: Stored in `styleid` column.
 
 4. **Structured Image Roles**:
-   * All products must map up to 4 images with explicit roles:
+   * All products must map up to 6 images with explicit roles:
      * `image_front` / `image` (Required): Primary front-facing display thumbnail.
      * `image_back` / `image2` (Optional): Back view / pallu details.
      * `image_fabric` / `image3` (Optional): Texture/weave close-up.
      * `image_model` / `image4` (Optional): Styling or model view.
+     * `image_extra1` / `image5` (Optional): Additional angle or detail 1.
+     * `image_extra2` / `image6` (Optional): Additional angle or detail 2.
 
 ## Scripting & Path Guidelines (Windows)
 - When writing file paths inside JavaScript/Node.js helper scripts on Windows, always use forward slashes (`/`) instead of backslashes (`\`) to prevent backslash escape sequence runtime errors.
