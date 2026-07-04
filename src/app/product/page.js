@@ -182,12 +182,14 @@ function ProductDetailsContent() {
   return (
     <div className="space-y-6">
       {/* Breadcrumbs */}
-      <nav className="text-xs text-slate-500 dark:text-slate-400 mb-6 flex items-center gap-2 select-none">
-        <Link href="/" className="hover:text-[#183fad] dark:hover:text-[#F1BF0A]">Home</Link>
-        <span>/</span>
-        <Link href="/new-arrivals" className="hover:text-[#183fad] dark:hover:text-[#F1BF0A]">Collection</Link>
-        <span>/</span>
-        <span className="text-slate-800 dark:text-white font-medium">{product.name}</span>
+      <nav className="text-xs text-slate-500 dark:text-slate-400 mb-6 flex items-center gap-2 select-none overflow-hidden whitespace-nowrap">
+        <Link href="/" className="hover:text-[#183fad] dark:hover:text-[#F1BF0A] shrink-0">Home</Link>
+        <span className="shrink-0">/</span>
+        <Link href="/new-arrivals" className="hover:text-[#183fad] dark:hover:text-[#F1BF0A] shrink-0">Collection</Link>
+        <span className="shrink-0">/</span>
+        <span className="text-slate-800 dark:text-white font-medium truncate max-w-[200px] sm:max-w-[300px] md:max-w-[450px]" title={product.name}>
+          {product.name}
+        </span>
       </nav>
 
       {/* Product Main details */}
@@ -304,24 +306,24 @@ function ProductDetailsContent() {
               </span>
               
               <div className="relative">
-                <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-none snap-x snap-mandatory">
+                <div className="flex flex-wrap items-center gap-3 pb-1">
                   {displayVariants.map((variant) => {
                     const isSelected = String(variant.id) === String(product.id);
                     return (
                       <Link
                         key={variant.id}
                         href={`/product?id=${variant.id}`}
-                        className={`flex-shrink-0 w-16 h-20 rounded-xl overflow-hidden bg-white dark:bg-slate-900 border-2 transition-all cursor-pointer relative group snap-start ${
+                        className={`w-16 h-20 rounded-xl overflow-hidden bg-white dark:bg-slate-900 border-2 transition-all cursor-pointer relative group ${
                           isSelected 
                             ? 'border-slate-900 dark:border-[#F1BF0A] scale-102 shadow-sm' 
-                            : 'border-slate-200 dark:border-slate-850 opacity-75 hover:opacity-100'
+                            : 'border-slate-200 dark:border-slate-850 opacity-85 hover:opacity-100'
                         }`}
                       >
                         <Image 
                           src={variant.image} 
                           alt={variant.name} 
                           fill
-                          sizes="64px"
+                          sizes="128px"
                           className="object-cover"
                         />
                         {isSelected && (
@@ -419,24 +421,24 @@ function ProductDetailsContent() {
                 </span>
                 
                 <div className="relative">
-                  <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-none snap-x snap-mandatory">
+                  <div className="flex flex-wrap items-center gap-3 pb-1">
                     {displayVariants.map((variant) => {
                       const isSelected = String(variant.id) === String(product.id);
                       return (
                         <Link
                           key={variant.id}
                           href={`/product?id=${variant.id}`}
-                          className={`flex-shrink-0 w-16 h-20 rounded-xl overflow-hidden bg-white dark:bg-slate-900 border-2 transition-all cursor-pointer relative group snap-start ${
+                          className={`w-16 h-20 rounded-xl overflow-hidden bg-white dark:bg-slate-900 border-2 transition-all cursor-pointer relative group ${
                             isSelected 
                               ? 'border-slate-900 dark:border-[#F1BF0A] scale-102 shadow-sm' 
-                              : 'border-slate-200 dark:border-slate-850 opacity-75 hover:opacity-100'
+                              : 'border-slate-200 dark:border-slate-850 opacity-85 hover:opacity-100'
                           }`}
                         >
                           <Image 
                             src={variant.image} 
                             alt={variant.name} 
                             fill
-                            sizes="64px"
+                            sizes="128px"
                             className="object-cover"
                           />
                           {isSelected && (
