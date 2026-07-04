@@ -128,3 +128,56 @@ All listings, CMS edits, and product displays must strictly adhere to the follow
 > 4. Only one variation (`Navy Blue` / `NSY0042`) is currently stored in the live Supabase database. The other variations (`Gold`, `Grey`, `Mango Rani`, `Mango Green`) were lost/deleted from the database during earlier failed sync attempts (due to missing database columns at that time).
 > 5. **Next steps**: Edit the remaining `NSY0042` row in the CMS console, change it back to `Mango Green` (if you want Mango Green to be the front cover item), and then use the **"Add Saree variation / color"** button to re-add the other variants. Submit the request to write them as new rows into the live database.
 
+
+---
+
+## National E-Commerce Standard Road Map & Goals
+
+This roadmap defines the remaining development, optimization, and verification tasks required to prepare the Reenat storefront for a bulletproof, bug-free production launch.
+
+### Phase 1: Database & Catalog Verification
+- [ ] **Restore Saree Variations**: 
+  - Edit the single row `NSY0042` in `/cms` to set its cover color.
+  - Re-add the 4 missing variations (`Gold`, `Grey`, `Mango Rani`, `Mango Green`) as separate color variants under the same Catalog ID.
+  - Submit/Sync to save them as new sequential rows in the live Supabase database.
+- [ ] **Verify Variant Linkage**:
+  - Open `/product?id=NSY0042` and verify that the color selector matches and links correctly between all variants.
+
+### Phase 2: Feature Implementation - Pinned Products / Featured Listings
+- [ ] **Supabase Schema Creation**:
+  - Create the `pinned_products` table in Supabase.
+  - Link it with foreign keys to `products(id)`.
+  - Add constraint for `pin_order` (unique values between 1 and 9).
+- [ ] **Expand Fallback Products**:
+  - Update `defaultProducts` in `src/context/AppContext.js` to contain 9 fully populated placeholder items.
+- [ ] **Asynchronous Fetching & Caching**:
+  - Write query logic in `AppContext.js` to fetch pinned items, store them in `localStorage`, and background-update them silently.
+- [ ] **Homepage Products Section Split**:
+  - Refactor `src/app/page.js` to display the "Pinned 9 Products" grid on top.
+  - Load non-pinned Custom Listings from Supabase below the pinned grid.
+- [ ] **CMS "Featured Listings" Panel**:
+  - Design a control area in `/cms` where the admin can select products and assign their pin order (1-9).
+  - Verify that reordering pins updates the database correctly.
+
+### Phase 3: Performance & Asset Optimization
+- [ ] **Client-Side Image Compression**:
+  - Add image resizing/compression (e.g. using a browser-based canvas tool or `browser-image-compression`) to the CMS upload page (`src/app/cms/page.js`).
+  - Restrict raw file uploads larger than 1MB to save bandwidth and improve load speeds.
+- [ ] **Responsive Image Gallery Optimization**:
+  - Review all sizes and loading priorities for the 6-image layout on `src/app/product/page.js`.
+  - Enable Next.js native lazy loading for images that are not immediately in the viewport.
+
+### Phase 4: Checkout & Order Security
+- [ ] **Validate Billing & Shipping Fields**:
+  - Add robust field checks (correct zip-codes, phone format, empty address detection) to checkout/cart forms.
+- [ ] **Cart State Reliability**:
+  - Ensure that adding/removing items in the cart updates the badge counts in header/nav on both mobile and desktop without layout shifts.
+
+### Phase 5: Browser Compatibility & Stress Testing
+- [ ] **Hydration Diagnostics**:
+  - Double check console logs during production run (`npm run build` and `npm start`) to guarantee no active hydration mismatches.
+- [ ] **Safari & Mobile Layout Verification**:
+  - Verify styling layouts for the 6-image carousel on Apple devices and mobile webviews (checking flex-basis, aspect ratio, and sticky sidebars).
+- [ ] **Extreme Load Stress Test**:
+  - Test cart with 20+ items, check for local storage capacity boundaries, and confirm fallback states when API keys are missing.
+
