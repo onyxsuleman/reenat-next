@@ -16,17 +16,7 @@ export default function ProductCard({ product }) {
   const rating = product.rating || 4.5;
   const inWishlist = isInWishlist(product.id);
 
-  const handleShare = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    let productUrl = `https://reenat.vercel.app/product?id=${product.id}`;
-    if (typeof window !== 'undefined') {
-      productUrl = `${window.location.origin}/product?id=${product.id}`;
-    }
-    const imgPart = product.image ? `&img=${encodeURIComponent(product.image)}` : '';
-    const shareText = `Hey! What do you think of this gorgeous handloom saree? Check it out on Reenat Trends: ${product.name} (${product.craft} from ${product.origin}) for ₹${product.price.toLocaleString('en-IN')}.\n\nView details: ${productUrl}${imgPart}`;
-    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
-  };
+
 
   return (
     <li className="group product-card col-span-1 flex flex-col rounded-3xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 backdrop-blur-md">
@@ -53,17 +43,7 @@ export default function ProductCard({ product }) {
           <span className="text-emerald-600">★</span>
         </div>
 
-        {/* Floating WhatsApp Shortcut */}
-        <button 
-          type="button" 
-          onClick={handleShare}
-          className="absolute top-4 right-4 bg-[#25D366] hover:bg-emerald-600 text-white p-2.5 rounded-full shadow-lg transition-all hover:scale-110 active:scale-95 cursor-pointer z-20 flex items-center justify-center border border-white/20" 
-          title="Ask for Second Opinion on WhatsApp"
-        >
-          <svg className="size-4" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12.012 2c-5.506 0-9.972 4.466-9.972 9.974 0 1.758.459 3.479 1.33 5.003L2.028 22l5.166-1.355a9.92 9.92 0 0 0 4.814 1.258h.004c5.503 0 9.973-4.467 9.973-9.975C21.985 6.467 17.518 2 12.012 2zm5.727 13.993c-.25.707-1.464 1.3-2.025 1.385-.561.085-1.042.348-3.486-.643-2.937-1.196-4.81-4.184-4.957-4.382-.148-.198-1.197-1.591-1.197-3.036 0-1.444.757-2.15 1.026-2.433.269-.283.593-.354.79-.354.198 0 .396.002.567.01.178.008.419-.068.657.506.25.599.852 2.083.926 2.233.074.15.124.325.025.525-.099.2-.148.324-.297.499-.148.175-.313.39-.446.524-.148.15-.304.312-.132.607.172.296.764 1.259 1.636 2.036.873.778 1.611 1.018 1.908 1.168.297.15.469.125.643-.075.172-.2.757-.881.956-1.181.2-.3.4-.25.674-.15.275.1 1.748.824 2.049.975.301.15.501.225.576.35.074.125.074.723-.176 1.43z"/>
-          </svg>
-        </button>
+
 
         {/* Action Overlay */}
         <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity duration-300 flex items-center justify-center gap-3">
