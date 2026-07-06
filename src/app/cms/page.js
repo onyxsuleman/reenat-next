@@ -48,6 +48,7 @@ export default function CMSConsole() {
   });
 
   const [activeView, setActiveView] = useState('home');
+  const [activeOrderTab, setActiveOrderTab] = useState('To Accept');
   const [selectedCatalogId, setSelectedCatalogId] = useState(null);
 
   // Meesho-Style Dashboard Filters & Stock Editor States
@@ -1497,93 +1498,198 @@ export default function CMSConsole() {
   };;
 
   const renderOrdersView = () => {
+    const tabs = [
+      { name: 'To Accept', count: orders.filter(o => o.status === 'Pending' || o.status === 'To Accept').length },
+      { name: 'To Pack', count: orders.filter(o => o.status === 'To Pack').length },
+      { name: 'To Dispatch', count: orders.filter(o => o.status === 'To Dispatch').length },
+      { name: 'Shipped', count: orders.filter(o => o.status === 'Shipped').length },
+      { name: 'Completed Orders', count: orders.filter(o => o.status === 'Delivered').length },
+    ];
+
+    const filteredOrders = orders.filter(o => {
+      if (activeOrderTab === 'To Accept') return o.status === 'Pending' || o.status === 'To Accept';
+      if (activeOrderTab === 'To Pack') return o.status === 'To Pack';
+      if (activeOrderTab === 'To Dispatch') return o.status === 'To Dispatch';
+      if (activeOrderTab === 'Shipped') return o.status === 'Shipped';
+      if (activeOrderTab === 'Completed Orders') return o.status === 'Delivered';
+      return true;
+    });
+
     return (
-      <div className="space-y-6">
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">Orders Dashboard</h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Manage packing lists, print labels, and track customer shipments</p>
+      <div className="w-full px-2 sm:px-4 lg:px-8 mx-auto space-y-6">
+        {/* Top Header */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between rounded-lg shadow-sm gap-4">
+          <h1 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">Orders Dashboard</h1>
+          <div className="flex-1 max-w-lg w-full">
+            <div className="relative">
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              </div>
+              <input
+                type="text"
+                className="block w-full pl-4 pr-10 py-2 border border-slate-300 dark:border-slate-700 rounded-lg leading-5 bg-slate-50 dark:bg-slate-800 placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm text-slate-900 dark:text-white"
+                placeholder="Search by Order ID / Item ID / Tracking ID"
+              />
+            </div>
           </div>
-          <span className="bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-bold tracking-wider px-3 py-1.5 rounded-full border border-blue-500/20">
-            📦 TOTAL ORDERS: {orders.length}
-          </span>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/20">
-            <h3 className="font-extrabold text-slate-800 dark:text-white text-xs uppercase tracking-wider">Live Orders log</h3>
-            <span className="text-[9px] bg-indigo-500/10 text-indigo-600 px-2 py-0.5 rounded font-bold">State Synced</span>
-          </div>
+        {/* 1. Status Tabs */}
+        <div className="flex overflow-x-auto hide-scrollbar space-x-3 pb-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.name}
+              onClick={() => setActiveOrderTab(tab.name)}
+              className={`flex-shrink-0 flex flex-col items-start p-4 rounded-xl border min-w-[140px] transition-all duration-200 ${
+                activeOrderTab === tab.name 
+                  ? 'bg-white dark:bg-slate-800 border-blue-500 shadow-sm ring-1 ring-blue-500' 
+                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-sm'
+              }`}
+            >
+              <span className={`text-sm font-medium ${activeOrderTab === tab.name ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                {tab.name}
+              </span>
+              <span className={`mt-1 text-2xl font-bold ${activeOrderTab === tab.name ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-300'}`}>
+                {tab.count}
+              </span>
+            </button>
+          ))}
+        </div>
 
+        {/* 2. Filter & Action Bar */}
+        <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <button className="inline-flex items-center px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700">
+              <svg className="w-4 h-4 mr-2 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+              Filter
+            </button>
+            <select className="pl-3 pr-8 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800">
+              <option>Prepaid / COD</option>
+              <option>Prepaid Only</option>
+              <option>COD Only</option>
+            </select>
+            <select className="pl-3 pr-8 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hidden sm:block">
+              <option>Order Tags</option>
+            </select>
+            <select className="pl-3 pr-8 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hidden md:block">
+              <option>Order Date Range</option>
+              <option>Today</option>
+              <option>Last 7 Days</option>
+              <option>Last 30 Days</option>
+            </select>
+            <button className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
+            </button>
+            <button className="ml-2 px-4 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">
+              Apply
+            </button>
+          </div>
+          <div className="flex items-center gap-3 self-end xl:self-auto">
+            <span className="text-sm font-medium text-slate-600 dark:text-slate-400 hidden lg:block cursor-pointer">
+              Other Actions
+            </span>
+            <button disabled className="inline-flex items-center px-4 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm font-medium text-slate-400 dark:text-slate-600 bg-slate-50 dark:bg-slate-900 cursor-not-allowed">
+              Accept Orders
+            </button>
+          </div>
+        </div>
+
+        {/* 3. Data Table */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left border-collapse text-slate-800 dark:text-slate-100">
-              <thead>
-                <tr className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-slate-800 font-semibold text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  <th className="p-4 w-24">Order ID</th>
-                  <th className="p-4 w-28">Date</th>
-                  <th className="p-4">Customer</th>
-                  <th className="p-4">Product Details</th>
-                  <th className="p-4 w-32">SKU ID</th>
-                  <th className="p-4 text-right">Price</th>
-                  <th className="p-4 text-center">Payment</th>
-                  <th className="p-4 text-center">Status</th>
-                  <th className="p-4 text-right">Actions</th>
+            <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
+              <thead className="bg-slate-50 dark:bg-slate-800/50">
+                <tr>
+                  <th scope="col" className="px-4 py-3 text-left">
+                    <input type="checkbox" className="h-4 w-4 text-blue-600 rounded cursor-pointer border-slate-300 dark:border-slate-700 bg-transparent" />
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider min-w-[250px] text-slate-600 dark:text-slate-400">Items to Pack in Each Order</th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Order ID</th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">SKU IDs</th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Product ID</th>
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Qty</th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Payment Types</th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider min-w-[200px] text-slate-600 dark:text-slate-400">Customer Details</th>
+                  <th scope="col" className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                {orders.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/40 dark:hover:bg-white/5 transition-colors">
-                    <td className="p-4 font-bold text-slate-950 dark:text-white">{item.id}</td>
-                    <td className="p-4 font-medium text-slate-500 dark:text-slate-400">{item.date}</td>
-                    <td className="p-4">
-                      <div className="font-bold text-slate-800 dark:text-slate-200">{item.customer}</div>
-                      <div className="text-[10px] text-slate-450 dark:text-slate-550 font-medium mt-0.5">{item.phone}</div>
-                      <div className="text-[9px] text-slate-450 dark:text-slate-500 mt-0.5 truncate max-w-[160px]" title={item.address}>{item.address}</div>
+              <tbody className="bg-white dark:bg-slate-900 divide-y divide-slate-200 dark:divide-slate-800">
+                {filteredOrders.map((item) => (
+                  <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <input type="checkbox" className="h-4 w-4 text-blue-600 border-slate-300 dark:border-slate-700 rounded cursor-pointer bg-transparent" />
                     </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="size-10 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shrink-0 relative">
+                    <td className="px-4 py-4">
+                      <div className="flex items-center">
+                        <div className="h-10 w-10 flex-shrink-0 relative rounded overflow-hidden border border-slate-200 dark:border-slate-700">
                           {item.productImage ? (
-                            <img src={item.productImage} className="w-full h-full object-cover" alt="" />
+                            <img src={item.productImage} alt="" className="object-cover w-full h-full bg-slate-100 dark:bg-slate-800" />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-400 font-bold">📷</div>
+                            <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-800 font-bold">📷</div>
                           )}
                         </div>
-                        <div className="min-w-0">
-                          <span className="font-bold text-slate-800 dark:text-slate-200 block truncate max-w-[165px]">{item.productName}</span>
-                          <span className="text-[9px] text-slate-455 dark:text-slate-550 block uppercase font-extrabold mt-0.5">Color: {item.color} | Qty: {item.qty}</span>
+                        <div className="ml-3">
+                          <p className="text-sm font-bold text-slate-900 dark:text-white line-clamp-2 max-w-[165px]">{item.productName}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="p-4 font-mono text-slate-500 dark:text-slate-455 select-text font-bold">
-                      {item.skuId || 'N/A'}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium">{item.id}</div>
                     </td>
-                    <td className="p-4 text-right font-extrabold text-slate-950 dark:text-white">₹{(item.amount * item.qty).toLocaleString('en-IN')}</td>
-                    <td className="p-4 text-center">
-                      <span className={`inline-flex items-center text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-sm text-slate-700 dark:text-slate-300">{item.skuId || 'N/A'}</div>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-sm text-slate-700 dark:text-slate-300">{item.color || 'N/A'}</div>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-center">
+                      <div className="text-sm font-medium">{item.qty}</div>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         item.paymentMethod === 'Pay Online' 
-                          ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20' 
-                          : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                          ? 'bg-green-100 text-green-800 dark:bg-green-500/10 dark:text-green-400 border border-green-200 dark:border-green-500/20' 
+                          : 'bg-orange-100 text-orange-800 dark:bg-orange-500/10 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20'
                       }`}>
-                        {item.paymentMethod}
+                        {item.paymentMethod === 'Pay Online' ? 'Prepaid' : 'COD'}
                       </span>
                     </td>
-                    <td className="p-4 text-center">
-                      <span className={`inline-flex items-center text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                        item.status === 'Pending' 
-                          ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' 
-                          : item.status === 'Shipped'
-                            ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400'
-                            : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                      }`}>
-                        {item.status}
-                      </span>
+                    <td className="px-4 py-4">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-slate-900 dark:text-white">{item.customer}</span>
+                        <span className="text-xs text-slate-500 mt-0.5 line-clamp-1" title={item.address}>{item.address}</span>
+                        <span className="text-xs text-slate-500">{item.phone}</span>
+                      </div>
                     </td>
-                    <td className="p-4 text-right">
-                      {item.status === 'Pending' && (
+                    <td className="px-4 py-4 whitespace-nowrap text-right">
+                      {(item.status === 'Pending' || item.status === 'To Accept') && (
+                        <button 
+                          onClick={() => handleUpdateOrderStatus(item.id, 'To Pack')}
+                          className="inline-flex items-center px-3 py-1.5 border border-slate-300 dark:border-slate-700 shadow-sm text-sm font-medium rounded-md text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700"
+                        >
+                          Accept Order
+                        </button>
+                      )}
+                      {item.status === 'To Pack' && (
+                        <div className="flex items-center justify-end gap-2">
+                          <button 
+                            onClick={() => alert('Generate Label functionality coming soon!')}
+                            className="inline-flex items-center px-3 py-1.5 border border-slate-300 dark:border-slate-700 shadow-sm text-sm font-medium rounded-md text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700"
+                          >
+                            Generate Label
+                          </button>
+                          <button 
+                            onClick={() => handleUpdateOrderStatus(item.id, 'To Dispatch')}
+                            className="inline-flex items-center px-3 py-1.5 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                          >
+                            RTD
+                          </button>
+                        </div>
+                      )}
+                      {item.status === 'To Dispatch' && (
                         <button 
                           onClick={() => handleUpdateOrderStatus(item.id, 'Shipped')}
-                          className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-1.5 px-3 rounded-lg text-[10px] cursor-pointer shadow-sm transition-all"
+                          className="inline-flex items-center px-3 py-1.5 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
                         >
                           Mark as Shipped
                         </button>
@@ -1591,14 +1697,14 @@ export default function CMSConsole() {
                       {item.status === 'Shipped' && (
                         <button 
                           onClick={() => handleUpdateOrderStatus(item.id, 'Delivered')}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-1.5 px-3 rounded-lg text-[10px] cursor-pointer shadow-sm transition-all"
+                          className="inline-flex items-center px-3 py-1.5 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-emerald-600 hover:bg-emerald-700"
                         >
                           Mark as Delivered
                         </button>
                       )}
                       {item.status === 'Delivered' && (
-                        <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 flex items-center justify-end gap-1 select-none">
-                          <span>✓</span> Completed
+                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500 flex items-center justify-end gap-1 select-none">
+                          ✓ Completed
                         </span>
                       )}
                     </td>
@@ -1606,6 +1712,11 @@ export default function CMSConsole() {
                 ))}
               </tbody>
             </table>
+          </div>
+          <div className="bg-white dark:bg-slate-900 px-4 py-3 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-sm text-slate-700 dark:text-slate-300 w-full sm:w-auto text-center sm:text-left">
+              Showing <span className="font-medium">{filteredOrders.length > 0 ? 1 : 0}</span> to <span className="font-medium">{filteredOrders.length}</span> of <span className="font-medium">{filteredOrders.length}</span> results
+            </div>
           </div>
         </div>
       </div>
