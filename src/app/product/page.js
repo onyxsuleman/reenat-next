@@ -306,14 +306,14 @@ function ProductDetailsContent() {
               </span>
               
               <div className="relative">
-                <div className="flex flex-wrap items-center gap-3 pb-1">
+                <div className="grid grid-cols-5 gap-2.5 pb-1">
                   {displayVariants.map((variant) => {
                     const isSelected = String(variant.id) === String(product.id);
                     return (
                       <Link
                         key={variant.id}
                         href={`/product?id=${variant.id}`}
-                        className={`w-16 h-20 rounded-xl overflow-hidden bg-white dark:bg-slate-900 border-2 transition-all cursor-pointer relative group ${
+                        className={`aspect-[4/5] w-full rounded-xl overflow-hidden bg-white dark:bg-slate-900 border-2 transition-all cursor-pointer relative group ${
                           isSelected 
                             ? 'border-slate-900 dark:border-[#F1BF0A] scale-102 shadow-sm' 
                             : 'border-slate-200 dark:border-slate-850 opacity-85 hover:opacity-100'
@@ -398,18 +398,24 @@ function ProductDetailsContent() {
             </div>
 
             {/* Special Online Pay discount Banner */}
-            <div className="bg-gradient-to-r from-amber-50/60 to-orange-50/45 dark:from-[#1e293b]/50 dark:to-[#0f172a]/50 border border-amber-100/70 dark:border-slate-800 rounded-2xl p-3.5 flex items-center justify-between shadow-sm mt-3.5">
-              <div className="flex items-center gap-3">
-                <span className="bg-[#d9a05b] text-white text-[9px] font-bold tracking-wider px-2 py-0.5 rounded-md uppercase">OFFER</span>
-                <div className="flex flex-col">
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Get this as low as</span>
-                  <span className="text-sm font-bold text-slate-800 dark:text-white mt-0.5">₹{onlinePrice.toLocaleString('en-IN')}</span>
+            <div className="relative overflow-hidden bg-white/85 dark:bg-[#0c1e44]/40 backdrop-blur-xl border border-[#d9a05b]/30 dark:border-[#F1BF0A]/20 rounded-2xl p-4 shadow-[0_8px_30px_rgb(0,0,0,0.02)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] mt-3.5 group transition-all duration-300 hover:border-[#d9a05b]/50 dark:hover:border-[#F1BF0A]/40">
+              {/* Subtle gold gradient background glow */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-amber-400/10 dark:bg-amber-400/5 rounded-full blur-3xl pointer-events-none -mr-8 -mt-8" />
+              
+              <div className="flex items-center justify-between gap-4 relative z-10">
+                <div className="flex items-center gap-3">
+                  <span className="bg-gradient-to-r from-[#d9a05b] to-[#F1BF0A] text-slate-900 text-[9px] font-black tracking-widest px-2.5 py-1 rounded-md uppercase shadow-sm shrink-0">
+                    OFFER
+                  </span>
+                  <div className="flex flex-col">
+                    <span className="text-[9px] text-[#b47a24] dark:text-[#F1BF0A] font-bold uppercase tracking-widest">
+                      Prepaid Discount
+                    </span>
+                    <span className="text-sm font-medium text-slate-800 dark:text-slate-200 mt-0.5 leading-relaxed">
+                      Buy at <span className="text-[#c68a0c] dark:text-[#F1BF0A] font-extrabold text-base">₹{onlinePrice.toLocaleString('en-IN')}</span> Pay Online &amp; Get <span className="text-[#c68a0c] dark:text-[#F1BF0A] font-extrabold">₹100 Discount</span>
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <div className="text-right">
-                <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#183fad] dark:text-[#F1BF0A]">
-                  <span>Pay Online | Extra ₹100 Off</span>
-                </span>
               </div>
             </div>
 
@@ -421,14 +427,14 @@ function ProductDetailsContent() {
                 </span>
                 
                 <div className="relative">
-                  <div className="flex flex-wrap items-center gap-3 pb-1">
+                  <div className="grid grid-cols-5 gap-2.5 pb-1">
                     {displayVariants.map((variant) => {
                       const isSelected = String(variant.id) === String(product.id);
                       return (
                         <Link
                           key={variant.id}
                           href={`/product?id=${variant.id}`}
-                          className={`w-16 h-20 rounded-xl overflow-hidden bg-white dark:bg-slate-900 border-2 transition-all cursor-pointer relative group ${
+                          className={`aspect-[4/5] w-full rounded-xl overflow-hidden bg-white dark:bg-slate-900 border-2 transition-all cursor-pointer relative group ${
                             isSelected 
                               ? 'border-slate-900 dark:border-[#F1BF0A] scale-102 shadow-sm' 
                               : 'border-slate-200 dark:border-slate-850 opacity-85 hover:opacity-100'
@@ -569,9 +575,10 @@ function ProductDetailsContent() {
               
               <button 
                 onClick={() => setShowExtendedInfo(!showExtendedInfo)}
-                className="w-full text-center py-2 text-[#183fad] dark:text-[#cfe3ff] hover:underline font-bold text-xs cursor-pointer block select-none"
+                className="mx-auto flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full bg-slate-200/80 dark:bg-slate-800/80 text-slate-800 dark:text-slate-100 hover:bg-slate-300/90 dark:hover:bg-slate-700/90 transition-all font-bold text-xs cursor-pointer select-none border border-slate-300/60 dark:border-slate-700/60 shadow-sm"
               >
-                {showExtendedInfo ? 'Read Less ▲' : 'More Details ▼'}
+                <span>{showExtendedInfo ? 'Read Less' : 'More Details'}</span>
+                <span className="transition-transform duration-300">{showExtendedInfo ? '▲' : '▼'}</span>
               </button>
             </div>
           </div>
