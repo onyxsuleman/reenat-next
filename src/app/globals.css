@@ -690,3 +690,95 @@ body:has(#cms-console-root) main {
   margin: 0 !important;
 }
 
+/* ==========================================
+   Horizontal Variation Slider Styling
+   ========================================== */
+/* Container: Forces single row and enables snapping */
+.variation-slider-container {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  scroll-snap-type: x mandatory !important;
+  gap: 10px !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Children: Ensures exactly 5 items fit the viewport container */
+.variation-slider-item {
+  flex: 0 0 calc(20% - 8px) !important;
+  min-width: calc(20% - 8px) !important;
+  scroll-snap-align: start !important;
+}
+
+/* Custom scrollbar styling for the variation slider */
+.variation-slider-container::-webkit-scrollbar {
+  height: 5px;
+}
+.variation-slider-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+.dark .variation-slider-container::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+.variation-slider-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ==========================================
+   Glassmorphic Floating Buttons & Cards
+   ========================================== */
+.mobile-sticky-bar {
+  background: transparent !important;
+  border: none !important;
+  bottom: 10px !important;
+  box-shadow: none !important;
+  margin-top: 0px !important;
+  margin-bottom: 0px !important;
+}
+
+.floating-button-primary {
+  background: rgba(241, 191, 10, 0.4) !important;
+  backdrop-filter: blur(10px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(180%) !important;
+  border: 1px solid rgba(241, 191, 10, 0.25) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+  color: #0f172a !important;
+}
+.dark .floating-button-primary {
+  background: rgba(241, 191, 10, 0.3) !important;
+  border: 1px solid rgba(241, 191, 10, 0.2) !important;
+  color: #ffffff !important;
+}
+
+.floating-button-secondary {
+  background: rgba(255, 255, 255, 0.5) !important;
+  backdrop-filter: blur(10px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05) !important;
+  color: #0f172a !important;
+}
+.dark .floating-button-secondary {
+  background: rgba(15, 23, 42, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+}
+
+/* Fabric Texture Overlay */
+.card-fabric-texture {
+  background-image: 
+    repeating-linear-gradient(45deg, rgba(15, 23, 42, 0.02) 0px, rgba(15, 23, 42, 0.02) 1px, transparent 1px, transparent 2px),
+    repeating-linear-gradient(-45deg, rgba(15, 23, 42, 0.02) 0px, rgba(15, 23, 42, 0.02) 1px, transparent 1px, transparent 2px) !important;
+}
+.dark .card-fabric-texture {
+  background-image: 
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.03) 0px, rgba(255, 255, 255, 0.03) 1px, transparent 1px, transparent 2px),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.03) 0px, rgba(255, 255, 255, 0.03) 1px, transparent 1px, transparent 2px) !important;
+}
+
+
+

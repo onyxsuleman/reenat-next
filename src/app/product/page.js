@@ -14,6 +14,7 @@ function ProductDetailsContent() {
   const [product, setProduct] = useState(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [showExtendedInfo, setShowExtendedInfo] = useState(false);
+  const [titleExpanded, setTitleExpanded] = useState(false);
   const mobileCarouselRef = useRef(null);
   const desktopCarouselRef = useRef(null);
 
@@ -180,9 +181,10 @@ function ProductDetailsContent() {
   const displayVariants = colorVariants.length > 1 ? colorVariants : [];
 
   return (
-    <div className="space-y-6">
+    <>
+      <div className="space-y-6">
       {/* Breadcrumbs */}
-      <nav className="text-xs text-slate-500 dark:text-slate-400 mb-6 flex items-center gap-2 select-none overflow-hidden whitespace-nowrap">
+      <nav className="hidden text-xs text-slate-500 dark:text-slate-400 mb-6 items-center gap-2 select-none overflow-hidden whitespace-nowrap">
         <Link href="/" className="hover:text-[#183fad] dark:hover:text-[#F1BF0A] shrink-0">Home</Link>
         <span className="shrink-0">/</span>
         <Link href="/new-arrivals" className="hover:text-[#183fad] dark:hover:text-[#F1BF0A] shrink-0">Collection</Link>
@@ -298,22 +300,22 @@ function ProductDetailsContent() {
             </div>
           </div>
 
-          {/* Color Variant Selector - moved below image on desktop */}
+          {/* Color Variant Selector - moved below image on both mobile & desktop */}
           {displayVariants.length > 0 && (
-            <div className="hidden md:block bg-white/60 dark:bg-[#0c1e44]/30 border border-white/40 dark:border-white/8 rounded-2xl p-4 backdrop-blur-xl shadow-sm">
+            <div className="block bg-white/60 dark:bg-[#0c1e44]/30 border border-white/40 dark:border-white/8 rounded-2xl p-4 backdrop-blur-xl shadow-sm card-fabric-texture">
               <span className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2.5">
                 Selected Color: <span className="text-slate-800 dark:text-white font-semibold">{product.color || 'Classic Gold'}</span>
               </span>
               
               <div className="relative">
-                <div className="grid grid-cols-5 gap-2.5 pb-1">
+                <div className="variation-slider-container pb-1">
                   {displayVariants.map((variant) => {
                     const isSelected = String(variant.id) === String(product.id);
                     return (
                       <Link
                         key={variant.id}
                         href={`/product?id=${variant.id}`}
-                        className={`aspect-[4/5] w-full rounded-xl overflow-hidden bg-white dark:bg-slate-900 border-2 transition-all cursor-pointer relative group ${
+                        className={`variation-slider-item aspect-[4/5] rounded-xl overflow-hidden bg-white dark:bg-slate-900 border-2 transition-all cursor-pointer relative group ${
                           isSelected 
                             ? 'border-slate-900 dark:border-[#F1BF0A] scale-102 shadow-sm' 
                             : 'border-slate-200 dark:border-slate-850 opacity-85 hover:opacity-100'
@@ -340,15 +342,37 @@ function ProductDetailsContent() {
 
         {/* Right Column: Specifications, Actions */}
         <div className="col-span-1 md:col-span-7 space-y-4">
-          <div className="mobile-card md:bg-white/40 md:dark:bg-[#0c1e44]/15 md:border md:border-black/5 md:dark:border-white/5 md:rounded-3xl md:p-5 md:glass space-y-3">
+          <div className="mobile-card card-fabric-texture md:bg-white/40 md:dark:bg-[#0c1e44]/15 md:border md:border-black/5 md:dark:border-white/5 md:rounded-3xl md:p-5 md:glass space-y-3">
             <div className="flex justify-between items-start gap-4">
-              <div>
+              <div className="relative w-full pb-6">
                 <span className="text-[11px] uppercase tracking-widest text-[#d9a05b] font-bold">
                   Traditional Handloom {product.type}
                 </span>
-                <h1 className="text-xl md:text-2xl font-semibold text-slate-800 dark:text-white mt-0.5 leading-snug">
-                  {product.name} Saree With Blouse
-                </h1>
+                <div 
+                  className="ai-style-change-3 overflow-hidden transition-all duration-350 pr-16"
+                  style={{ maxHeight: titleExpanded ? '1000px' : '60px' }}
+                >
+                  <h1 className="text-xl md:text-2xl font-semibold text-slate-800 dark:text-white mt-0.5 leading-snug">
+                    {product.name} Saree With Blouse
+                  </h1>
+                </div>
+                <button 
+                  onClick={() => setTitleExpanded(!titleExpanded)}
+                  className="absolute bottom-0 right-0 text-xs font-bold text-[#183fad] dark:text-[#F1BF0A] bg-transparent pl-2 cursor-pointer hover:underline select-none"
+                >
+                  {titleExpanded ? 'Show less' : 'Show more'}
+                </button>
+              </div>
+            </div>
+
+            {/* Ratings Summary & Action Icons integrated */}
+            <div className="flex justify-between items-center gap-2 mt-1">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-0.5 bg-emerald-600 dark:bg-emerald-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-md">
+                  <span>{product.rating || 4.8}</span>
+                  <span className="text-[9px]">★</span>
+                </span>
+                <span className="text-xs text-slate-400 font-medium">128 Ratings, 15 Reviews</span>
               </div>
               <div className="flex items-center gap-3.5 mt-1 shrink-0">
                 <button 
@@ -368,15 +392,6 @@ function ProductDetailsContent() {
                   </svg>
                 </button>
               </div>
-            </div>
-
-            {/* Ratings Summary */}
-            <div className="flex items-center gap-2 mt-1">
-              <span className="inline-flex items-center gap-0.5 bg-emerald-600 dark:bg-emerald-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-md">
-                <span>{product.rating || 4.8}</span>
-                <span className="text-[9px]">★</span>
-              </span>
-              <span className="text-xs text-slate-400 font-medium">128 Ratings, 15 Reviews</span>
             </div>
 
             <div className="pt-2 border-t border-slate-100 dark:border-slate-800/60 mt-2">
@@ -418,45 +433,6 @@ function ProductDetailsContent() {
                 </div>
               </div>
             </div>
-
-            {/* Color Variant Selector - mobile only (desktop is below image) */}
-            {displayVariants.length > 0 && (
-              <div className="md:hidden pt-4 border-t border-slate-100 dark:border-slate-800/60 mt-3.5">
-                <span className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2.5">
-                  Selected Color: <span className="text-slate-800 dark:text-white font-semibold">{product.color || 'Classic Gold'}</span>
-                </span>
-                
-                <div className="relative">
-                  <div className="grid grid-cols-5 gap-2.5 pb-1">
-                    {displayVariants.map((variant) => {
-                      const isSelected = String(variant.id) === String(product.id);
-                      return (
-                        <Link
-                          key={variant.id}
-                          href={`/product?id=${variant.id}`}
-                          className={`aspect-[4/5] w-full rounded-xl overflow-hidden bg-white dark:bg-slate-900 border-2 transition-all cursor-pointer relative group ${
-                            isSelected 
-                              ? 'border-slate-900 dark:border-[#F1BF0A] scale-102 shadow-sm' 
-                              : 'border-slate-200 dark:border-slate-850 opacity-85 hover:opacity-100'
-                          }`}
-                        >
-                          <Image 
-                            src={variant.image} 
-                            alt={variant.name} 
-                            fill
-                            sizes="128px"
-                            className="object-cover"
-                          />
-                          {isSelected && (
-                            <div className="absolute inset-0 bg-slate-900/10 dark:bg-amber-500/5 pointer-events-none" />
-                          )}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Value Propositions — Premium Glassy White iPhone UI */}
@@ -495,7 +471,7 @@ function ProductDetailsContent() {
           </div>
 
           {/* Size Info */}
-          <div className="mobile-card md:bg-white/40 md:dark:bg-[#0c1e44]/15 md:border md:border-black/5 md:dark:border-white/5 md:rounded-3xl md:p-5 md:glass flex items-center gap-6">
+          <div className="mobile-card card-fabric-texture md:bg-white/40 md:dark:bg-[#0c1e44]/15 md:border md:border-black/5 md:dark:border-white/5 md:rounded-3xl md:p-5 md:glass flex items-center gap-6">
             <span className="text-sm font-semibold text-slate-700 dark:text-white">Size</span>
             <span className="border border-slate-700 dark:border-slate-350 text-slate-800 dark:text-white px-6 py-2 rounded-md font-bold text-xs bg-transparent">
               Free Size
@@ -503,7 +479,7 @@ function ProductDetailsContent() {
           </div>
 
           {/* Specs Table */}
-          <div className="mobile-card md:bg-white/40 md:dark:bg-[#0c1e44]/15 md:border md:border-black/5 md:dark:border-white/5 md:rounded-3xl md:p-5 md:glass space-y-4">
+          <div className="mobile-card card-fabric-texture md:bg-white/40 md:dark:bg-[#0c1e44]/15 md:border md:border-black/5 md:dark:border-white/5 md:rounded-3xl md:p-5 md:glass space-y-4">
             <h2 className="text-base font-bold text-slate-800 dark:text-white uppercase tracking-wider pb-1">
               Product Information
             </h2>
@@ -605,25 +581,6 @@ function ProductDetailsContent() {
         </div>
       </div>
 
-      {/* Sticky Mobile Actions */}
-      <div className="mobile-sticky-bar fixed bottom-0 left-0 right-0 h-16 border-t flex items-center justify-between px-4 z-40 md:hidden shadow-[0_-4px_12px_rgba(0,0,0,0.05)] bg-white dark:bg-[#0c1e44]">
-        <button 
-          onClick={() => addToCart(product)}
-          className="mobile-sticky-btn-secondary w-[48%] h-11 font-bold rounded-xl text-xs shadow-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#0f1f41]"
-        >
-          <span>Add to Cart</span>
-        </button>
-        <button 
-          onClick={() => {
-            addToCart(product);
-            router.push('/cart');
-          }}
-          className="w-[48%] h-11 bg-[#F1BF0A] hover:bg-yellow-500 text-slate-900 font-bold rounded-xl text-xs shadow-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-        >
-          <span>Buy Now</span>
-        </button>
-      </div>
-
       {/* Recommended weaves section */}
       {recommended.length > 0 && (
         <section className="mt-16 border-t border-slate-200 dark:border-slate-800 pt-10">
@@ -644,6 +601,26 @@ function ProductDetailsContent() {
         </section>
       )}
     </div>
+
+    {/* Sticky Mobile Actions */}
+    <div className="mobile-sticky-bar fixed bottom-[10px] left-0 right-0 h-16 flex items-center justify-between px-4 z-10 md:hidden bg-transparent border-none mb-0 pb-0">
+      <button 
+        onClick={() => addToCart(product)}
+        className="floating-button-secondary w-[48%] h-11 font-bold rounded-xl text-xs shadow-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer border-none"
+      >
+        <span>Add to Cart</span>
+      </button>
+      <button 
+        onClick={() => {
+          addToCart(product);
+          router.push('/cart');
+        }}
+        className="floating-button-primary w-[48%] h-11 font-bold rounded-xl text-xs shadow-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer border-none text-slate-900 dark:text-white"
+      >
+        <span>Buy Now</span>
+      </button>
+    </div>
+  </>
   );
 }
 
