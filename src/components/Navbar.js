@@ -17,7 +17,6 @@ export default function Navbar() {
     { name: 'Home', href: '/' },
     { name: 'About', href: '/about' },
     { name: 'New Arrivals', href: '/new-arrivals' },
-    { name: 'CMS Panel', href: '/cms' },
   ];
 
   return (
@@ -76,7 +75,7 @@ export default function Navbar() {
                   Get special wholesale pricing, custom packing, and priority shipping for weddings, corporate gifting, or retail.
                 </p>
                 <a 
-                  href="https://wa.me/919538945220?text=Hi%2C%20I%27m%20interested%20in%20wholesale%20buying%20from%20Reenat%20Trends." 
+                  href="https://wa.me/919028571571?text=Hi%2C%20I%27m%20interested%20in%20wholesale%20buying%20from%20Reenat%20Trends." 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="w-full inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full py-2 px-4 font-semibold text-xs transition-colors hover:no-underline"
@@ -179,7 +178,7 @@ export default function Navbar() {
             {/* Mobile Bulk Purchase */}
             <li>
               <a 
-                href="https://wa.me/919538945220?text=Hi%2C%20I%27m%20interested%20in%20wholesale%20buying%20from%20Reenat%20Trends."
+                href="https://wa.me/919028571571?text=Hi%2C%20I%27m%20interested%20in%20wholesale%20buying%20from%20Reenat%20Trends."
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setMobileMenuOpen(false)}
