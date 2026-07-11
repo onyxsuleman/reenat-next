@@ -18,5 +18,5 @@ const nextConfig = {
   },
 };
 
-// Triggering full rebuild for environment variables update
+// Triggering rebuild for VPS database and passcode sync
 export default nextConfig;
