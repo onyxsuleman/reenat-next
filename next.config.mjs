@@ -18,5 +18,5 @@ const nextConfig = {
   },
 };
 
-// Triggering rebuild for VPS database and passcode sync
+// Triggering rebuild for HTTPS database endpoint and passcode sync
 export default nextConfig;
