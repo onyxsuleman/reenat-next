@@ -18,4 +18,5 @@ const nextConfig = {
   },
 };
 
+// Triggering full rebuild for environment variables update
 export default nextConfig;
