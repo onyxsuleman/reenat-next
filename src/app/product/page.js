@@ -22,7 +22,12 @@ function ProductDetailsContent() {
 
   useEffect(() => {
     if (products.length > 0 && productId) {
-      const found = products.find(p => String(p.id) === String(productId));
+      const cleanId = String(productId).replace('NSY', '').replace(/^0+/, '');
+      const found = products.find(p => 
+        String(p.id) === String(productId) || 
+        String(p.id) === cleanId || 
+        p.productId === productId
+      );
       if (found) {
         setProduct(found);
         setActiveImageIndex(0);
@@ -372,7 +377,12 @@ function ProductDetailsContent() {
                   <span>{product.rating || 4.8}</span>
                   <span className="text-[9px]">★</span>
                 </span>
-                <span className="text-xs text-slate-400 font-medium">128 Ratings, 15 Reviews</span>
+                <Link 
+                  href={`/reviews?product_id=NSY${String(product.id).padStart(4, '0')}`}
+                  className="text-xs text-[#183fad] dark:text-[#F1BF0A] font-semibold hover:underline"
+                >
+                  💬 Community Reviews & Q&A Hub
+                </Link>
               </div>
               <div className="flex items-center gap-3.5 mt-1 shrink-0">
                 <button 

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { useApp } from '../context/AppContext';
 import ProductCard from '../components/ProductCard';
 import { ProductSkeletonGrid } from '../components/ProductSkeleton';
@@ -103,8 +104,10 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Satisfaction Card */}
-            <div className="hidden sm:block bg-white/10 dark:bg-white/5 rounded-2xl p-4 text-white sm:max-w-[185px] glass border border-white/10 shadow-inner">
+            <Link 
+              href="/reviews"
+              className="hidden sm:block bg-white/10 dark:bg-white/5 rounded-2xl p-4 text-white sm:max-w-[185px] glass border border-white/10 shadow-inner hover:scale-[1.03] transition-transform duration-200 hover:no-underline select-none cursor-pointer block"
+            >
               <div className="flex items-center gap-4 sm:gap-0 sm:flex-col sm:items-start">
                 <span className="text-4xl font-bold">98%</span>
                 <div className="flex -space-x-3 my-3">
@@ -114,7 +117,7 @@ export default function Home() {
                 </div>
               </div>
               <p className="text-sm text-slate-200">Customer satisfaction rating across all orders</p>
-            </div>
+            </Link>
           </div>
 
           <div className="flex items-stretch justify-between relative z-5">
