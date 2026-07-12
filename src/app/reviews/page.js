@@ -2,14 +2,10 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../utils/supabase';
 import ProductMiniCard from '../../components/ProductMiniCard';
 import ThreadContainer from '../../components/ThreadContainer';
 
-// Create Supabase client instance
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Mock verified registry: maps names/IDs to purchased Product ID list
 const verifiedRegistry = {

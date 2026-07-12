@@ -125,7 +125,7 @@ function ProductDetailsContent() {
       if (cid) seenRecommendedCatalogs.add(cid);
       return true;
     })
-    .slice(0, 3);
+    .slice(0, 30);
 
   // Get color variants (matching the catalog ID or linked product IDs to show true + cross-linked color variants)
   const colorVariants = (() => {
@@ -532,10 +532,7 @@ function ProductDetailsContent() {
                         <td className="py-3 text-slate-500 dark:text-slate-400 font-medium text-sm">Transparency</td>
                         <td className="py-3 text-right font-semibold text-sm">{product.transparency}</td>
                       </tr>
-                      <tr className="border-b border-slate-200 dark:border-slate-800/80 animate-in slide-in-from-top-1">
-                        <td className="py-3 text-slate-500 dark:text-slate-400 font-medium text-sm">Product ID</td>
-                        <td className="py-3 text-right font-semibold text-sm">{product.productId}</td>
-                      </tr>
+
                       <tr className="border-b border-slate-200 dark:border-slate-800/80 animate-in slide-in-from-top-1">
                         <td className="py-3 text-slate-500 dark:text-slate-400 font-medium text-sm">SKU ID</td>
                         <td className="py-3 text-right font-semibold text-sm">{product.skuId}</td>

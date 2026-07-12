@@ -2823,6 +2823,7 @@ export default function CMSConsole() {
                         <option value="Magenta">Magenta</option>
                         <option value="Violet">Violet</option>
                         <option value="Baby Pink">Baby Pink</option>
+                        <option value="Brown">Brown</option>
                         <option value="Light Brown">Light Brown</option>
                       </select>
                     </div>
@@ -2857,6 +2858,7 @@ export default function CMSConsole() {
                         <option value="Magenta">Magenta</option>
                         <option value="Violet">Violet</option>
                         <option value="Baby Pink">Baby Pink</option>
+                        <option value="Brown">Brown</option>
                         <option value="Light Brown">Light Brown</option>
                       </select>
                     </div>
