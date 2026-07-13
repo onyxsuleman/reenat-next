@@ -15,8 +15,10 @@ function ProductDetailsContent() {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [showExtendedInfo, setShowExtendedInfo] = useState(false);
   const [titleExpanded, setTitleExpanded] = useState(false);
+  const [showStickyBar, setShowStickyBar] = useState(false);
   const mobileCarouselRef = useRef(null);
   const desktopCarouselRef = useRef(null);
+  const variationSectionRef = useRef(null);
 
   const productId = searchParams.get('id');
 
@@ -77,6 +79,24 @@ function ProductDetailsContent() {
     const newIdx = activeImageIndex < galleryImages.length - 1 ? activeImageIndex + 1 : 0;
     handleImageChange(newIdx);
   };
+
+  useEffect(() => {
+    const variationBox = variationSectionRef.current;
+    if (!variationBox) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const isPast = !entry.isIntersecting && entry.boundingClientRect.top < 0;
+        setShowStickyBar(isPast);
+      });
+    }, { threshold: 0 });
+
+    observer.observe(variationBox);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [product]);
 
   if (!product) {
     return (
@@ -306,8 +326,11 @@ function ProductDetailsContent() {
           </div>
 
           {/* Color Variant Selector - moved below image on both mobile & desktop */}
-          {displayVariants.length > 0 && (
-            <div className="block bg-white/60 dark:bg-[#0c1e44]/30 border border-white/40 dark:border-white/8 rounded-2xl p-4 backdrop-blur-xl shadow-sm card-fabric-texture">
+          {displayVariants.length > 0 ? (
+            <div 
+              ref={variationSectionRef}
+              className="block bg-white/60 dark:bg-[#0c1e44]/30 border border-white/40 dark:border-white/8 rounded-2xl p-4 backdrop-blur-xl shadow-sm card-fabric-texture"
+            >
               <span className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2.5">
                 Selected Color: <span className="text-slate-800 dark:text-white font-semibold">{product.color || 'Classic Gold'}</span>
               </span>
@@ -342,6 +365,8 @@ function ProductDetailsContent() {
                 </div>
               </div>
             </div>
+          ) : (
+            <div ref={variationSectionRef} className="h-0 w-0" />
           )}
         </div>
 
@@ -610,10 +635,12 @@ function ProductDetailsContent() {
     </div>
 
     {/* Sticky Mobile Actions */}
-    <div className="mobile-sticky-bar fixed bottom-[10px] left-0 right-0 h-16 flex items-center justify-between px-4 z-10 md:hidden bg-transparent border-none mb-0 pb-0">
+    <div className={`mobile-sticky-bar fixed bottom-[5px] left-0 right-0 h-16 flex items-center justify-between px-4 z-20 md:hidden bg-transparent border-none mb-0 pb-0 transition-all duration-300 ${
+      showStickyBar ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-10 pointer-events-none'
+    }`}>
       <button 
         onClick={() => addToCart(product)}
-        className="floating-button-secondary w-[48%] h-11 font-bold rounded-xl text-xs shadow-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer border-none"
+        className="floating-button-secondary w-[48%] h-11 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer border-none"
       >
         <span>Add to Cart</span>
       </button>
@@ -622,7 +649,7 @@ function ProductDetailsContent() {
           addToCart(product);
           router.push('/cart');
         }}
-        className="floating-button-primary w-[48%] h-11 font-bold rounded-xl text-xs shadow-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer border-none text-slate-900 dark:text-white"
+        className="floating-button-primary w-[48%] h-11 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer border-none text-slate-900"
       >
         <span>Buy Now</span>
       </button>

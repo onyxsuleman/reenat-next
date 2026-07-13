@@ -12,6 +12,35 @@ export default function Home() {
   const [fadeText, setFadeText] = useState(false);
   const [timeLeft, setTimeLeft] = useState('12H:12M:31S');
   const collectionsRef = useRef(null);
+  const categorySectionRef = useRef(null);
+
+  // Intersection Observer for category scroll transitions
+  useEffect(() => {
+    const categorySection = categorySectionRef.current;
+    if (!categorySection) return;
+
+    const observerOptions = {
+      root: null,
+      rootMargin: '0px',
+      threshold: 0.2
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-revealed');
+        } else {
+          entry.target.classList.remove('is-revealed');
+        }
+      });
+    }, observerOptions);
+
+    observer.observe(categorySection);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   // Auto-play timer for hero carousel
   useEffect(() => {
@@ -229,18 +258,279 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Category Circles Section */}
-      <section className="w-full max-w-5xl mx-auto py-4">
-        <h2 className="font-anton text-center text-2xl tracking-widest text-slate-800 dark:text-slate-100 mb-8">CATEGORY</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 px-4">
-          {categoryCards?.map((card, idx) => (
-            <a key={idx} href={card.link || "#product-list"} className="flex flex-col items-center group gap-3 hover:no-underline">
-              <div className="size-24 sm:size-28 rounded-full overflow-hidden border-2 border-amber-500/30 group-hover:border-amber-500 group-hover:shadow-md transition-all duration-300 relative">
-                <img src={card.image || "/saree_kanjivaram.png"} alt={card.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-              </div>
-              <span className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-wider group-hover:text-amber-500 transition-colors uppercase">{card.name}</span>
-            </a>
-          ))}
+      {/* SCOPED CUSTOM TRANSITION STYLES */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        :root {
+            --cream-bg-custom: #FAF6F0;
+            --text-dark-custom: #2A2522;
+            --accent-gold-custom: #D4AF37;
+            --glass-bg-custom: rgba(255, 255, 255, 0.5);
+            --glass-border-custom: rgba(255, 255, 255, 0.9);
+        }
+
+        .dark {
+            --cream-bg-custom: #121212;
+            --text-dark-custom: #E2E8F0;
+            --glass-bg-custom: rgba(24, 24, 27, 0.6);
+            --glass-border-custom: rgba(255, 255, 255, 0.1);
+        }
+
+        .category-section-custom {
+            padding: 80px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            background-color: var(--cream-bg-custom);
+            border-radius: 32px;
+            margin: 40px 0;
+            border: 1px solid var(--glass-border-custom);
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.02);
+            transition: background-color 0.3s ease;
+        }
+
+        .section-title-custom {
+            text-align: center;
+            font-size: 26px;
+            color: var(--text-dark-custom);
+            letter-spacing: 4px;
+            margin-bottom: 60px;
+            text-transform: uppercase;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.8s ease;
+        }
+
+        .category-section-custom.is-revealed .section-title-custom {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .grid-container-custom {
+            position: relative;
+            width: 100%;
+            max-width: 360px;
+            margin: 0 auto;
+        }
+
+        .central-core-custom {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle, #fff, var(--accent-gold-custom));
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(1);
+            box-shadow: 0 0 40px rgba(212, 175, 55, 0.8), 0 0 80px rgba(212, 175, 55, 0.4);
+            z-index: 20;
+            opacity: 1;
+            transition: transform 1.2s cubic-bezier(0.19, 1, 0.22, 1), opacity 1s ease-out;
+        }
+
+        .category-section-custom.is-revealed .central-core-custom {
+            transform: translate(-50%, -50%) scale(8);
+            opacity: 0;
+        }
+
+        .category-grid-custom {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px 20px;
+            width: 100%;
+            position: relative;
+            z-index: 10;
+        }
+
+        .reveal-wrapper-custom {
+            transition: transform 1.2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.8s ease;
+            opacity: 0;
+        }
+
+        .reveal-wrapper-custom.top-left { transform: translate(70px, 80px) scale(0.2); }
+        .reveal-wrapper-custom.top-right { transform: translate(-70px, 80px) scale(0.2); }
+        .reveal-wrapper-custom.bottom-left { transform: translate(70px, -80px) scale(0.2); }
+        .reveal-wrapper-custom.bottom-right { transform: translate(-70px, -80px) scale(0.2); }
+
+        .category-section-custom.is-revealed .reveal-wrapper-custom {
+            transform: translate(0, 0) scale(1);
+            opacity: 1;
+        }
+
+        .reveal-wrapper-custom.top-left { transition-delay: 0.1s; }
+        .reveal-wrapper-custom.top-right { transition-delay: 0.15s; }
+        .reveal-wrapper-custom.bottom-left { transition-delay: 0.2s; }
+        .reveal-wrapper-custom.bottom-right { transition-delay: 0.25s; }
+
+        .float-layer-custom {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: float-custom 6s ease-in-out infinite;
+        }
+
+        .reveal-wrapper-custom.top-left .float-layer-custom { animation-delay: 0s; }
+        .reveal-wrapper-custom.top-right .float-layer-custom { animation-delay: -1.5s; }
+        .reveal-wrapper-custom.bottom-left .float-layer-custom { animation-delay: -3s; }
+        .reveal-wrapper-custom.bottom-right .float-layer-custom { animation-delay: -4.5s; }
+
+        @keyframes float-custom {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-12px); }
+        }
+
+        @media (min-width: 768px) {
+            .grid-container-custom {
+                max-width: 900px;
+            }
+            .category-grid-custom {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 20px;
+            }
+            .orb-custom {
+                width: 170px;
+                height: 170px;
+            }
+            .reveal-wrapper-custom.top-left { transform: translate(337.5px, 0px) scale(0.2); }
+            .reveal-wrapper-custom.top-right { transform: translate(112.5px, 0px) scale(0.2); }
+            .reveal-wrapper-custom.bottom-left { transform: translate(-112.5px, 0px) scale(0.2); }
+            .reveal-wrapper-custom.bottom-right { transform: translate(-337.5px, 0px) scale(0.2); }
+        }
+
+        .orb-custom {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            position: relative;
+            cursor: pointer;
+            background: #fff;
+            padding: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            box-shadow: 
+                inset 0 6px 12px rgba(255, 255, 255, 0.95),
+                inset 0 -6px 12px rgba(139, 115, 85, 0.15),
+                0 25px 45px rgba(139, 115, 85, 0.35),
+                0 10px 20px rgba(139, 115, 85, 0.2);
+            transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        @media (hover: hover) {
+            .orb-custom:hover {
+                transform: scale(1.06) translateY(-6px);
+                box-shadow: 
+                    inset 0 6px 12px rgba(255, 255, 255, 0.95),
+                    inset 0 -4px 10px rgba(139, 115, 85, 0.15),
+                    0 35px 60px rgba(139, 115, 85, 0.45),
+                    0 15px 30px rgba(139, 115, 85, 0.3);
+            }
+        }
+
+        .dark .orb-custom {
+            background: #2a2522;
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 
+                inset 0 6px 12px rgba(255, 255, 255, 0.15),
+                inset 0 -6px 12px rgba(0, 0, 0, 0.4),
+                0 25px 45px rgba(0, 0, 0, 0.65),
+                0 10px 20px rgba(0, 0, 0, 0.35);
+        }
+
+        @media (hover: hover) {
+            .dark .orb-custom:hover {
+                box-shadow: 
+                    inset 0 6px 12px rgba(255, 255, 255, 0.2),
+                    inset 0 -6px 12px rgba(0, 0, 0, 0.4),
+                    0 35px 60px rgba(0, 0, 0, 0.9),
+                    0 15px 30px rgba(0, 0, 0, 0.55);
+            }
+        }
+
+        .orb-custom:active {
+            transform: scale(0.92) translateY(5px);
+            box-shadow: inset 0 4px 10px rgba(255, 255, 255, 0.8), 0 5px 10px rgba(139, 115, 85, 0.2);
+        }
+
+        .dark .orb-custom:active {
+            box-shadow: inset 0 4px 10px rgba(255, 255, 255, 0.1), 0 5px 10px rgba(0, 0, 0, 0.4);
+        }
+
+        .orb-image-custom {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+        }
+
+        .orb-image-custom img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            animation: slowZoom-custom 15s linear infinite alternate;
+        }
+
+        @keyframes slowZoom-custom {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.15); }
+        }
+
+        .orb-label-custom {
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--glass-bg-custom);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border-custom);
+            padding: 8px 16px;
+            border-radius: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-dark-custom);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            z-index: 5;
+            transition: all 0.3s ease;
+        }
+
+        .orb-custom:active + .orb-label-custom {
+            transform: translateX(-50%) scale(0.95);
+            background: var(--accent-gold-custom);
+            color: #fff;
+            border-color: var(--accent-gold-custom);
+        }
+      ` }} />
+
+      {/* Category Circles Section with Scroll Transition */}
+      <section className="category-section-custom" id="categorySection" ref={categorySectionRef}>
+        <h2 className="section-title-custom font-anton tracking-widest text-[#0c1e44] dark:text-white">Category</h2>
+        
+        <div className="grid-container-custom">
+          {/* The glowing dot that splits */}
+          <div className="central-core-custom"></div>
+          
+          <div className="category-grid-custom">
+            {(() => {
+              const positionClasses = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+              return categoryCards?.slice(0, 4).map((card, idx) => (
+                <div key={idx} className={`reveal-wrapper-custom ${positionClasses[idx]}`}>
+                  <div className="float-layer-custom">
+                    <Link href={card.link || "#product-list"} className="flex flex-col items-center hover:no-underline group animate-none">
+                      <div className="orb-custom">
+                        <div className="orb-image-custom">
+                          <img src={card.image || "/saree_kanjivaram.png"} alt={card.name} className="w-full h-full object-cover" />
+                        </div>
+                      </div>
+                      <div className="orb-label-custom font-sans font-bold">{card.name}</div>
+                    </Link>
+                  </div>
+                </div>
+              ));
+            })()}
+          </div>
         </div>
       </section>
 

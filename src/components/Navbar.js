@@ -20,10 +20,10 @@ export default function Navbar() {
   ];
 
   return (
-    <nav className="flex flex-col max-w-5xl w-full mx-auto relative z-50 gap-4 mt-4 mb-4 px-2 sm:px-0">
-      <div className="flex items-center justify-between gap-4">
+    <nav className="flex flex-col max-w-5xl w-full mx-auto relative z-50 gap-4 mt-1.5 mb-4 px-2 sm:px-0">
+      <div className="flex items-center justify-between gap-3">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 bg-white/90 dark:bg-[#0c1e44]/90 px-4 py-2.5 rounded-[9999px] glass shadow-md border border-white/20 dark:border-white/10 transition-colors duration-300 shrink-0 hover:no-underline">
+        <Link href="/" className="flex items-center gap-2 bg-white/90 dark:bg-[#0c1e44]/90 px-4 py-2.5 rounded-[9999px] nav-glass border border-white/20 dark:border-white/10 transition-colors duration-300 shrink-0 hover:no-underline">
           <svg width="30" height="30" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect width="40" height="40" rx="20" fill="#F1BF0A" />
             <path d="M20 8C20 8 12 15 12 22C12 26.4183 15.5817 30 20 30C24.4183 30 28 26.4183 28 22C28 15 20 8 20 8ZM20 27C17.2386 27 15 24.7614 15 22C15 18.5 18 14.5 20 12.2C22 14.5 25 18.5 25 22C25 24.7614 22.7614 27 20 27Z" fill="#0f1f41"/>
@@ -32,7 +32,7 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop Nav and Action Buttons */}
-        <div className="flex items-center justify-between gap-4 flex-1 bg-white/90 dark:bg-[#0c1e44]/90 text-slate-800 dark:text-white px-5 py-2 rounded-[9999px] glass shadow-md border border-white/20 dark:border-white/10 transition-colors duration-300">
+        <div className="flex items-center justify-between gap-4 flex-1 bg-white/90 dark:bg-[#0c1e44]/90 text-slate-800 dark:text-white px-5 py-2 rounded-[9999px] nav-glass border border-white/20 dark:border-white/10 transition-colors duration-300">
           <div className="hidden md:block"></div>
 
           {/* Links */}
@@ -144,7 +144,7 @@ export default function Navbar() {
               onClick={toggleTheme}
               id="theme-toggle"
               aria-label="Toggle theme"
-              className="cursor-pointer"
+              className="cursor-pointer ml-auto"
             >
               {theme === 'dark' ? '☀' : '☾'}
             </button>

@@ -13,7 +13,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className="h-full" suppressHydrationWarning>
-      <body className="min-h-dvh text-base font-normal text-slate-900 dark:text-slate-100 px-3.5 pt-3.5 flex flex-col justify-between" suppressHydrationWarning>
+      <body className="min-h-dvh text-base font-normal text-slate-900 dark:text-slate-100 px-3.5 pt-[calc(6px+env(safe-area-inset-top,0px))] flex flex-col justify-between" suppressHydrationWarning>
         <AppProvider>
           <Navbar />
           <main className="flex-1 w-full max-w-5xl mx-auto px-2 sm:px-0">

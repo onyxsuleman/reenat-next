@@ -2,6 +2,8 @@
 
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #fdfcf7;
   --foreground: #0f172a;
@@ -732,39 +734,43 @@ body:has(#cms-console-root) main {
 .mobile-sticky-bar {
   background: transparent !important;
   border: none !important;
-  bottom: 10px !important;
+  bottom: 5px !important;
   box-shadow: none !important;
   margin-top: 0px !important;
   margin-bottom: 0px !important;
 }
 
 .floating-button-primary {
-  background: rgba(241, 191, 10, 0.4) !important;
+  background: rgba(241, 191, 10, 0.95) !important;
   backdrop-filter: blur(10px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(10px) saturate(180%) !important;
-  border: 1px solid rgba(241, 191, 10, 0.25) !important;
+  border: none !important;
+  outline: none !important;
   border-radius: 14px !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
   color: #0f172a !important;
+  appearance: none;
 }
 .dark .floating-button-primary {
-  background: rgba(241, 191, 10, 0.3) !important;
-  border: 1px solid rgba(241, 191, 10, 0.2) !important;
-  color: #ffffff !important;
+  background: rgba(241, 191, 10, 0.9) !important;
+  border: none !important;
+  color: #0f172a !important;
 }
 
 .floating-button-secondary {
-  background: rgba(255, 255, 255, 0.5) !important;
+  background: rgba(255, 255, 255, 0.9) !important;
   backdrop-filter: blur(10px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(10px) saturate(180%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  border: none !important;
+  outline: none !important;
   border-radius: 14px !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
   color: #0f172a !important;
+  appearance: none;
 }
 .dark .floating-button-secondary {
-  background: rgba(15, 23, 42, 0.5) !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background: rgba(30, 41, 59, 0.9) !important;
+  border: none !important;
   color: #ffffff !important;
 }
 
@@ -778,6 +784,25 @@ body:has(#cms-console-root) main {
   background-image: 
     repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.03) 0px, rgba(255, 255, 255, 0.03) 1px, transparent 1px, transparent 2px),
     repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.03) 0px, rgba(255, 255, 255, 0.03) 1px, transparent 1px, transparent 2px) !important;
+}
+
+/* 3D Glass Navigation Items */
+.nav-glass {
+  border-radius: 9999px !important;
+  overflow: hidden !important;
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.1), 
+    0 10px 15px -3px rgba(0, 0, 0, 0.2), 
+    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Typography contrast fix for buttons with bg-slate-800/80 */
+button.bg-slate-800\/80 {
+  color: #fdfbf7 !important; /* Cream color */
+}
+
+button.bg-slate-800\/80 span {
+  color: #fdfbf7 !important;
 }
 
 
