@@ -142,14 +142,14 @@ export default function TestCategoryPage() {
         }
 
         .category-section-custom {
-            padding: 24px 20px 60px 20px;
+            padding: 8px 20px 60px 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
             position: relative;
             background-color: var(--cream-bg-custom);
             border-radius: 32px;
-            margin: 0px 0 40px 0;
+            margin: -16px 0 40px 0;
             border: 1px solid var(--glass-border-custom);
             overflow: hidden;
             box-shadow: 0 10px 30px rgba(0,0,0,0.02);
@@ -423,9 +423,9 @@ export default function TestCategoryPage() {
       {/* Hero Header Section */}
       <header className="max-w-5xl mx-auto bg-[#0c1e44]/95 text-white px-3.5 pb-3.5 pt-8 sm:pt-14 rounded-tl-4xl rounded-b-4xl relative z-0 overflow-hidden glass page-hero">
         <div className="w-full flex justify-center overflow-hidden py-4 sm:py-6 select-none">
-          <span className="font-anton text-[11vw] sm:text-[12vw] md:text-[105px] leading-none tracking-wider uppercase w-full text-center block font-black bg-gradient-to-b from-white via-white/80 to-white/35 bg-clip-text text-transparent dark:from-[#fff5cc] dark:via-[#f1bf0a] dark:to-[#8c6d00] drop-shadow-[0_4px_12px_rgba(0,0,0,0.45)] select-none">
-            REENAT'S
-          </span>
+          <span className="font-anton text-[11vw] sm:text-[12vw] md:text-[100px] leading-none tracking-wider text-white/95 dark:text-[#f1bf0a] uppercase w-full text-center drop-shadow-md block select-none">
+             REENAT'S
+           </span>
         </div>
 
         <div className="mt-6 sm:mt-12 pt-7 bg-[#183fad]/40 dark:bg-black/25 rounded-4xl glass">
