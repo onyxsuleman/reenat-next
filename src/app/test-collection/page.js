@@ -6,20 +6,133 @@ import { useApp } from '../../context/AppContext';
 import ProductCard from '../../components/ProductCard';
 import { ProductSkeletonGrid } from '../../components/ProductSkeleton';
 
+// Premium Theme Color Constants
+const GOLD_ACCENT = '#F1BF0A';
+
+// Curated collections dataset with metadata for swiping deck stack
+const SAREE_COLLECTIONS = [
+  {
+    catalog_id: 'M1',
+    id: 'NSY0042',
+    styleid: 'MANGO GREEN PAI X1',
+    title: 'Imperial Paithani',
+    category: 'Handloom Silk',
+    price: '₹18,500',
+    originalPrice: '₹24,000',
+    discount: '23% OFF',
+    rating: '4.9',
+    reviewsCount: '124',
+    badge: 'Trending Seller',
+    image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=600',
+    image_back: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=600',
+    colorName: 'Mango Green',
+    drapingStyles: ['Traditional Maharashtrian', 'Modern Open Pallu'],
+    fabricScale: { soft: 85, weight: 75 }
+  },
+  {
+    catalog_id: 'M2',
+    id: 'NSY0050',
+    styleid: 'ROYAL KANJI BL-02',
+    title: 'Regal Kanjeevaram',
+    category: 'Pure Mulberry Silk',
+    price: '₹29,000',
+    originalPrice: '₹38,000',
+    discount: '24% OFF',
+    rating: '5.0',
+    reviewsCount: '89',
+    badge: 'Bridal Heritage',
+    image: 'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&q=80&w=600',
+    image_back: 'https://images.unsplash.com/photo-1583391265517-35bbadd01209?auto=format&fit=crop&q=80&w=600',
+    colorName: 'Royal Blue & Crimson Gold',
+    drapingStyles: ['South Indian Temple style', 'Mumtaz Drape'],
+    fabricScale: { soft: 90, weight: 90 }
+  },
+  {
+    catalog_id: 'M3',
+    id: 'NSY0088',
+    styleid: 'BANARASI CRIMSON XP',
+    title: 'Brocade Banarasi',
+    category: 'Katan Silk Zari',
+    price: '₹34,500',
+    originalPrice: '₹45,000',
+    discount: '23% OFF',
+    rating: '4.8',
+    reviewsCount: '210',
+    badge: 'Highly Exclusive',
+    image: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=600',
+    image_back: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=600',
+    colorName: 'Crimson Vermillion',
+    drapingStyles: ['Bengali Athpouree Style', 'Traditional Gown drape'],
+    fabricScale: { soft: 70, weight: 95 }
+  },
+  {
+    catalog_id: 'M4',
+    id: 'NSY0101',
+    styleid: 'CHANDERI LACE PC-04',
+    title: 'Gossamer Chanderi',
+    category: 'Cotton Silk Blend',
+    price: '₹9,800',
+    originalPrice: '₹12,500',
+    discount: '21% OFF',
+    rating: '4.7',
+    reviewsCount: '64',
+    badge: 'Summer Luxury',
+    image: 'https://images.unsplash.com/photo-1583391265517-35bbadd01209?auto=format&fit=crop&q=80&w=600',
+    image_back: 'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&q=80&w=600',
+    colorName: 'Peach Zari Veil',
+    drapingStyles: ['Modern Casual Nivi', 'Neck Wrap Style'],
+    fabricScale: { soft: 95, weight: 45 }
+  },
+  {
+    catalog_id: 'M5',
+    id: 'NSY0120',
+    styleid: 'PATOLA DOUBLE GEOMETRIC',
+    title: 'Patan Patola Silk',
+    category: 'Double Ikat Weave',
+    price: '₹48,000',
+    originalPrice: '₹60,000',
+    discount: '20% OFF',
+    rating: '4.9',
+    reviewsCount: '42',
+    badge: 'Artisanal Treasure',
+    image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=600',
+    image_back: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=600',
+    colorName: 'Madder Red & Mustard',
+    drapingStyles: ['Gujarati Seedha Pallu', 'Dhoti Style'],
+    fabricScale: { soft: 80, weight: 80 }
+  }
+];
+
 export default function TestCollectionPage() {
   // --- REAL HOMEPAGE STATE & HOOKS ---
-  const { products, heroSlides, categoryCards, collectionCards } = useApp();
+  const { 
+    products, 
+    heroSlides, 
+    categoryCards,
+    cart, 
+    addToCart, 
+    removeFromCart, 
+    wishlist, 
+    toggleWishlist: toggleGlobalWishlist 
+  } = useApp();
+
   const [slideIndex, setSlideIndex] = useState(0);
   const [fadeText, setFadeText] = useState(false);
   const [timeLeft, setTimeLeft] = useState('12H:12M:31S');
-  const collectionsRef = useRef(null);
 
-  // --- COLLECTION SANDBOX STATE ---
-  const [layoutOption, setLayoutOption] = useState('glass-cards'); // 'glass-cards', 'accordion', '3d-tilt'
-  const [hoveredAccordionIndex, setHoveredAccordionIndex] = useState(0);
-  const [tiltCoords, setTiltCoords] = useState({ x: 0, y: 0, index: null });
+  // --- TACTILE SWIPING SLIDER STATE ---
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [activeDetailItem, setActiveDetailItem] = useState(null);
+  const [customToast, setCustomToast] = useState(null);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [isHovered, setIsHovered] = useState(false);
 
-  // Auto-play timer for hero carousel
+  const dragStartRef = useRef(0);
+  const categorySectionRef = useRef(null);
+
+  // Auto-play timer for hero banner
   useEffect(() => {
     const timer = setInterval(() => {
       handleNextSlide();
@@ -62,204 +175,155 @@ export default function TestCollectionPage() {
     }, 455);
   };
 
-  const scrollCollections = (direction) => {
-    if (collectionsRef.current) {
-      const scrollAmount = direction === 'left' ? -340 : 340;
-      collectionsRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+  const activeSlide = (heroSlides && heroSlides[slideIndex]) || { subtitle: '', title: '', desc: '', image: '' };
+
+  // --- SWIPING SLIDER AUTO-PLAY TIMER ---
+  useEffect(() => {
+    if (!isAutoPlaying || isDragging || activeDetailItem || isHovered) {
+      return;
+    }
+    const timer = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % SAREE_COLLECTIONS.length);
+    }, 3000); // 3 seconds automatic transition rate
+    return () => clearInterval(timer);
+  }, [isAutoPlaying, isDragging, activeDetailItem, isHovered]);
+
+  const showToast = (message, isGold = true) => {
+    setCustomToast({ message, isGold });
+    setTimeout(() => {
+      setCustomToast(null);
+    }, 2800);
+  };
+
+  // --- STATE-SYNC WITH GLOBAL APP CONTEXT ---
+  const isWishlisted = (id) => wishlist.some(p => p.id === id);
+  const isInCart = (id) => cart.some(p => p.id === id);
+
+  const handleToggleWishlist = (item, e) => {
+    e.stopPropagation();
+    const productSchema = {
+      id: item.id,
+      catalog_id: item.catalog_id,
+      styleid: item.styleid,
+      name: item.title,
+      price: parseInt(item.price.replace(/[^\d]/g, '')),
+      image: item.image,
+      category: item.category,
+      color: item.colorName
+    };
+    toggleGlobalWishlist(productSchema);
+    if (!isWishlisted(item.id)) {
+      showToast(`Added ${item.title} to Wishlist!`, true);
+    } else {
+      showToast(`Removed ${item.title} from Wishlist!`, false);
     }
   };
 
-  const activeSlide = (heroSlides && heroSlides[slideIndex]) || { subtitle: '', title: '', desc: '', image: '' };
-
-  // --- 3D TILT CALCULATION ---
-  const handleMouseMove = (e, index) => {
-    const card = e.currentTarget;
-    const rect = card.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
-    const mouseX = e.clientX - rect.left - width / 2;
-    const mouseY = e.clientY - rect.top - height / 2;
-    
-    // Normalize coordinates (-10 to 10 degrees max tilt)
-    const rotateX = (mouseY / (height / 2)) * -10;
-    const rotateY = (mouseX / (width / 2)) * 10;
-    
-    setTiltCoords({ x: rotateX, y: rotateY, index });
+  const handleToggleCart = (item, e) => {
+    e.stopPropagation();
+    const productSchema = {
+      id: item.id,
+      catalog_id: item.catalog_id,
+      styleid: item.styleid,
+      name: item.title,
+      price: parseInt(item.price.replace(/[^\d]/g, '')),
+      image: item.image,
+      category: item.category,
+      color: item.colorName
+    };
+    if (isInCart(item.id)) {
+      removeFromCart(item.id);
+      showToast(`Removed ${item.title} from Bag!`, false);
+    } else {
+      addToCart(productSchema);
+      showToast(`Added ${item.title} to Bag!`, true);
+    }
   };
 
-  const handleMouseLeave = () => {
-    setTiltCoords({ x: 0, y: 0, index: null });
+  // --- TOUCH & MOUSE SWIPE PHYSICS GESTURES ---
+  const handleDragStart = (clientX) => {
+    setIsDragging(true);
+    dragStartRef.current = clientX;
   };
+
+  const handleDragMove = (clientX) => {
+    if (!isDragging) return;
+    const diff = clientX - dragStartRef.current;
+    const resistance = diff < 0 ? 0.85 : 0.65;
+    setDragOffset(diff * resistance);
+  };
+
+  const handleDragEnd = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    const threshold = 80;
+    if (dragOffset < -threshold) {
+      setActiveIndex((prev) => (prev + 1) % SAREE_COLLECTIONS.length);
+    } else if (dragOffset > threshold) {
+      setActiveIndex((prev) => (prev - 1 + SAREE_COLLECTIONS.length) % SAREE_COLLECTIONS.length);
+    }
+    setDragOffset(0);
+  };
+
+  const onMouseDown = (e) => handleDragStart(e.clientX);
+  const onMouseMove = (e) => handleDragMove(e.clientX);
+  const onMouseUp = () => handleDragEnd();
+
+  const onTouchStart = (e) => handleDragStart(e.touches[0].clientX);
+  const onTouchMove = (e) => handleDragMove(e.touches[0].clientX);
+  const onTouchEnd = () => handleDragEnd();
 
   return (
     <div className="space-y-12 pb-24 relative">
-      {/* SCOPED SANDBOX STYLE SHEETS */}
+      {/* SCOPED SLIDER STYLES */}
       <style dangerouslySetInnerHTML={{ __html: `
-        /* --- Redesigned Collection Custom Styles --- */
-
-        /* 1. Glassmorphic Slider Styles */
-        .glass-collection-card {
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            box-shadow: 
-                0 4px 15px rgba(0, 0, 0, 0.05),
-                0 10px 30px rgba(139, 115, 85, 0.08);
-            transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
-        }
-
-        .dark .glass-collection-card {
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: 
-                0 4px 20px rgba(0, 0, 0, 0.3),
-                0 10px 35px rgba(0, 0, 0, 0.2);
-        }
-
-        .glass-collection-card:hover {
-            transform: translateY(-8px) scale(1.02);
-            border-color: #F1BF0A;
-            box-shadow: 
-                0 20px 40px rgba(241, 191, 10, 0.12),
-                0 12px 30px rgba(0, 0, 0, 0.08);
-        }
-
-        .glass-collection-overlay {
-            background: linear-gradient(to top, rgba(12, 30, 68, 0.9) 0%, rgba(12, 30, 68, 0.3) 60%, transparent 100%);
-            transition: all 0.4s ease;
-        }
-
-        .glass-collection-card:hover .glass-collection-overlay {
-            background: linear-gradient(to top, rgba(12, 30, 68, 0.95) 0%, rgba(12, 30, 68, 0.5) 75%, rgba(12, 30, 68, 0.1) 100%);
-        }
-
-        .collection-btn-reveal {
-            opacity: 0;
-            transform: translateY(15px);
-            transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-        }
-
-        .glass-collection-card:hover .collection-btn-reveal {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        /* 2. Accordion Layout Styles */
-        .accordion-wrapper {
-            display: flex;
-            gap: 16px;
-            width: 100%;
-            height: 380px;
-            overflow: hidden;
-            border-radius: 24px;
-        }
-
-        .accordion-card {
-            flex: 1;
-            height: 100%;
+        .deck-card-container {
             position: relative;
-            overflow: hidden;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.6s cubic-bezier(0.25, 1, 0.3, 1);
+            width: 300px;
+            height: 450px;
+            margin: 0 auto;
+            touch-action: none;
+        }
+
+        .deck-card {
+            position: absolute;
+            width: 300px;
+            height: 450px;
+            background: #0f1d3c;
+            border-radius: 30px;
             border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .accordion-card.is-active {
-            flex: 2.8;
-            border-color: rgba(241, 191, 10, 0.5);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-        }
-
-        .accordion-card img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.8s ease;
-        }
-
-        .accordion-card.is-active img {
-            transform: scale(1.05);
-        }
-
-        .accordion-text-container {
-            writing-mode: vertical-rl;
-            text-orientation: mixed;
-            transform: rotate(180deg);
-            transition: all 0.5s ease;
-        }
-
-        .accordion-card.is-active .accordion-text-container {
-            writing-mode: horizontal-tb;
-            text-orientation: unset;
-            transform: rotate(0deg);
-        }
-
-        /* 3. 3D Tilt Card Grid Styles */
-        .tilt-card-grid {
-            display: grid;
-            grid-template-columns: repeat(1, 1fr);
-            gap: 24px;
-        }
-        @media (min-width: 640px) {
-            .tilt-card-grid {
-                grid-template-columns: repeat(3, 1fr);
-            }
-        }
-
-        .tilt-card {
-            border-radius: 24px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.35);
             overflow: hidden;
-            aspect-ratio: 4/5;
-            position: relative;
-            background: #181c26;
-            cursor: pointer;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-            transform-style: preserve-3d;
-            border: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            flex-direction: column;
+            pointer-events: auto;
         }
 
-        .tilt-inner {
-            transform: translateZ(30px);
-            transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+        .dark .deck-card {
+            background: #0b152d;
+            border-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .deck-badge-glass {
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
         }
       ` }} />
 
-      {/* Sticky Sandbox Switcher Header */}
-      <div className="sticky top-2 z-[999] bg-[#0c1e44]/95 backdrop-blur-md text-white p-3 rounded-2xl border border-white/10 shadow-lg flex flex-col md:flex-row items-center justify-between gap-4 max-w-2xl mx-auto">
-        <div>
-          <span className="font-extrabold text-sm block text-[#F1BF0A] uppercase tracking-wider">📦 Collection Sandbox Panel</span>
-          <span className="text-[10px] opacity-80 block">Toggle collection section layouts live</span>
+      {/* Dynamic Toast System */}
+      {customToast && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] px-5 py-3 rounded-xl backdrop-blur-xl shadow-2xl flex items-center gap-3 border"
+             style={{
+               background: 'rgba(12, 30, 68, 0.95)',
+               borderColor: customToast.isGold ? GOLD_ACCENT : '#ffffff33',
+               animation: 'bounce 0.5s ease-out'
+             }}>
+          <span style={{ color: customToast.isGold ? GOLD_ACCENT : '#ffffff' }}>✨</span>
+          <p className="text-sm tracking-wide font-medium text-gray-100">{customToast.message}</p>
         </div>
-        <div className="flex bg-black/30 p-1 rounded-full border border-white/5">
-          <button 
-            type="button" 
-            onClick={() => setLayoutOption('glass-cards')}
-            className={`text-xs font-bold py-1.5 px-3 rounded-full cursor-pointer transition-colors ${
-              layoutOption === 'glass-cards' ? 'bg-[#F1BF0A] text-slate-900' : 'text-slate-300 hover:text-white'
-            }`}
-          >
-            Glass Slider
-          </button>
-          <button 
-            type="button" 
-            onClick={() => setLayoutOption('accordion')}
-            className={`text-xs font-bold py-1.5 px-3 rounded-full cursor-pointer transition-colors ${
-              layoutOption === 'accordion' ? 'bg-[#F1BF0A] text-slate-900' : 'text-slate-300 hover:text-white'
-            }`}
-          >
-            Accordion Banner
-          </button>
-          <button 
-            type="button" 
-            onClick={() => setLayoutOption('3d-tilt')}
-            className={`text-xs font-bold py-1.5 px-3 rounded-full cursor-pointer transition-colors ${
-              layoutOption === '3d-tilt' ? 'bg-[#F1BF0A] text-slate-900' : 'text-slate-300 hover:text-white'
-            }`}
-          >
-            3D Tilt Grid
-          </button>
-        </div>
-      </div>
-
-      {/* --- REAL HOME PAGE CONTENT --- */}
+      )}
 
       {/* Promo Bar */}
       <div className="w-full bg-rose-600/90 dark:bg-rose-950/90 text-white py-2 px-4 rounded-xl flex items-center justify-between gap-4 font-semibold text-xs sm:text-sm shadow-md border border-rose-500/20 glass animate-pulse-subtle">
@@ -421,144 +485,243 @@ export default function TestCollectionPage() {
         </div>
       </div>
 
-      {/* --- Redesigned Sandboxed Collection Section --- */}
-      <section className="w-full max-w-5xl mx-auto py-4 relative">
-        <h2 className="font-anton text-2xl tracking-widest text-slate-800 dark:text-slate-100 mb-8 px-4 text-center sm:text-left">
-          COLLECTION <span className="text-xs font-sans text-amber-500 lowercase bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20 font-bold ml-2">Testing Option: {layoutOption}</span>
-        </h2>
+      {/* --- INTEGRATED LUXURY SWIPING CARD DECK SECTION --- */}
+      <section className="w-full max-w-5xl mx-auto py-6 relative text-center">
+        <div className="max-w-md mx-auto px-4 mb-6">
+          <span className="text-xs uppercase tracking-[0.25em] text-[#F1BF0A] font-bold block mb-1">Handloom Treasures</span>
+          <h2 className="font-anton text-2xl sm:text-3xl tracking-widest text-slate-800 dark:text-slate-100 uppercase">
+            Signature Collections
+          </h2>
+          <div className="h-[2px] w-24 bg-[#F1BF0A] mx-auto mt-2.5"></div>
+        </div>
 
-        {/* layoutOption === 'glass-cards' */}
-        {layoutOption === 'glass-cards' && (
-          <div className="relative">
-            <div className="absolute right-4 -top-14 flex items-center gap-2">
-              <button 
-                type="button" 
-                onClick={() => scrollCollections('left')} 
-                aria-label="Scroll left"
-                className="flex items-center justify-center bg-[#F1BF0A] hover:bg-yellow-500 rounded-full p-2 text-slate-900 shadow-md cursor-pointer hover:scale-105 transition-transform"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-                </svg>
-              </button>
-              <button 
-                type="button" 
-                onClick={() => scrollCollections('right')} 
-                aria-label="Scroll right"
-                className="flex items-center justify-center bg-[#F1BF0A] hover:bg-yellow-500 rounded-full p-2 text-slate-900 shadow-md cursor-pointer hover:scale-105 transition-transform"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                </svg>
-              </button>
-            </div>
+        {/* Card Stack Drag Bounds */}
+        <div className="deck-card-container relative z-10 select-none overflow-visible py-4"
+             onTouchStart={onTouchStart}
+             onTouchMove={onTouchMove}
+             onTouchEnd={onTouchEnd}
+             onMouseDown={onMouseDown}
+             onMouseMove={onMouseMove}
+             onMouseUp={onMouseUp}
+             onMouseLeave={(e) => {
+               handleDragEnd();
+               setIsHovered(false);
+             }}
+             onMouseEnter={() => setIsHovered(true)}>
+          
+          {SAREE_COLLECTIONS.map((item, index) => {
+            const diff = (index - activeIndex + SAREE_COLLECTIONS.length) % SAREE_COLLECTIONS.length;
+            if (diff > 2) return null;
 
-            <div 
-              ref={collectionsRef}
-              className="flex gap-6 overflow-x-auto px-4 pb-6 snap-x scrollbar-none scroll-smooth"
-            >
-              {collectionCards?.map((card, idx) => (
-                <div key={idx} className="w-72 sm:w-80 shrink-0 snap-center relative rounded-3xl overflow-hidden aspect-[4/3] group glass-collection-card border">
-                  <img src={card.image || "/saree_kanjivaram.png"} alt={card.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" />
-                  <div className="absolute inset-0 glass-collection-overlay flex flex-col justify-end p-5">
-                    <span className="text-[#F1BF0A] text-[10px] font-bold tracking-widest uppercase mb-1 drop-shadow-sm">Saree Weaves</span>
-                    <a href={card.link || "#product-list"} className="font-anton text-xl tracking-wider text-white hover:text-[#F1BF0A] uppercase transition-colors hover:no-underline mb-3 drop-shadow-md">{card.name}</a>
-                    <div className="collection-btn-reveal">
-                      <a href={card.link || "#product-list"} className="inline-flex items-center gap-1.5 bg-[#F1BF0A] hover:bg-yellow-500 text-slate-900 text-xs font-bold py-2 px-4 rounded-full transition-transform active:scale-95 hover:no-underline shadow-lg">
-                        <span>View Collection</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-3.5">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 8.25 21 12m0 0-3.75 3.75M21 12H3" />
+            // Positioning calculations for stacked card physics
+            let scale = 1 - diff * 0.08;
+            let translateRight = diff * 24;
+            let rotateDeg = diff * 2.5;
+            let zIndex = 30 - diff;
+            let opacity = 1 - diff * 0.35;
+            let blur = diff * 1.5;
+
+            // Gesture interpolations
+            if (diff === 0 && isDragging) {
+              rotateDeg = dragOffset * 0.04;
+              opacity = 1 - Math.min(Math.abs(dragOffset) / 380, 0.4);
+            } else if (diff === 1 && isDragging) {
+              const pullRatio = Math.min(Math.abs(dragOffset) / 120, 1);
+              scale = 0.92 + (0.08 * pullRatio);
+              translateRight = 24 - (24 * pullRatio);
+              rotateDeg = 2.5 - (2.5 * pullRatio);
+              opacity = 0.65 + (0.35 * pullRatio);
+              blur = 1.5 - (1.5 * pullRatio);
+            } else if (diff === 2 && isDragging) {
+              const pullRatio = Math.min(Math.abs(dragOffset) / 120, 1);
+              scale = 0.84 + (0.08 * pullRatio);
+              translateRight = 48 - (24 * pullRatio);
+              rotateDeg = 5 - (2.5 * pullRatio);
+              opacity = 0.3 + (0.35 * pullRatio);
+              blur = 3.0 - (1.5 * pullRatio);
+            }
+
+            const style = {
+              transform: diff === 0 
+                ? `translateX(${dragOffset}px) scale(${scale}) rotate(${rotateDeg}deg)`
+                : `translateX(${translateRight}px) scale(${scale}) rotate(${rotateDeg}deg)`,
+              zIndex: zIndex,
+              opacity: opacity,
+              filter: `blur(${blur}px)`,
+              transition: isDragging ? 'none' : 'transform 0.45s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease, filter 0.4s ease',
+              cursor: isDragging ? 'grabbing' : 'grab'
+            };
+
+            return (
+              <div key={item.id}
+                   style={style}
+                   className="deck-card absolute left-1/2 -translate-x-1/2 text-left">
+                
+                {/* Image Section */}
+                <div className="relative w-full h-[300px] overflow-hidden select-none pointer-events-none">
+                  <img src={item.image} 
+                       alt={item.title} 
+                       className="w-full h-full object-cover select-none pointer-events-none"
+                       draggable="false" />
+                  
+                  {/* Badges Overlay */}
+                  <div className="absolute top-4 left-4 flex flex-col gap-1.5 items-start">
+                    <span className="px-3 py-1 rounded-full text-[9px] font-bold tracking-widest uppercase deck-badge-glass text-white">
+                      {item.badge}
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full text-[8px] font-bold tracking-wider uppercase bg-[#F1BF0A] text-black">
+                      {item.catalog_id} / {item.id}
+                    </span>
+                  </div>
+
+                  {/* Rating Badge */}
+                  <div className="absolute top-4 right-4 deck-badge-glass rounded-full px-2.5 py-1 flex items-center gap-1">
+                    <span className="text-[#F1BF0A] text-xs">★</span>
+                    <span className="text-[10px] font-bold text-white">{item.rating}</span>
+                  </div>
+
+                  {/* Bottom Text Box Overlay */}
+                  <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/85 via-black/40 to-transparent flex flex-col gap-0.5">
+                    <p className="text-[11px] tracking-widest text-amber-200 uppercase font-medium">{item.category}</p>
+                    <h3 className="text-lg font-serif font-bold text-white tracking-wide">{item.title}</h3>
+                    <p className="text-[10px] text-gray-300 tracking-wide font-mono">SKU: {item.styleid}</p>
+                  </div>
+
+                  {/* Floating Action Buttons */}
+                  <div className="absolute bottom-3 right-3 flex flex-col gap-2.5 pointer-events-auto">
+                    {/* Wishlist Button */}
+                    <button onClick={(e) => handleToggleWishlist(item, e)}
+                            className="w-10 h-10 rounded-full backdrop-blur-xl border flex items-center justify-center transition shadow-lg active:scale-95 cursor-pointer"
+                            style={{
+                              background: isWishlisted(item.id) ? 'rgba(241, 191, 10, 0.25)' : 'rgba(0, 0, 0, 0.5)',
+                              borderColor: isWishlisted(item.id) ? GOLD_ACCENT : 'rgba(255, 255, 255, 0.15)'
+                            }}>
+                      <svg className="w-5 h-5 transition-transform duration-300"
+                           style={{
+                             fill: isWishlisted(item.id) ? GOLD_ACCENT : 'none',
+                             stroke: isWishlisted(item.id) ? GOLD_ACCENT : '#ffffff',
+                             transform: isWishlisted(item.id) ? 'scale(1.15)' : 'scale(1)'
+                           }}
+                           viewBox="0 0 24 24" strokeWidth="2">
+                        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"></path>
+                      </svg>
+                    </button>
+
+                    {/* Cart Button */}
+                    <button onClick={(e) => handleToggleCart(item, e)}
+                            className="w-10 h-10 rounded-full backdrop-blur-xl border flex items-center justify-center transition shadow-lg active:scale-95 cursor-pointer"
+                            style={{
+                              background: isInCart(item.id) ? '#F1BF0A' : 'rgba(0,0,0,0.5)',
+                              borderColor: isInCart(item.id) ? GOLD_ACCENT : 'rgba(255,255,255,0.15)'
+                            }}>
+                      {isInCart(item.id) ? (
+                        <svg className="w-4.5 h-4.5 text-black" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
-                      </a>
-                    </div>
+                      ) : (
+                        <svg className="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="12" y1="5" x2="12" y2="19"></line>
+                          <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                      )}
+                    </button>
                   </div>
                 </div>
+
+                {/* Bottom Details Row */}
+                <div className="p-4 flex-1 bg-[#0c1e44] dark:bg-[#080f1e] flex flex-col justify-between select-none">
+                  <div className="flex justify-between items-center">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-gray-400 uppercase tracking-wider">PREMIUM PRICE</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-base font-bold text-white">{item.price}</span>
+                        <span className="text-xs text-gray-500 line-through">{item.originalPrice}</span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] bg-red-950 border border-red-800 text-red-300 font-bold px-2 py-0.5 rounded-full">
+                      {item.discount}
+                    </span>
+                  </div>
+
+                  {/* Detail Panel Trigger */}
+                  <button onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveDetailItem(item);
+                          }}
+                          className="w-full mt-2.5 py-2.5 rounded-xl border border-[#F1BF0A]/30 text-white font-medium text-xs tracking-wider uppercase transition-colors hover:bg-[#F1BF0A] hover:text-black hover:border-transparent active:scale-98 cursor-pointer">
+                    Inspect Craftsmanship
+                  </button>
+                </div>
+
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Autoplay & Pagination Control Interface below the card deck */}
+        <div className="flex flex-col items-center gap-1.5 mt-4 text-slate-600 dark:text-slate-400 z-20 relative select-none">
+          <div className="flex items-center gap-2">
+            <span className={`w-2 h-2 rounded-full ${isAutoPlaying && !isHovered && !activeDetailItem ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}></span>
+            <p className="text-[10px] tracking-widest uppercase font-bold text-slate-500 dark:text-slate-400">
+              {isHovered ? 'Paused (Hovering)' : activeDetailItem ? 'Paused (Viewing Details)' : isAutoPlaying ? 'Autoplay active' : 'Swipe deck to discover'}
+            </p>
+            <button onClick={() => setIsAutoPlaying(!isAutoPlaying)}
+                    className="ml-2 px-2.5 py-0.5 bg-slate-200 dark:bg-white/10 text-slate-800 dark:text-white rounded text-[9px] font-bold border border-slate-300 dark:border-white/10 hover:bg-[#F1BF0A] hover:text-black transition cursor-pointer">
+              {isAutoPlaying ? 'Pause' : 'Play'}
+            </button>
+          </div>
+          
+          <div className="flex gap-5 mt-1 items-center">
+            <button onClick={() => setActiveIndex((prev) => (prev - 1 + SAREE_COLLECTIONS.length) % SAREE_COLLECTIONS.length)}
+                    className="text-xs font-bold text-[#F1BF0A] hover:opacity-85 transition cursor-pointer border-none bg-transparent">
+              ← Prev Collection
+            </button>
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold bg-slate-200/50 dark:bg-white/5 px-3 py-1 rounded-full border border-slate-300/30 dark:border-white/5">
+              {activeIndex + 1} / {SAREE_COLLECTIONS.length}
+            </span>
+            <button onClick={() => setActiveIndex((prev) => (prev + 1) % SAREE_COLLECTIONS.length)}
+                    className="text-xs font-bold text-[#F1BF0A] hover:opacity-85 transition cursor-pointer border-none bg-transparent">
+              Next Collection →
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Category Section */}
+      <section className="category-section-custom" id="categorySection" ref={categorySectionRef}>
+        <h2 className="section-title-custom">Category</h2>
+        <div className="grid-container-custom">
+          {/* Static rendering helper for mobile/desktop layout switches */}
+          <div className="block md:hidden">
+            <div className="grid-grid-custom">
+              {categoryCards?.map((card, idx) => (
+                <Link href={card.link} key={idx} className="orb-link-custom hover:no-underline">
+                  <div className="orb-wrapper-custom" style={{ '--index-custom': idx }}>
+                    <div className="orb-custom">
+                      <img src={card.image} alt={card.name} />
+                    </div>
+                    <span className="orb-label-custom">{card.name}</span>
+                  </div>
+                </Link>
               ))}
             </div>
           </div>
-        )}
 
-        {/* layoutOption === 'accordion' */}
-        {layoutOption === 'accordion' && (
-          <div className="px-4">
-            <div className="accordion-wrapper">
-              {collectionCards?.slice(0, 3).map((card, idx) => {
-                const isActive = hoveredAccordionIndex === idx;
-                return (
-                  <div 
-                    key={idx}
-                    onMouseEnter={() => setHoveredAccordionIndex(idx)}
-                    className={`accordion-card ${isActive ? 'is-active' : ''}`}
-                  >
-                    <img src={card.image || "/saree_kanjivaram.png"} alt={card.name} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent flex items-end p-6">
-                      <div className="w-full flex items-center justify-between">
-                        <div className="flex flex-col text-left">
-                          {isActive && (
-                            <span className="text-[#F1BF0A] text-[10px] font-extrabold tracking-widest uppercase mb-1 animate-in fade-in slide-in-from-bottom-2 duration-300">Handloom Premium</span>
-                          )}
-                          <h3 className={`font-anton text-white uppercase tracking-wider ${isActive ? 'text-2xl' : 'text-sm opacity-80'} transition-all duration-300`}>
-                            {card.name}
-                          </h3>
-                        </div>
-                        {isActive && (
-                          <a 
-                            href={card.link || "#product-list"}
-                            className="bg-[#F1BF0A] hover:bg-yellow-500 text-slate-900 rounded-full p-2.5 shadow-lg hover:scale-105 active:scale-95 transition-all animate-in fade-in zoom-in-50 duration-500"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="3" stroke="currentColor" className="size-4">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 8.25 21 12m0 0-3.75 3.75M21 12H3" />
-                            </svg>
-                          </a>
-                        )}
-                      </div>
+          <div className="hidden md:block">
+            <div className="flex-row-custom">
+              {categoryCards?.map((card, idx) => (
+                <Link href={card.link} key={idx} className="orb-link-custom hover:no-underline">
+                  <div className="orb-wrapper-custom" style={{ '--index-custom': idx }}>
+                    <div className="orb-custom">
+                      <img src={card.image} alt={card.name} />
                     </div>
+                    <span className="orb-label-custom">{card.name}</span>
                   </div>
-                );
-              })}
+                </Link>
+              ))}
             </div>
           </div>
-        )}
-
-        {/* layoutOption === '3d-tilt' */}
-        {layoutOption === '3d-tilt' && (
-          <div className="px-4">
-            <div className="tilt-card-grid">
-              {collectionCards?.slice(0, 3).map((card, idx) => {
-                const isTilting = tiltCoords.index === idx;
-                return (
-                  <div 
-                    key={idx}
-                    onMouseMove={(e) => handleMouseMove(e, idx)}
-                    onMouseLeave={handleMouseLeave}
-                    style={{
-                      perspective: '800px',
-                    }}
-                  >
-                    <div
-                      style={{
-                        transform: isTilting ? `rotateX(${tiltCoords.x}deg) rotateY(${tiltCoords.y}deg) scale(1.03)` : 'rotateX(0) rotateY(0) scale(1)',
-                        transition: isTilting ? 'none' : 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)',
-                      }}
-                      className="tilt-card"
-                    >
-                      <img src={card.image || "/saree_kanjivaram.png"} alt={card.name} className="absolute inset-0 w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/25 to-transparent flex flex-col justify-end p-6">
-                        <div className="tilt-inner text-left">
-                          <span className="text-[#F1BF0A] text-[9px] font-black tracking-widest uppercase block mb-1">Exclusive Craft</span>
-                          <h3 className="font-anton text-white text-xl uppercase tracking-wider mb-4">{card.name}</h3>
-                          <a href={card.link || "#product-list"} className="inline-flex items-center gap-1 bg-white hover:bg-slate-100 text-slate-900 text-[10px] font-extrabold uppercase py-2 px-4 rounded-xl shadow-lg transition-transform active:scale-95 hover:no-underline">
-                            <span>Explore Details</span>
-                          </a>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        </div>
       </section>
 
       {/* Main Catalog Area */}
@@ -599,6 +762,106 @@ export default function TestCollectionPage() {
           )}
         </ul>
       </main>
+
+      {/* Slide-Up Bottom Detail Sheet Drawer */}
+      {activeDetailItem && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex flex-col justify-end transition-all select-none">
+          {/* Backdrop closer click hook */}
+          <div className="flex-1" onClick={() => setActiveDetailItem(null)}></div>
+          
+          {/* Slide-Up drawer container */}
+          <div className="w-full max-h-[85%] sm:max-w-xl sm:mx-auto bg-[#0c1e44] border-t-2 border-[#F1BF0A] rounded-t-[35px] shadow-2xl p-6 flex flex-col overflow-y-auto text-white font-sans">
+            
+            {/* Close handlebar */}
+            <div className="w-12 h-1 bg-white/20 rounded-full self-center mb-5 cursor-pointer"
+                 onClick={() => setActiveDetailItem(null)}></div>
+
+            {/* Header section */}
+            <div className="flex justify-between items-start gap-4 text-left">
+              <div>
+                <span className="text-[10px] tracking-widest text-[#F1BF0A] uppercase font-bold">Product Blueprint ({activeDetailItem.id})</span>
+                <h3 className="text-2xl font-serif font-bold text-white tracking-wide mt-0.5">{activeDetailItem.title}</h3>
+                <p className="text-xs text-gray-400 mt-1">{activeDetailItem.category} • SKU: {activeDetailItem.styleid}</p>
+              </div>
+              <button onClick={() => setActiveDetailItem(null)}
+                      className="p-2 bg-white/5 hover:bg-white/10 rounded-full text-gray-300 cursor-pointer border-none">
+                ✕
+              </button>
+            </div>
+
+            {/* Photo gallery */}
+            <div className="grid grid-cols-2 gap-3 mt-5">
+              <div className="h-40 rounded-2xl overflow-hidden border border-white/5">
+                <img src={activeDetailItem.image} alt="Front View" className="w-full h-full object-cover" />
+              </div>
+              <div className="h-40 rounded-2xl overflow-hidden border border-white/5">
+                <img src={activeDetailItem.image_back} alt="Back Detail" className="w-full h-full object-cover" />
+              </div>
+            </div>
+
+            {/* Color name */}
+            <div className="mt-4 flex flex-col gap-1 text-left">
+              <span className="text-[10px] tracking-wider text-gray-400 uppercase">AUTHENTIC TONE</span>
+              <p className="text-sm font-semibold text-[#F1BF0A]">{activeDetailItem.colorName}</p>
+            </div>
+
+            {/* Composition stats */}
+            <div className="mt-5 flex flex-col gap-3 bg-white/5 p-4 rounded-2xl border border-white/5 text-left">
+              <span className="text-[10px] tracking-widest text-[#F1BF0A] uppercase font-bold">Textile Composition Metrics</span>
+              
+              {/* Scale A: Softness */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex justify-between text-xs font-medium text-gray-300">
+                  <span>Loom Softness</span>
+                  <span>{activeDetailItem.fabricScale.soft}%</span>
+                </div>
+                <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                  <div className="h-full bg-[#F1BF0A] rounded-full transition-all" style={{ width: `${activeDetailItem.fabricScale.soft}%` }}></div>
+                </div>
+              </div>
+
+              {/* Scale B: Weight density */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex justify-between text-xs font-medium text-gray-300">
+                  <span>Festive Weight (Density)</span>
+                  <span>{activeDetailItem.fabricScale.weight}%</span>
+                </div>
+                <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                  <div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: `${activeDetailItem.fabricScale.weight}%` }}></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Recommended Drapings */}
+            <div className="mt-5 flex flex-col gap-2 text-left">
+              <span className="text-[10px] tracking-wider text-gray-400 uppercase">LOOM STYLING RECOMMENDATIONS</span>
+              <div className="flex flex-wrap gap-2">
+                {activeDetailItem.drapingStyles.map((style) => (
+                  <span key={style} className="text-[10px] bg-[#F1BF0A]/10 text-[#F1BF0A] border border-[#F1BF0A]/20 px-3 py-1 rounded-full">
+                    {style}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Add to Bag block */}
+            <div className="mt-6 pt-2 border-t border-white/5 flex gap-3 items-center text-left">
+              <div className="flex-1 flex flex-col">
+                <span className="text-[10px] text-gray-400">Total Price</span>
+                <span className="text-xl font-bold text-white">{activeDetailItem.price}</span>
+              </div>
+              <button onClick={(e) => {
+                        handleToggleCart(activeDetailItem, e);
+                        setActiveDetailItem(null);
+                      }}
+                      className="px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition bg-[#F1BF0A] text-black cursor-pointer border-none shadow-md">
+                {isInCart(activeDetailItem.id) ? 'In Your Bag' : 'Add to Bag'}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }
