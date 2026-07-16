@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useApp } from '../../context/AppContext';
-import { supabase } from '../../utils/supabase';
 
 export default function Account() {
   const router = useRouter();
@@ -24,13 +24,10 @@ export default function Account() {
       if (!userSession?.email) return;
       try {
         setIsLoadingOrders(true);
-        const { data, error } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('email', userSession.email)
-          .order('created_at', { ascending: false });
+        const response = await fetch(`/api/orders?email=${encodeURIComponent(userSession.email)}`);
+        const data = await response.json();
 
-        if (!error && data) {
+        if (response.ok && data && !data.error) {
           setOrders(data);
         }
       } catch (err) {

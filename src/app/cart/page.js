@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../../utils/supabase';
+import Turnstile from '../../components/Turnstile';
 
 export default function Cart() {
   const router = useRouter();
@@ -20,6 +20,7 @@ export default function Cart() {
   const [address, setAddress] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Cash on Delivery');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState('');
 
   useEffect(() => {
     if (userSession) {
@@ -81,51 +82,26 @@ export default function Cart() {
     showToast('Creating order in database...', 'info');
 
     try {
-      const orderItems = cart.map(item => ({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        qty: item.qty,
-        image: item.image,
-        color: item.color || '',
-        skuId: item.skuId || item.styleId || ''
-      }));
-
-      const { data, error } = await supabase
-        .from('orders')
-        .insert({
-          customer_name: fullName,
-          email: email,
-          phone: phone,
-          address: address,
-          subtotal: Number(subtotal),
-          tax: Number(tax),
-          discount: Number(discountAmount),
-          total: Number(total),
-          payment_method: paymentMethod,
-          payment_status: paymentMethod === 'Pay Online' ? 'paid' : 'pending',
-          order_status: 'Pending',
-          items: orderItems
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName,
+          email,
+          phone,
+          address,
+          cart,
+          promoCode,
+          paymentMethod,
+          captchaToken
         })
-        .select();
+      });
 
-      if (error) {
-        console.error("Order creation failed:", error);
-        showToast('Checkout failed. Please try again.', 'error');
+      const resData = await response.json();
+
+      if (!response.ok) {
+        showToast(resData.error || 'Checkout failed. Please try again.', 'error');
       } else {
-        // Successfully placed order!
-        // Decrement product stock levels in background
-        for (const item of cart) {
-          if (item.id && !String(item.id).startsWith('temp-')) {
-            const currentStock = item.stockQty || 10;
-            const updatedStock = Math.max(0, currentStock - item.qty);
-            await supabase
-              .from('products')
-              .update({ stock_qty: updatedStock })
-              .eq('id', item.id);
-          }
-        }
-
         // Clear cart
         localStorage.setItem('cart', JSON.stringify([]));
         showToast('Order placed successfully!', 'success');
@@ -137,7 +113,7 @@ export default function Cart() {
       }
     } catch (err) {
       console.error("Checkout exception:", err);
-      showToast('Database connection failed.', 'error');
+      showToast('Checkout service is currently unavailable.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -376,6 +352,13 @@ export default function Cart() {
                       Pay Online (Simulated)
                     </button>
                   </div>
+                </div>
+
+                <div className="flex justify-center pt-2">
+                  <Turnstile 
+                    siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} 
+                    onVerify={(token) => setCaptchaToken(token)} 
+                  />
                 </div>
               </div>
 

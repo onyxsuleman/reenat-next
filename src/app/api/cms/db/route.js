@@ -1,0 +1,52 @@
+import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { getSupabaseServerClient } from '../../../../utils/supabaseServer';
+
+export async function POST(request) {
+  try {
+    const cookieStore = await cookies();
+    const session = cookieStore.get('cms_session')?.value;
+    
+    if (session !== 'unlocked_session_active') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const body = await request.json();
+    const { action, table, data, id, ids, eqCol = 'id', eqVal } = body;
+    
+    const supabase = getSupabaseServerClient();
+    let result;
+    
+    if (action === 'select') {
+      let query = supabase.from(table).select(data || '*');
+      if (body.order) {
+        query = query.order(body.order.column, { ascending: body.order.ascending });
+      }
+      result = await query;
+    } else if (action === 'insert') {
+      result = await supabase.from(table).insert(data).select();
+    } else if (action === 'update') {
+      result = await supabase.from(table).update(data).eq(eqCol, eqVal !== undefined ? eqVal : id);
+    } else if (action === 'delete') {
+      if (ids) {
+        result = await supabase.from(table).delete().in(eqCol, ids);
+      } else {
+        result = await supabase.from(table).delete().eq(eqCol, id);
+      }
+    } else if (action === 'upsert') {
+      result = await supabase.from(table).upsert(data).select();
+    } else {
+      return NextResponse.json({ error: 'Invalid DB action requested.' }, { status: 400 });
+    }
+    
+    if (result.error) {
+      console.error(`CMS DB proxy error [${action} on ${table}]:`, result.error.message);
+      return NextResponse.json({ error: result.error.message }, { status: 400 });
+    }
+    
+    return NextResponse.json({ success: true, data: result.data });
+  } catch (err) {
+    console.error("CMS DB proxy exception:", err);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}

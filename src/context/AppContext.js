@@ -586,12 +586,20 @@ export function AppProvider({ children }) {
     }
 
     try {
-      const { error } = await supabase
-        .from('homepage_config')
-        .upsert({ key: type, value: data, updated_at: new Date().toISOString() });
+      const response = await fetch('/api/cms/db', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'upsert',
+          table: 'homepage_config',
+          data: { key: type, value: data, updated_at: new Date().toISOString() }
+        })
+      });
 
-      if (error) {
-        console.error(`Supabase sync failed for ${type}:`, error.message);
+      const resData = await response.json();
+
+      if (!response.ok || resData.error) {
+        console.error(`Supabase sync failed for ${type}:`, resData.error || 'Server error');
         showToast("Saved locally, database sync failed.", "warning");
       } else {
         showToast(`${type.charAt(0).toUpperCase() + type.slice(1)} updated live successfully!`, "success");

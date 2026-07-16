@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { supabase } from '../../utils/supabase';
 
 export default function CMSConsole() {
   const { products, setProducts, refreshDatabase, showToast, heroSlides, categoryCards, collectionCards, saveHomepageConfig } = useApp();
@@ -144,10 +143,17 @@ export default function CMSConsole() {
 
   const fetchDbOrders = async () => {
     try {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .order('id', { ascending: false });
+      const response = await fetch('/api/cms/db', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'select',
+          table: 'orders',
+          order: { column: 'id', ascending: false }
+        })
+      });
+      const resData = await response.json();
+      const { data, error } = resData;
 
       if (!error && data) {
         const mapped = data.map(order => {
@@ -228,13 +234,19 @@ export default function CMSConsole() {
 
     if (dbId) {
       try {
-        const { error } = await supabase
-          .from('orders')
-          .update({ order_status: newStatus })
-          .eq('id', dbId);
-
-        if (error) {
-          showToast(`Sync failed: ${error.message}`, 'error');
+        const response = await fetch('/api/cms/db', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update',
+            table: 'orders',
+            data: { order_status: newStatus },
+            id: dbId
+          })
+        });
+        const resData = await response.json();
+        if (!response.ok || resData.error) {
+          showToast(`Sync failed: ${resData.error || 'Unknown error'}`, 'error');
           return;
         }
       } catch (err) {
@@ -254,20 +266,38 @@ export default function CMSConsole() {
   };
 
   useEffect(() => {
-    const unlocked = sessionStorage.getItem('cms_unlocked') === 'true';
-    if (unlocked) {
-      setIsUnlocked(true);
-    }
+    const checkSession = async () => {
+      try {
+        const response = await fetch('/api/cms/session');
+        const data = await response.json();
+        if (data.unlocked) {
+          setIsUnlocked(true);
+        }
+      } catch (err) {
+        console.error("Session check failed:", err);
+      }
+    };
+    checkSession();
   }, []);
 
-  const handleUnlock = (e) => {
+  const handleUnlock = async (e) => {
     e.preventDefault();
-    if (passcode === process.env.NEXT_PUBLIC_CMS_PASSCODE) {
-      setIsUnlocked(true);
-      sessionStorage.setItem('cms_unlocked', 'true');
-      showToast('Console database unlocked.', 'success');
-    } else {
-      showToast('Invalid passcode key.', 'error');
+    try {
+      const response = await fetch('/api/cms/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ passcode })
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setIsUnlocked(true);
+        showToast('Console database unlocked.', 'success');
+      } else {
+        showToast(data.error || 'Invalid passcode key.', 'error');
+      }
+    } catch (err) {
+      console.error("Unlock check error:", err);
+      showToast('Authentication service unavailable.', 'error');
     }
   };
 
@@ -458,20 +488,19 @@ export default function CMSConsole() {
       const fileName = `saree_${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      const { data, error } = await supabase.storage
-        .from('saree-images')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('path', filePath);
 
-      if (error) throw error;
+      const response = await fetch('/api/cms/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const resData = await response.json();
 
-      const { data: publicUrlData } = supabase.storage
-        .from('saree-images')
-        .getPublicUrl(filePath);
+      if (!response.ok || resData.error) throw new Error(resData.error || 'Upload failed');
 
-      const publicUrl = publicUrlData.publicUrl;
+      const publicUrl = resData.url;
 
       const field = slot === 'front' ? 'image' : slot === 'img2' ? 'image2' : slot === 'img3' ? 'image3' : slot === 'img4' ? 'image4' : slot === 'img5' ? 'image5' : 'image6';
       updateActiveProductField(field, publicUrl);
@@ -547,9 +576,18 @@ export default function CMSConsole() {
 
       for (const id of deletedIds) {
         try {
-          const { error } = await supabase.from('products').delete().eq('id', id);
-          if (error) {
-            console.error("Delete error for ID", id, error);
+          const response = await fetch('/api/cms/db', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'delete',
+              table: 'products',
+              id: id
+            })
+          });
+          const resData = await response.json();
+          if (!response.ok || resData.error) {
+            console.error("Delete error for ID", id, resData.error);
             dbError = true;
           }
         } catch (err) {
@@ -615,21 +653,40 @@ export default function CMSConsole() {
         try {
           if (!isNew) {
             // Update by unique integer ID!
-            const { error } = await supabase.from('products').update(dbRow).eq('id', p.id);
-            if (error) {
-              console.error("Update error for product ID", p.id, error);
+            const response = await fetch('/api/cms/db', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'update',
+                table: 'products',
+                data: dbRow,
+                id: p.id
+              })
+            });
+            const resData = await response.json();
+            if (!response.ok || resData.error) {
+              console.error("Update error for product ID", p.id, resData.error);
               dbError = true;
             }
           } else {
             // If this is a new catalog list and it's the first product, we must insert it to get the ID,
             // then use its generated Product ID as the shared catalog ID.
             if (i === 0 && !sharedCatalogId) {
-              const { data, error } = await supabase.from('products').insert(dbRow).select();
-              if (error) {
-                console.error("Insert error for first product", p.name, error);
+              const response = await fetch('/api/cms/db', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  action: 'insert',
+                  table: 'products',
+                  data: dbRow
+                })
+              });
+              const resData = await response.json();
+              if (!response.ok || resData.error) {
+                console.error("Insert error for first product", p.name, resData.error);
                 dbError = true;
-              } else if (data && data.length > 0) {
-                const inserted = data[0];
+              } else if (resData.data && resData.data.length > 0) {
+                const inserted = resData.data[0];
                 // Auto-generate the next 'M' series catalog ID (e.g. M1, M2, M3...)
                 let nextCatalogNum = 1;
                 if (products && products.length > 0) {
@@ -646,7 +703,16 @@ export default function CMSConsole() {
                 sharedCatalogId = `M${nextCatalogNum}`;
                 // Update the first variant's styleid and catalog_id in database to include the new catalog ID
                 const updatedStyleId = `${sharedCatalogId}||${p.skuId || ''}`;
-                await supabase.from('products').update({ styleid: updatedStyleId, catalog_id: sharedCatalogId }).eq('id', inserted.id);
+                await fetch('/api/cms/db', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    action: 'update',
+                    table: 'products',
+                    data: { styleid: updatedStyleId, catalog_id: sharedCatalogId },
+                    id: inserted.id
+                  })
+                });
               }
             } else {
               // For subsequent new variants, use the sharedCatalogId
@@ -654,9 +720,18 @@ export default function CMSConsole() {
                 dbRow.styleid = `${sharedCatalogId}||${p.skuId || ''}`;
                 dbRow.catalog_id = sharedCatalogId;
               }
-              const { error } = await supabase.from('products').insert(dbRow);
-              if (error) {
-                console.error("Insert error for product variant", p.name, error);
+              const response = await fetch('/api/cms/db', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  action: 'insert',
+                  table: 'products',
+                  data: dbRow
+                })
+              });
+              const resData = await response.json();
+              if (!response.ok || resData.error) {
+                console.error("Insert error for product variant", p.name, resData.error);
                 dbError = true;
               }
             }
@@ -694,7 +769,15 @@ export default function CMSConsole() {
       }
 
       try {
-        await supabase.from('products').delete().eq('id', itemToDelete.id);
+        await fetch('/api/cms/db', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'delete',
+            table: 'products',
+            id: itemToDelete.id
+          })
+        });
       } catch (err) {
         console.warn("Failed to delete from database:", err);
       }
@@ -717,8 +800,15 @@ export default function CMSConsole() {
       try {
         const idsToDelete = itemsToDelete.map(item => item.id).filter(id => id);
         if (idsToDelete.length > 0) {
-          const { error } = await supabase.from('products').delete().in('id', idsToDelete);
-          if (error) console.error("Database delete error:", error);
+          await fetch('/api/cms/db', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'delete',
+              table: 'products',
+              ids: idsToDelete
+            })
+          });
         }
       } catch (err) {
         console.warn("Failed to delete from database:", err);
@@ -772,20 +862,19 @@ export default function CMSConsole() {
 
       showToast("Uploading image...", "info");
 
-      const { data, error } = await supabase.storage
-        .from('saree-images')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('path', filePath);
 
-      if (error) throw error;
+      const response = await fetch('/api/cms/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const resData = await response.json();
 
-      const { data: publicUrlData } = supabase.storage
-        .from('saree-images')
-        .getPublicUrl(filePath);
+      if (!response.ok || resData.error) throw new Error(resData.error || 'Upload failed');
 
-      const publicUrl = publicUrlData.publicUrl;
+      const publicUrl = resData.url;
 
       if (section === 'hero') {
         const updated = [...localHeroSlides];
@@ -1865,9 +1954,19 @@ export default function CMSConsole() {
 
     // Update Supabase
     try {
-      const { error } = await supabase.from('products').update({ qty: String(newStockVal) }).eq('id', variant.id);
-      if (error) {
-        console.error("Failed to update stock in database:", error);
+      const response = await fetch('/api/cms/db', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update',
+          table: 'products',
+          data: { qty: String(newStockVal), stock_qty: Number(newStockVal) },
+          id: variant.id
+        })
+      });
+      const resData = await response.json();
+      if (!response.ok || resData.error) {
+        console.error("Failed to update stock in database:", resData.error);
         showToast("Database update failed, synced locally.", "warning");
       } else {
         showToast("Stock updated successfully.", "success");
