@@ -71,16 +71,36 @@ export async function POST(request) {
         continue;
       }
 
+      let product = null;
+      let isFallback = false;
+
       // Fetch the product from Supabase to guarantee actual price and stock
-      const { data: product, error: fetchErr } = await supabase
+      const { data: dbProduct, error: fetchErr } = await supabase
         .from('products')
         .select('id, name, price, stock_qty, image, styleid, catalog_id')
         .eq('id', item.id)
         .single();
 
-      if (fetchErr || !product) {
-        console.error(`Failed to fetch product ID ${item.id}:`, fetchErr);
-        return NextResponse.json({ error: `Product '${item.name}' was not found in our catalog.` }, { status: 400 });
+      if (fetchErr || !dbProduct) {
+        // Fallback for default products if missing from database
+        const isDefaultProduct = [42, 50, 51, 52, 53, 54, 55, 56, 57].includes(Number(item.id));
+        if (isDefaultProduct) {
+          console.warn(`Product ID ${item.id} not found in database; using default product fallback.`);
+          product = {
+            id: item.id,
+            name: item.name,
+            price: Number(item.price) || 949,
+            stock_qty: 50,
+            image: item.image,
+            styleid: item.skuId || item.styleId || item.styleid || ''
+          };
+          isFallback = true;
+        } else {
+          console.error(`Failed to fetch product ID ${item.id}:`, fetchErr);
+          return NextResponse.json({ error: `Product '${item.name}' was not found in our catalog.` }, { status: 400 });
+        }
+      } else {
+        product = dbProduct;
       }
 
       const qty = Number(item.qty) || 1;
@@ -104,11 +124,13 @@ export async function POST(request) {
         skuId: product.styleid || ''
       });
 
-      // Prepare stock update
-      stockUpdates.push({
-        id: product.id,
-        new_stock: Math.max(0, dbStock - qty)
-      });
+      // Prepare stock update (only if not resolved via fallback)
+      if (!isFallback) {
+        stockUpdates.push({
+          id: product.id,
+          new_stock: Math.max(0, dbStock - qty)
+        });
+      }
     }
 
     // 5. Promo Discount Code Validation

@@ -62,11 +62,14 @@ export default function Turnstile({ siteKey, onVerify, className }) {
   }, [siteKey, onVerify]);
 
   if (!siteKey) {
-    return (
-      <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 p-2.5 rounded-xl border border-amber-200/50 dark:border-amber-900/50 select-none">
-        ⚠️ Developer Note: Turnstile site key is missing. CAPTCHA verification will be bypassed server-side.
-      </div>
-    );
+    if (process.env.NODE_ENV === 'development') {
+      return (
+        <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 p-2.5 rounded-xl border border-amber-200/50 dark:border-amber-900/50 select-none">
+          ⚠️ Developer Note: Turnstile site key is missing. CAPTCHA verification will be bypassed server-side.
+        </div>
+      );
+    }
+    return null;
   }
 
   return <div ref={containerRef} className={className} />;
