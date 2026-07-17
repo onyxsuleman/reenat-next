@@ -43,11 +43,11 @@ function FloatingNavContent() {
   // Render on mobile only, transition visible state. Sitting at bottom-0 with no margin.
   return (
     <div 
-      className={`fixed bottom-0 left-0 w-full z-45 transition-all duration-300 md:hidden ${
-        visible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
+      className={`fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[420px] px-3 z-45 transition-all duration-300 md:hidden ${
+        visible ? 'translate-y-0 opacity-100' : 'translate-y-24 opacity-0 pointer-events-none'
       }`}
     >
-      <nav className="flex items-center justify-around bg-white dark:bg-[#0c1e44] border-t border-slate-200/80 dark:border-white/10 shadow-2xl rounded-t-[20px] px-4 pt-3 pb-[calc(10px+env(safe-area-inset-bottom,12px))] text-slate-800 dark:text-[#F1BF0A]">
+      <nav className="flex items-center justify-around bg-white dark:bg-[#0c1e44] border border-black/10 dark:border-white/10 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.4),0_8px_10px_-6px_rgba(0,0,0,0.4)] rounded-[24px] px-4 pt-[10px] pb-[8px] mt-[3px] mb-[9px] text-slate-800 dark:text-[#F1BF0A]">
         
         {/* 1. Home */}
         <Link 
