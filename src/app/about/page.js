@@ -149,8 +149,8 @@ export default function About() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 max-w-4xl mx-auto">
           {/* Amazon */}
-          <div className="flex items-center justify-center p-4 bg-white border border-slate-200/50 rounded-2xl shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-[#F1BF0A]/50 h-20 relative">
-            <div className="relative w-full h-full">
+          <div className="flex items-center justify-center bg-[#f5f6f6] border border-slate-200/50 rounded-2xl shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-[#F1BF0A]/50 h-20 overflow-hidden">
+            <div className="relative w-[90%] h-[75%]">
               <Image 
                 src="/amazon_logo.png" 
                 alt="Amazon" 
@@ -162,8 +162,8 @@ export default function About() {
           </div>
 
           {/* Flipkart */}
-          <div className="flex items-center justify-center p-4 bg-white border border-slate-200/50 rounded-2xl shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-[#F1BF0A]/50 h-20 relative">
-            <div className="relative w-full h-full">
+          <div className="flex items-center justify-center bg-white border border-slate-200/50 rounded-2xl shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-[#F1BF0A]/50 h-20 overflow-hidden">
+            <div className="relative w-[90%] h-[75%]">
               <Image 
                 src="/flipkart_logo.png" 
                 alt="Flipkart" 
@@ -175,8 +175,8 @@ export default function About() {
           </div>
 
           {/* Ajio */}
-          <div className="flex items-center justify-center p-4 bg-white border border-slate-200/50 rounded-2xl shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-[#F1BF0A]/50 h-20 relative">
-            <div className="relative w-full h-full">
+          <div className="flex items-center justify-center bg-white border border-slate-200/50 rounded-2xl shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-[#F1BF0A]/50 h-20 overflow-hidden">
+            <div className="relative w-[90%] h-[75%]">
               <Image 
                 src="/ajio_logo.png" 
                 alt="Ajio" 
@@ -188,8 +188,8 @@ export default function About() {
           </div>
 
           {/* Meesho */}
-          <div className="flex items-center justify-center p-4 bg-white border border-slate-200/50 rounded-2xl shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-[#F1BF0A]/50 h-20 relative">
-            <div className="relative w-full h-full">
+          <div className="flex items-center justify-center bg-[#5a004a] border border-[#5a004a] rounded-2xl shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-[#F1BF0A]/50 h-20 overflow-hidden">
+            <div className="relative w-[90%] h-[75%]">
               <Image 
                 src="/meesho_logo.png" 
                 alt="Meesho" 
