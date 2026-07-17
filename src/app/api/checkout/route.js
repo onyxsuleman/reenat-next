@@ -160,8 +160,8 @@ export async function POST(request) {
       .select();
 
     if (insertErr) {
-      console.error("Database order insertion failed:", insertErr.message);
-      return NextResponse.json({ error: 'Failed to record the order in our database.' }, { status: 500 });
+      console.error("Database order insertion failed:", insertErr.message, insertErr.details, insertErr.hint);
+      return NextResponse.json({ error: `Order insert failed: ${insertErr.message}` }, { status: 500 });
     }
 
     // 8. Decrement Stock Levels
