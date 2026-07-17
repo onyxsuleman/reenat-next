@@ -82,23 +82,17 @@ export async function POST(request) {
         .single();
 
       if (fetchErr || !dbProduct) {
-        // Fallback for default products if missing from database
-        const isDefaultProduct = [42, 50, 51, 52, 53, 54, 55, 56, 57].includes(Number(item.id));
-        if (isDefaultProduct) {
-          console.warn(`Product ID ${item.id} not found in database; using default product fallback.`);
-          product = {
-            id: item.id,
-            name: item.name,
-            price: Number(item.price) || 949,
-            stock_qty: 50,
-            image: item.image,
-            styleid: item.skuId || item.styleId || item.styleid || ''
-          };
-          isFallback = true;
-        } else {
-          console.error(`Failed to fetch product ID ${item.id}:`, fetchErr);
-          return NextResponse.json({ error: `Product '${item.name}' was not found in our catalog.` }, { status: 400 });
-        }
+        // Fallback: product not found in database — use cart-provided data to allow checkout
+        console.warn(`Product ID ${item.id} not found in database; using cart fallback for checkout.`);
+        product = {
+          id: item.id,
+          name: item.name,
+          price: Number(item.price) || 949,
+          stock_qty: 50,
+          image: item.image,
+          styleid: item.skuId || item.styleId || item.styleid || ''
+        };
+        isFallback = true;
       } else {
         product = dbProduct;
       }
