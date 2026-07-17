@@ -149,46 +149,55 @@ export default function About() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 max-w-4xl mx-auto">
           {/* Amazon */}
-          <div className="flex items-center justify-center p-3 bg-white border border-slate-200/50 rounded-2xl shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-[#F1BF0A]/50 h-20 overflow-hidden relative">
-            <div className="w-full h-full" style={{
-              backgroundImage: 'url(/partners_strip.png)',
-              backgroundSize: '150px auto',
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'center 5%'
-            }} />
+          <div className="flex items-center justify-center p-4 bg-white border border-slate-200/50 rounded-2xl shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-[#F1BF0A]/50 h-20 relative">
+            <div className="relative w-full h-full">
+              <Image 
+                src="/amazon_logo.png" 
+                alt="Amazon" 
+                fill
+                sizes="(max-width: 768px) 50vw, 25vw"
+                className="object-contain"
+              />
+            </div>
           </div>
 
           {/* Flipkart */}
-          <div className="flex items-center justify-center p-3 bg-white border border-slate-200/50 rounded-2xl shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-[#F1BF0A]/50 h-20 overflow-hidden relative">
-            <div className="w-full h-full" style={{
-              backgroundImage: 'url(/partners_strip.png)',
-              backgroundSize: '150px auto',
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'center 50%'
-            }} />
+          <div className="flex items-center justify-center p-4 bg-white border border-slate-200/50 rounded-2xl shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-[#F1BF0A]/50 h-20 relative">
+            <div className="relative w-full h-full">
+              <Image 
+                src="/flipkart_logo.png" 
+                alt="Flipkart" 
+                fill
+                sizes="(max-width: 768px) 50vw, 25vw"
+                className="object-contain"
+              />
+            </div>
           </div>
 
           {/* Ajio */}
-          <div className="flex items-center justify-center p-4 bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-850/50 rounded-2xl shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-[#F1BF0A]/50 h-20 relative">
-            <div className="relative w-full h-10 max-w-[120px]">
+          <div className="flex items-center justify-center p-4 bg-white border border-slate-200/50 rounded-2xl shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-[#F1BF0A]/50 h-20 relative">
+            <div className="relative w-full h-full">
               <Image 
                 src="/ajio_logo.png" 
                 alt="Ajio" 
                 fill
                 sizes="(max-width: 768px) 50vw, 25vw"
-                className="object-contain dark:invert dark:brightness-200"
+                className="object-contain"
               />
             </div>
           </div>
 
           {/* Meesho */}
-          <div className="flex items-center justify-center p-3 bg-white border border-slate-200/50 rounded-2xl shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-[#F1BF0A]/50 h-20 overflow-hidden relative">
-            <div className="w-full h-full" style={{
-              backgroundImage: 'url(/partners_strip.png)',
-              backgroundSize: '150px auto',
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'center 95%'
-            }} />
+          <div className="flex items-center justify-center p-4 bg-white border border-slate-200/50 rounded-2xl shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-[#F1BF0A]/50 h-20 relative">
+            <div className="relative w-full h-full">
+              <Image 
+                src="/meesho_logo.png" 
+                alt="Meesho" 
+                fill
+                sizes="(max-width: 768px) 50vw, 25vw"
+                className="object-contain"
+              />
+            </div>
           </div>
         </div>
       </section>
@@ -228,7 +237,7 @@ export default function About() {
                 </svg>
               </div>
               <div>
-                <span className="text-xs text-slate-500 dark:text-slate-400 block font-semibold">Brand</span>
+                <span className="text-xs text-slate-400 block font-semibold">Brand</span>
                 <span className="text-base font-bold text-slate-800 dark:text-white font-sans">Reenat Trends</span>
               </div>
             </div>
