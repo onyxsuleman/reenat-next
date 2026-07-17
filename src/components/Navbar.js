@@ -22,7 +22,56 @@ export default function Navbar() {
 
   return (
     <nav className="flex flex-col max-w-5xl w-full mx-auto relative z-50 gap-4 mt-1.5 mb-4 px-2 sm:px-0">
-      <div className="flex items-center justify-between gap-3">
+      
+      {/* Mobile Navbar Row */}
+      <div className="flex md:hidden items-center justify-between gap-2.5 w-full">
+        {/* Left: Logo */}
+        <Link href="/" className="flex items-center gap-2 bg-white/90 dark:bg-[#0c1e44]/90 px-3.5 py-2 rounded-[9999px] nav-glass border border-white/20 dark:border-white/10 transition-colors duration-300 shrink-0 hover:no-underline">
+          <Image 
+            src="/logo.png" 
+            alt="Reenat Trends Logo" 
+            width={28} 
+            height={28} 
+            className="rounded-full object-contain shrink-0"
+          />
+          <span className="font-anton select-none text-slate-800 dark:text-white text-base tracking-wider transition-colors duration-300">REENAT TRENDS</span>
+        </Link>
+
+        {/* Center: Search Button */}
+        <Link href="/new-arrivals" className="flex items-center justify-center size-9.5 rounded-full bg-white/90 dark:bg-[#0c1e44]/90 nav-glass border border-white/20 dark:border-white/10 text-slate-800 dark:text-white transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm" title="Search">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.637 10.637Z" />
+          </svg>
+        </Link>
+
+        {/* Right: Toggle/Hamburger Pill */}
+        <div className="flex items-center gap-3.5 bg-white/90 dark:bg-[#0c1e44]/90 px-4 py-2.5 rounded-[9999px] nav-glass border border-white/20 dark:border-white/10 text-slate-800 dark:text-white shrink-0">
+          {/* Theme Toggle (Left) */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="cursor-pointer text-slate-800 dark:text-white select-none text-base font-medium flex items-center justify-center"
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? '☀' : '☾'}
+          </button>
+
+          {/* Hamburger Menu Toggle (Right) */}
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(true)}
+            className="cursor-pointer rounded text-slate-800 dark:text-white flex items-center justify-center"
+            aria-label="Open Menu"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Desktop Navbar Row */}
+      <div className="hidden md:flex items-center justify-between gap-3 w-full">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 bg-white/90 dark:bg-[#0c1e44]/90 px-4 py-2 rounded-[9999px] nav-glass border border-white/20 dark:border-white/10 transition-colors duration-300 shrink-0 hover:no-underline">
           <Image 
@@ -75,7 +124,7 @@ export default function Navbar() {
               <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-72 bg-white dark:bg-[#0c1e44] rounded-2xl shadow-xl border border-slate-200/80 dark:border-white/10 p-4 opacity-0 invisible group-hover/bulk:opacity-100 group-hover/bulk:visible transition-all duration-300 z-50 text-left glass">
                 <span className="text-[#F1BF0A] font-bold text-[10px] uppercase tracking-wider block mb-1">Wholesale Deals</span>
                 <h4 className="font-bold text-slate-800 dark:text-white text-sm mb-1">Buying in Bulk?</h4>
-                <p className="text-slate-500 dark:text-slate-350 text-xs mb-3.5 leading-relaxed">
+                <p className="text-slate-500 dark:text-slate-355 text-xs mb-3.5 leading-relaxed">
                   Get special wholesale pricing, custom packing, and priority shipping for weddings, corporate gifting, or retail.
                 </p>
                 <a 
@@ -93,18 +142,6 @@ export default function Navbar() {
               </div>
             </li>
           </ul>
-
-          {/* Mobile Menu Toggle Button */}
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden cursor-pointer rounded text-slate-800 dark:text-white"
-            aria-label="Toggle Menu"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-8">
-              <path fillRule="evenodd" d="M3 6.75A.75.75 0 0 1 3.75 6h16.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 6.75ZM3 12a.75.75 0 0 1 .75-.75h16.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 12Zm0 5.25a.75.75 0 0 1 .75-.75h16.5a.75.75 0 0 1 0 1.5H3.75a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
-            </svg>
-          </button>
 
           {/* Icons/Actions */}
           <div className="flex items-center gap-4">
@@ -146,9 +183,8 @@ export default function Navbar() {
             <button
               type="button"
               onClick={toggleTheme}
-              id="theme-toggle"
+              className="cursor-pointer"
               aria-label="Toggle theme"
-              className="cursor-pointer ml-auto"
             >
               {theme === 'dark' ? '☀' : '☾'}
             </button>
