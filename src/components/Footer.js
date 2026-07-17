@@ -6,10 +6,15 @@ import Link from 'next/link';
 export default function Footer() {
   return (
     <footer className="max-w-5xl w-full mx-auto bg-[#183fad] text-white px-4 sm:px-9.5 pb-4 mt-20 pt-6 sm:pt-10 rounded-t-4xl relative z-0 overflow-hidden glass">
-      <nav className="-mb-6 flex flex-wrap justify-center gap-x-6 gap-y-3 text-sm/6">
+      <nav className="-mb-6 flex flex-wrap justify-center gap-x-6 gap-y-3 text-xs md:text-sm/6 max-w-4xl mx-auto px-4">
         <Link href="/" className="hover:text-[#F1BF0A] transition-colors">Home</Link>
         <Link href="/about" className="hover:text-[#F1BF0A] transition-colors">About</Link>
         <Link href="/new-arrivals" className="hover:text-[#F1BF0A] transition-colors">Collection</Link>
+        <Link href="/shipping-policy" className="hover:text-[#F1BF0A] transition-colors text-white/80">Shipping Policy</Link>
+        <Link href="/refund-policy" className="hover:text-[#F1BF0A] transition-colors text-white/80">Refund Policy</Link>
+        <Link href="/privacy-policy" className="hover:text-[#F1BF0A] transition-colors text-white/80">Privacy Policy</Link>
+        <Link href="/terms" className="hover:text-[#F1BF0A] transition-colors text-white/80">Terms of Service</Link>
+        <Link href="/returns" className="hover:text-[#F1BF0A] transition-colors text-white/80">Returns & Exchanges</Link>
       </nav>
 
       <div className="mt-10 border-t border-white/30 pt-4 md:flex md:items-center md:justify-between">
