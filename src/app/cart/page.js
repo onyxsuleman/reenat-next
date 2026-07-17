@@ -5,6 +5,7 @@ import { useApp } from '../../context/AppContext';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Turnstile from '../../components/Turnstile';
+import Script from 'next/script';
 
 export default function Cart() {
   const router = useRouter();
@@ -58,12 +59,47 @@ export default function Cart() {
     }
   };
 
-  const handleCheckout = () => {
+  const handleCheckout = async (e) => {
     if (cart.length === 0) {
       showToast('Your cart is empty!', 'info');
       return;
     }
-    setShowCheckoutForm(true);
+
+    try {
+      showToast('Connecting to secure checkout...', 'info');
+      
+      const response = await fetch('/api/checkout/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cart })
+      });
+
+      const resData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to initialize checkout token.');
+      }
+
+      // Extract token (usually found in access_token or token property)
+      const token = resData.token || resData.access_token || resData.data?.token;
+
+      if (!token) {
+        throw new Error('Invalid token response from server.');
+      }
+
+      if (window.HeadlessCheckout) {
+        window.HeadlessCheckout.addToCart(e, token, {
+          fallbackUrl: window.location.href
+        });
+      } else {
+        console.warn('Fastrr SDK not loaded, falling back to manual form.');
+        setShowCheckoutForm(true);
+      }
+    } catch (err) {
+      console.error('Fastrr initialization error:', err);
+      showToast('Fastrr checkout unavailable. Using standard form.', 'warning');
+      setShowCheckoutForm(true);
+    }
   };
 
   const handleConfirmOrder = async (e) => {
@@ -379,6 +415,10 @@ export default function Cart() {
         </div>
       )}
 
+      <Script 
+        src="https://checkout-ui.shiprocket.com/assets/js/channels/shopify.js" 
+        strategy="lazyOnload" 
+      />
     </div>
   );
 }
