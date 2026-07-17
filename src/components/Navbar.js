@@ -37,15 +37,8 @@ export default function Navbar() {
           <span className="font-anton select-none text-slate-800 dark:text-white text-base tracking-wider transition-colors duration-300">REENAT TRENDS</span>
         </Link>
 
-        {/* Center: Search Button */}
-        <Link href="/new-arrivals" className="flex items-center justify-center size-9.5 rounded-full bg-white/90 dark:bg-[#0c1e44]/90 nav-glass border border-white/20 dark:border-white/10 text-slate-800 dark:text-white transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm" title="Search">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.637 10.637Z" />
-          </svg>
-        </Link>
-
-        {/* Right: Toggle/Hamburger Pill */}
-        <div className="flex items-center gap-3.5 bg-white/90 dark:bg-[#0c1e44]/90 px-4 py-2.5 rounded-[9999px] nav-glass border border-white/20 dark:border-white/10 text-slate-800 dark:text-white shrink-0">
+        {/* Right: Toggle/Search/Hamburger Pill */}
+        <div className="flex items-center gap-4.5 bg-white/90 dark:bg-[#0c1e44]/90 px-4.5 py-2 rounded-[9999px] nav-glass border border-white/20 dark:border-white/10 text-slate-800 dark:text-white shrink-0">
           {/* Theme Toggle (Left) */}
           <button
             type="button"
@@ -55,6 +48,17 @@ export default function Navbar() {
           >
             {theme === 'dark' ? '☀' : '☾'}
           </button>
+
+          {/* Search Button (Center) */}
+          <Link 
+            href="/new-arrivals" 
+            className="text-slate-850 dark:text-white hover:opacity-80 transition-opacity flex items-center justify-center" 
+            title="Search"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.637 10.637Z" />
+            </svg>
+          </Link>
 
           {/* Hamburger Menu Toggle (Right) */}
           <button

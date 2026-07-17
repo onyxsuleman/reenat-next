@@ -27,19 +27,19 @@ export default function FloatingNav() {
 
   const cartCount = cart?.reduce((sum, item) => sum + (item.qty || 1), 0) || 0;
 
-  // Render on mobile only, transition visible state
+  // Render on mobile only, transition visible state. Sitting at bottom-0 with no margin.
   return (
     <div 
-      className={`fixed bottom-4 left-1/2 -translate-x-1/2 w-[92%] max-w-[420px] z-45 transition-all duration-300 md:hidden ${
-        visible ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0 pointer-events-none'
+      className={`fixed bottom-0 left-0 w-full z-45 transition-all duration-300 md:hidden ${
+        visible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
       }`}
     >
-      <nav className="flex items-center justify-around bg-slate-900/90 dark:bg-slate-950/90 backdrop-blur-md border border-white/10 shadow-2xl rounded-[28px] px-4 py-2.5 text-[#F1BF0A] glass">
+      <nav className="flex items-center justify-around bg-white dark:bg-[#0c1e44] border-t border-slate-200/80 dark:border-white/10 shadow-2xl rounded-t-[20px] px-4 pt-3 pb-[calc(10px+env(safe-area-inset-bottom,12px))] text-slate-800 dark:text-white">
         {/* Home */}
         <Link 
           href="/" 
           className={`flex flex-col items-center gap-1.5 py-1 px-3 text-center transition-transform hover:scale-105 active:scale-95 ${
-            pathname === '/' ? 'opacity-100 font-bold' : 'opacity-85 font-medium'
+            pathname === '/' ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-600 dark:text-slate-300 font-medium'
           }`}
         >
           <svg className="size-6" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -53,7 +53,7 @@ export default function FloatingNav() {
         <Link 
           href="/account" 
           className={`flex flex-col items-center gap-1.5 py-1 px-3 text-center transition-transform hover:scale-105 active:scale-95 ${
-            pathname.startsWith('/account') || pathname === '/login' ? 'opacity-100 font-bold' : 'opacity-85 font-medium'
+            pathname.startsWith('/account') || pathname === '/login' ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-600 dark:text-slate-300 font-medium'
           }`}
         >
           <svg className="size-6" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -66,7 +66,7 @@ export default function FloatingNav() {
         <Link 
           href="/cart" 
           className={`flex flex-col items-center gap-1.5 py-1 px-3 text-center relative transition-transform hover:scale-105 active:scale-95 ${
-            pathname === '/cart' ? 'opacity-100 font-bold' : 'opacity-85 font-medium'
+            pathname === '/cart' ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-600 dark:text-slate-300 font-medium'
           }`}
         >
           <div className="relative">
@@ -74,7 +74,7 @@ export default function FloatingNav() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
             </svg>
             {cartCount > 0 && (
-              <span className="absolute -top-1.5 -right-2 bg-rose-500 text-white rounded-full text-[9px] min-w-[14px] h-[14px] flex items-center justify-center font-bold px-0.5 border border-slate-900 shadow-sm">{cartCount}</span>
+              <span className="absolute -top-1.5 -right-2 bg-rose-500 text-white rounded-full text-[9px] min-w-[14px] h-[14px] flex items-center justify-center font-bold px-0.5 border border-white dark:border-[#0c1e44] shadow-sm">{cartCount}</span>
             )}
           </div>
           <span className="text-[10px] sm:text-xs">Cart</span>
@@ -84,7 +84,7 @@ export default function FloatingNav() {
         <Link 
           href="/account" 
           className={`flex flex-col items-center gap-1.5 py-1 px-3 text-center transition-transform hover:scale-105 active:scale-95 ${
-            pathname.startsWith('/account') ? 'opacity-100 font-bold' : 'opacity-85 font-medium'
+            pathname.startsWith('/account') ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-600 dark:text-slate-300 font-medium'
           }`}
         >
           <svg className="size-6" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -97,7 +97,7 @@ export default function FloatingNav() {
         <Link 
           href="/new-arrivals" 
           className={`flex flex-col items-center gap-1.5 py-1 px-3 text-center transition-transform hover:scale-105 active:scale-95 ${
-            pathname === '/new-arrivals' ? 'opacity-100 font-bold' : 'opacity-85 font-medium'
+            pathname === '/new-arrivals' ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-600 dark:text-slate-300 font-medium'
           }`}
         >
           <svg className="size-6" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
