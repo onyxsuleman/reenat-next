@@ -24,14 +24,18 @@ export async function POST(request) {
       console.warn('Incoming webhook missing x-api-hmac-sha256 header. Proceeding with warning.');
     }
 
-    const payload = JSON.parse(rawBody);
+    const payload = rawBody ? JSON.parse(rawBody) : {};
+
+    // If it's an empty validation ping from Shiprocket/Fastrr, return success immediately
+    if (Object.keys(payload).length === 0) {
+      return NextResponse.json({ success: true, message: 'Webhook validation ping successful' });
+    }
 
     // Extracting details from Shiprocket's order payload.
-    // Note: Shiprocket Webhooks have structured JSON models. We support multiple common mappings.
     const shiprocketOrderId = payload.shiprocket_order_id || payload.id;
     const customerName = payload.customer_name || payload.billing_name || (payload.customer ? `${payload.customer.first_name || ''} ${payload.customer.last_name || ''}`.trim() : 'Customer');
-    const email = payload.customer_email || payload.email || (payload.customer ? payload.customer.email : '');
-    const phone = payload.customer_phone || payload.phone || (payload.customer ? payload.customer.phone : '');
+    const email = payload.customer_email || payload.email || (payload.customer ? payload.customer.email : '') || '';
+    const phone = payload.customer_phone || payload.phone || (payload.customer ? payload.customer.phone : '') || '';
 
     // Addresses
     const shippingLine1 = payload.shipping_address || payload.shipping_line1 || '';
