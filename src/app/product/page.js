@@ -19,7 +19,6 @@ function ProductDetailsContent() {
   const mobileCarouselRef = useRef(null);
   const desktopCarouselRef = useRef(null);
   const variationSectionRef = useRef(null);
-  const stickyTriggerRef = useRef(null);
 
   const productId = searchParams.get('id');
 
@@ -82,22 +81,14 @@ function ProductDetailsContent() {
   };
 
   useEffect(() => {
-    const triggerEl = stickyTriggerRef.current;
-    if (!triggerEl) return;
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        const isPast = !entry.isIntersecting && entry.boundingClientRect.top < 0;
-        setShowStickyBar(isPast);
-      });
-    }, { threshold: 0 });
-
-    observer.observe(triggerEl);
-
-    return () => {
-      observer.disconnect();
+    const handleScroll = () => {
+      setShowStickyBar(window.scrollY > 220);
     };
-  }, [product]);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   if (!product) {
     return (
@@ -430,7 +421,7 @@ function ProductDetailsContent() {
               </div>
             </div>
 
-            <div ref={stickyTriggerRef} className="pt-2 border-t border-slate-100 dark:border-slate-800/60 mt-2">
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800/60 mt-2">
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
                   ₹{product.price.toLocaleString('en-IN')}
