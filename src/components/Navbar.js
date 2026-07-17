@@ -26,7 +26,7 @@ export default function Navbar() {
       {/* Mobile Navbar Row */}
       <div className="flex md:hidden items-center justify-between gap-2.5 w-full">
         {/* Left: Logo */}
-        <Link href="/" className="flex items-center gap-2 bg-white/90 dark:bg-[#0c1e44]/90 px-3.5 py-2 rounded-[9999px] nav-glass border border-white/20 dark:border-white/10 transition-colors duration-300 shrink-0 hover:no-underline">
+        <Link href="/" className="flex items-center gap-2 bg-white/90 dark:bg-[#0c1e44]/90 px-3.5 h-11 rounded-[9999px] nav-glass border border-white/20 dark:border-white/10 transition-colors duration-300 shrink-0 hover:no-underline">
           <Image 
             src="/logo.png" 
             alt="Reenat Trends Logo" 
@@ -38,7 +38,7 @@ export default function Navbar() {
         </Link>
 
         {/* Right: Toggle/Search/Hamburger Pill */}
-        <div className="flex items-center gap-4.5 bg-white/90 dark:bg-[#0c1e44]/90 px-4.5 py-2 rounded-[9999px] nav-glass border border-white/20 dark:border-white/10 text-slate-800 dark:text-white shrink-0">
+        <div className="flex items-center gap-4.5 bg-white/90 dark:bg-[#0c1e44]/90 px-4.5 h-11 rounded-[9999px] nav-glass border border-white/20 dark:border-white/10 text-slate-800 dark:text-white shrink-0">
           {/* Theme Toggle (Left) */}
           <button
             type="button"

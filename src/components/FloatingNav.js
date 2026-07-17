@@ -52,10 +52,10 @@ function FloatingNavContent() {
         {/* 1. Home */}
         <Link 
           href="/" 
-          className={`flex flex-col items-center gap-1.5 py-1 px-3 text-center transition-transform hover:scale-105 active:scale-95 ${
+          className={`flex flex-col items-center gap-1.5 py-1 px-3 text-center transition-all hover:scale-105 active:scale-95 ${
             isHomeActive 
-              ? 'text-slate-900 dark:text-[#F1BF0A] font-bold' 
-              : 'text-slate-500 dark:text-[#F1BF0A]/60 font-medium'
+              ? 'text-slate-900 dark:text-[#F1BF0A] font-bold opacity-100' 
+              : 'text-slate-500 dark:text-[#F1BF0A] font-medium opacity-75 dark:opacity-80'
           }`}
         >
           <svg className="size-6" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -68,10 +68,10 @@ function FloatingNavContent() {
         {/* 2. Filter */}
         <Link 
           href="/new-arrivals" 
-          className={`flex flex-col items-center gap-1.5 py-1 px-3 text-center transition-transform hover:scale-105 active:scale-95 ${
+          className={`flex flex-col items-center gap-1.5 py-1 px-3 text-center transition-all hover:scale-105 active:scale-95 ${
             isFilterActive 
-              ? 'text-slate-900 dark:text-[#F1BF0A] font-bold' 
-              : 'text-slate-500 dark:text-[#F1BF0A]/60 font-medium'
+              ? 'text-slate-900 dark:text-[#F1BF0A] font-bold opacity-100' 
+              : 'text-slate-500 dark:text-[#F1BF0A] font-medium opacity-75 dark:opacity-80'
           }`}
         >
           <svg className="size-6" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -83,10 +83,10 @@ function FloatingNavContent() {
         {/* 3. Orders */}
         <Link 
           href="/account?tab=orders" 
-          className={`flex flex-col items-center gap-1.5 py-1 px-3 text-center transition-transform hover:scale-105 active:scale-95 ${
+          className={`flex flex-col items-center gap-1.5 py-1 px-3 text-center transition-all hover:scale-105 active:scale-95 ${
             isOrdersActive 
-              ? 'text-slate-900 dark:text-[#F1BF0A] font-bold' 
-              : 'text-slate-500 dark:text-[#F1BF0A]/60 font-medium'
+              ? 'text-slate-900 dark:text-[#F1BF0A] font-bold opacity-100' 
+              : 'text-slate-500 dark:text-[#F1BF0A] font-medium opacity-75 dark:opacity-80'
           }`}
         >
           <svg className="size-6" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -99,10 +99,10 @@ function FloatingNavContent() {
         {/* 4. Cart */}
         <Link 
           href="/cart" 
-          className={`flex flex-col items-center gap-1.5 py-1 px-3 text-center relative transition-transform hover:scale-105 active:scale-95 ${
+          className={`flex flex-col items-center gap-1.5 py-1 px-3 text-center relative transition-all hover:scale-105 active:scale-95 ${
             isCartActive 
-              ? 'text-slate-900 dark:text-[#F1BF0A] font-bold' 
-              : 'text-slate-500 dark:text-[#F1BF0A]/60 font-medium'
+              ? 'text-slate-900 dark:text-[#F1BF0A] font-bold opacity-100' 
+              : 'text-slate-500 dark:text-[#F1BF0A] font-medium opacity-75 dark:opacity-80'
           }`}
         >
           <div className="relative">
@@ -119,10 +119,10 @@ function FloatingNavContent() {
         {/* 5. Account */}
         <Link 
           href="/account" 
-          className={`flex flex-col items-center gap-1.5 py-1 px-3 text-center transition-transform hover:scale-105 active:scale-95 ${
+          className={`flex flex-col items-center gap-1.5 py-1 px-3 text-center transition-all hover:scale-105 active:scale-95 ${
             isAccountActive 
-              ? 'text-slate-900 dark:text-[#F1BF0A] font-bold' 
-              : 'text-slate-500 dark:text-[#F1BF0A]/60 font-medium'
+              ? 'text-slate-900 dark:text-[#F1BF0A] font-bold opacity-100' 
+              : 'text-slate-500 dark:text-[#F1BF0A] font-medium opacity-75 dark:opacity-80'
           }`}
         >
           <svg className="size-6" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
