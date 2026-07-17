@@ -39,14 +39,55 @@ export default function Navbar() {
 
         {/* Right: Toggle/Search/Hamburger Pill */}
         <div className="flex items-center justify-between w-[209.766px] bg-white/90 dark:bg-[#0c1e44]/90 px-5 h-11 rounded-[9999px] nav-glass border border-white/20 dark:border-white/10 text-slate-800 dark:text-white shrink-0">
-          {/* Theme Toggle (Left) */}
+          {/* Neumorphic Sliding Switch (Left) */}
           <button
             type="button"
             onClick={toggleTheme}
-            className="w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 active:translate-y-[1px] cursor-pointer border select-none text-sm font-semibold bg-gradient-to-b from-[#ff5e62] to-[#ff9966] text-white border-black/5 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),_inset_0_2px_4px_0_rgba(255,255,255,0.4),_0_0_0_1px_rgba(0,0,0,0.05)] active:shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.1)] dark:bg-gradient-to-b dark:from-[#2b32b2] dark:to-[#1488cc] dark:border-white/5 dark:shadow-[0_4px_6px_rgba(0,0,0,0.4),_inset_0_1.5px_2.5px_rgba(255,255,255,0.3),_0_0_0_1px_rgba(255,255,255,0.05)]"
+            className="relative w-[76px] h-[38px] rounded-full p-[3px] bg-slate-200/90 dark:bg-slate-950/80 border border-black/5 dark:border-white/5 shadow-[inset_0_2.5px_4.5px_rgba(0,0,0,0.15)] flex items-center cursor-pointer transition-colors duration-300 select-none outline-none shrink-0"
             aria-label="Toggle theme"
           >
-            {theme === 'dark' ? '☀️' : '🌙'}
+            {/* Background Sun Icon (Recessed) */}
+            <div className={`absolute left-[11px] top-[10px] transition-all duration-300 ${
+              theme === 'dark' ? 'opacity-40 text-slate-500' : 'opacity-0 scale-75'
+            }`}>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-4.5">
+                <path d="M12 2.25a.75.75 0 0 1 .75.75v2.25a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75ZM6.16 5.1a.75.75 0 0 1 1.06 0l1.59 1.59a.75.75 0 1 1-1.06 1.06L6.16 6.16a.75.75 0 0 1 0-1.06ZM18.84 5.1a.75.75 0 0 1 0 1.06l-1.59 1.59a.75.75 0 1 1-1.06-1.06l1.59-1.59a.75.75 0 0 1 1.06 0ZM21.75 12a.75.75 0 0 1-.75.75h-2.25a.75.75 0 0 1 0-1.5h2.25a.75.75 0 0 1 .75.75ZM3 12a.75.75 0 0 1-.75.75H2.25a.75.75 0 0 1 0-1.5h2.25a.75.75 0 0 1 .75.75ZM16.25 16.25a.75.75 0 0 1 1.06 0l1.59 1.59a.75.75 0 1 1-1.06 1.06l-1.59-1.59a.75.75 0 0 1 0-1.06ZM6.16 17.84a.75.75 0 0 1 1.06 0l1.59-1.59a.75.75 0 1 1 1.06 1.06l-1.59 1.59a.75.75 0 0 1-1.06 0ZM12 17.25a.75.75 0 0 1 .75.75v2.25a.75.75 0 0 1-1.5 0V18a.75.75 0 0 1 .75-.75ZM12 8.25a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Z" />
+              </svg>
+            </div>
+
+            {/* Background Moon Icon (Recessed) */}
+            <div className={`absolute right-[11px] top-[10px] transition-all duration-300 ${
+              theme !== 'dark' ? 'opacity-40 text-slate-500' : 'opacity-0 scale-75'
+            }`}>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-4.5">
+                <path fillRule="evenodd" d="M9.528 1.718a.75.75 0 0 1 .162.819A8.97 8.97 0 0 0 9 6a9 9 0 0 0 9 9 8.97 8.97 0 0 0 3.463-.69.75.75 0 0 1 .981.98 10.503 10.503 0 1 1-9.694-9.694.75.75 0 0 1 .819.162ZM19.75 3a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 19.75 3ZM19.75 8.25a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5a.75.75 0 0 1 .75-.75ZM22.5 6a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 22.5 6ZM17 6a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 17 6Z" clipRule="evenodd" />
+              </svg>
+            </div>
+
+            {/* Sliding Knob (Thumb) */}
+            <div 
+              className={`w-[32px] h-[32px] rounded-full bg-white dark:bg-slate-100 flex items-center justify-center transition-transform duration-300 ease-out shadow-[0_3px_8px_rgba(0,0,0,0.15),_0_1px_3px_rgba(0,0,0,0.06),_inset_0_2px_3px_rgba(255,255,255,0.7)] border border-black/5 relative ${
+                theme === 'dark' ? 'translate-x-[38px]' : 'translate-x-0'
+              }`}
+            >
+              {/* Active Sun Icon */}
+              <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 text-[#FF9F0A] ${
+                theme === 'dark' ? 'opacity-0 scale-50' : 'opacity-100 scale-100'
+              }`}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-5 shrink-0">
+                  <path d="M12 2.25a.75.75 0 0 1 .75.75v2.25a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75ZM6.16 5.1a.75.75 0 0 1 1.06 0l1.59 1.59a.75.75 0 1 1-1.06 1.06L6.16 6.16a.75.75 0 0 1 0-1.06ZM18.84 5.1a.75.75 0 0 1 0 1.06l-1.59 1.59a.75.75 0 1 1-1.06-1.06l1.59-1.59a.75.75 0 0 1 1.06 0ZM21.75 12a.75.75 0 0 1-.75.75h-2.25a.75.75 0 0 1 0-1.5h2.25a.75.75 0 0 1 .75.75ZM3 12a.75.75 0 0 1-.75.75H2.25a.75.75 0 0 1 0-1.5h2.25a.75.75 0 0 1 .75.75ZM16.25 16.25a.75.75 0 0 1 1.06 0l1.59 1.59a.75.75 0 1 1-1.06 1.06l-1.59-1.59a.75.75 0 0 1 0-1.06ZM6.16 17.84a.75.75 0 0 1 1.06 0l1.59-1.59a.75.75 0 1 1 1.06 1.06l-1.59 1.59a.75.75 0 0 1-1.06 0ZM12 17.25a.75.75 0 0 1 .75.75v2.25a.75.75 0 0 1-1.5 0V18a.75.75 0 0 1 .75-.75ZM12 8.25a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Z" />
+                </svg>
+              </div>
+
+              {/* Active Moon Icon */}
+              <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 text-indigo-650 dark:text-[#F1BF0A] ${
+                theme !== 'dark' ? 'opacity-0 scale-50' : 'opacity-100 scale-100'
+              }`}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-5 shrink-0">
+                  <path fillRule="evenodd" d="M9.528 1.718a.75.75 0 0 1 .162.819A8.97 8.97 0 0 0 9 6a9 9 0 0 0 9 9 8.97 8.97 0 0 0 3.463-.69.75.75 0 0 1 .981.98 10.503 10.503 0 1 1-9.694-9.694.75.75 0 0 1 .819.162ZM19.75 3a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 19.75 3ZM19.75 8.25a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5a.75.75 0 0 1 .75-.75ZM22.5 6a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 22.5 6ZM17 6a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 17 6Z" clipRule="evenodd" />
+                </svg>
+              </div>
+            </div>
           </button>
 
           {/* Search Button (Center) */}
@@ -183,14 +224,55 @@ export default function Navbar() {
               </svg>
             </Link>
 
-            {/* Theme Toggle */}
+            {/* Neumorphic Sliding Switch */}
             <button
               type="button"
               onClick={toggleTheme}
-              className="w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 active:translate-y-[1px] cursor-pointer border select-none text-sm font-semibold bg-gradient-to-b from-[#ff5e62] to-[#ff9966] text-white border-black/5 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),_inset_0_2px_4px_0_rgba(255,255,255,0.4),_0_0_0_1px_rgba(0,0,0,0.05)] active:shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.1)] dark:bg-gradient-to-b dark:from-[#2b32b2] dark:to-[#1488cc] dark:border-white/5 dark:shadow-[0_4px_6px_rgba(0,0,0,0.4),_inset_0_1.5px_2.5px_rgba(255,255,255,0.3),_0_0_0_1px_rgba(255,255,255,0.05)]"
+              className="relative w-[76px] h-[38px] rounded-full p-[3px] bg-slate-200/90 dark:bg-slate-950/80 border border-black/5 dark:border-white/5 shadow-[inset_0_2.5px_4.5px_rgba(0,0,0,0.15)] flex items-center cursor-pointer transition-colors duration-300 select-none outline-none shrink-0"
               aria-label="Toggle theme"
             >
-              {theme === 'dark' ? '☀️' : '🌙'}
+              {/* Background Sun Icon (Recessed) */}
+              <div className={`absolute left-[11px] top-[10px] transition-all duration-300 ${
+                theme === 'dark' ? 'opacity-40 text-slate-500' : 'opacity-0 scale-75'
+              }`}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-4.5">
+                  <path d="M12 2.25a.75.75 0 0 1 .75.75v2.25a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75ZM6.16 5.1a.75.75 0 0 1 1.06 0l1.59 1.59a.75.75 0 1 1-1.06 1.06L6.16 6.16a.75.75 0 0 1 0-1.06ZM18.84 5.1a.75.75 0 0 1 0 1.06l-1.59 1.59a.75.75 0 1 1-1.06-1.06l1.59-1.59a.75.75 0 0 1 1.06 0ZM21.75 12a.75.75 0 0 1-.75.75h-2.25a.75.75 0 0 1 0-1.5h2.25a.75.75 0 0 1 .75.75ZM3 12a.75.75 0 0 1-.75.75H2.25a.75.75 0 0 1 0-1.5h2.25a.75.75 0 0 1 .75.75ZM16.25 16.25a.75.75 0 0 1 1.06 0l1.59 1.59a.75.75 0 1 1-1.06 1.06l-1.59-1.59a.75.75 0 0 1 0-1.06ZM6.16 17.84a.75.75 0 0 1 1.06 0l1.59-1.59a.75.75 0 1 1 1.06 1.06l-1.59 1.59a.75.75 0 0 1-1.06 0ZM12 17.25a.75.75 0 0 1 .75.75v2.25a.75.75 0 0 1-1.5 0V18a.75.75 0 0 1 .75-.75ZM12 8.25a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Z" />
+                </svg>
+              </div>
+
+              {/* Background Moon Icon (Recessed) */}
+              <div className={`absolute right-[11px] top-[10px] transition-all duration-300 ${
+                theme !== 'dark' ? 'opacity-40 text-slate-500' : 'opacity-0 scale-75'
+              }`}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-4.5">
+                  <path fillRule="evenodd" d="M9.528 1.718a.75.75 0 0 1 .162.819A8.97 8.97 0 0 0 9 6a9 9 0 0 0 9 9 8.97 8.97 0 0 0 3.463-.69.75.75 0 0 1 .981.98 10.503 10.503 0 1 1-9.694-9.694.75.75 0 0 1 .819.162ZM19.75 3a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 19.75 3ZM19.75 8.25a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5a.75.75 0 0 1 .75-.75ZM22.5 6a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 22.5 6ZM17 6a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 17 6Z" clipRule="evenodd" />
+                </svg>
+              </div>
+
+              {/* Sliding Knob (Thumb) */}
+              <div 
+                className={`w-[32px] h-[32px] rounded-full bg-white dark:bg-slate-100 flex items-center justify-center transition-transform duration-300 ease-out shadow-[0_3px_8px_rgba(0,0,0,0.15),_0_1px_3px_rgba(0,0,0,0.06),_inset_0_2px_3px_rgba(255,255,255,0.7)] border border-black/5 relative ${
+                  theme === 'dark' ? 'translate-x-[38px]' : 'translate-x-0'
+                }`}
+              >
+                {/* Active Sun Icon */}
+                <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 text-[#FF9F0A] ${
+                  theme === 'dark' ? 'opacity-0 scale-50' : 'opacity-100 scale-100'
+                }`}>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-5 shrink-0">
+                    <path d="M12 2.25a.75.75 0 0 1 .75.75v2.25a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75ZM6.16 5.1a.75.75 0 0 1 1.06 0l1.59 1.59a.75.75 0 1 1-1.06 1.06L6.16 6.16a.75.75 0 0 1 0-1.06ZM18.84 5.1a.75.75 0 0 1 0 1.06l-1.59 1.59a.75.75 0 1 1-1.06-1.06l1.59-1.59a.75.75 0 0 1 1.06 0ZM21.75 12a.75.75 0 0 1-.75.75h-2.25a.75.75 0 0 1 0-1.5h2.25a.75.75 0 0 1 .75.75ZM3 12a.75.75 0 0 1-.75.75H2.25a.75.75 0 0 1 0-1.5h2.25a.75.75 0 0 1 .75.75ZM16.25 16.25a.75.75 0 0 1 1.06 0l1.59 1.59a.75.75 0 1 1-1.06 1.06l-1.59-1.59a.75.75 0 0 1 0-1.06ZM6.16 17.84a.75.75 0 0 1 1.06 0l1.59-1.59a.75.75 0 1 1 1.06 1.06l-1.59 1.59a.75.75 0 0 1-1.06 0ZM12 17.25a.75.75 0 0 1 .75.75v2.25a.75.75 0 0 1-1.5 0V18a.75.75 0 0 1 .75-.75ZM12 8.25a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Z" />
+                  </svg>
+                </div>
+
+                {/* Active Moon Icon */}
+                <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 text-indigo-650 dark:text-[#F1BF0A] ${
+                  theme !== 'dark' ? 'opacity-0 scale-50' : 'opacity-100 scale-100'
+                }`}>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-5 shrink-0">
+                    <path fillRule="evenodd" d="M9.528 1.718a.75.75 0 0 1 .162.819A8.97 8.97 0 0 0 9 6a9 9 0 0 0 9 9 8.97 8.97 0 0 0 3.463-.69.75.75 0 0 1 .981.98 10.503 10.503 0 1 1-9.694-9.694.75.75 0 0 1 .819.162ZM19.75 3a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 19.75 3ZM19.75 8.25a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5a.75.75 0 0 1 .75-.75ZM22.5 6a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 22.5 6ZM17 6a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 17 6Z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              </div>
             </button>
           </div>
         </div>
