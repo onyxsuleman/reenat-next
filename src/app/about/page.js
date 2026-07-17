@@ -136,7 +136,7 @@ export default function About() {
       </section>
 
       {/* Our Global Footprint */}
-      <section className="space-y-8 bg-white/40 dark:bg-[#0f1f41]/30 border border-black/5 dark:border-white/5 p-6 sm:p-10 rounded-[32px] glass">
+      <section className="space-y-8 bg-slate-50/50 dark:bg-[#080f1d] border border-slate-200/50 dark:border-white/[0.06] p-6 sm:p-10 rounded-[32px] shadow-sm">
         <div className="text-center space-y-2">
           <span className="text-xs uppercase tracking-[0.2em] text-[#d9a05b] font-semibold">Availability</span>
           <h2 className="text-3xl sm:text-4xl font-anton text-slate-855 dark:text-white uppercase">
@@ -147,56 +147,49 @@ export default function About() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 max-w-4xl mx-auto">
           {/* Amazon */}
-          <div className="flex items-center justify-center bg-[#f5f6f6] border border-slate-200/50 rounded-2xl shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-[#F1BF0A]/50 h-20 overflow-hidden">
-            <div className="relative w-[90%] h-[75%]">
-              <Image 
-                src="/amazon_logo.png" 
-                alt="Amazon" 
-                fill
-                sizes="(max-width: 768px) 50vw, 25vw"
-                className="object-contain"
-              />
+          <div className="p-2 bg-slate-100/40 dark:bg-slate-900/30 border border-slate-200/80 dark:border-white/10 rounded-2xl sm:rounded-3xl transition-all duration-300 hover:scale-105 hover:shadow-md">
+            <div className="relative w-full h-24 sm:h-28 bg-white rounded-xl sm:rounded-2xl flex items-center justify-center p-4 overflow-hidden border border-slate-100 dark:border-slate-800">
+              <div className="relative w-full h-full">
+                <Image 
+                  src="/amazon_logo.png" 
+                  alt="Amazon" 
+                  fill
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                  className="object-contain"
+                />
+              </div>
             </div>
           </div>
 
           {/* Flipkart */}
-          <div className="flex items-center justify-center bg-white border border-slate-200/50 rounded-2xl shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-[#F1BF0A]/50 h-20 overflow-hidden">
-            <div className="relative w-[90%] h-[75%]">
-              <Image 
-                src="/flipkart_logo.png" 
-                alt="Flipkart" 
-                fill
-                sizes="(max-width: 768px) 50vw, 25vw"
-                className="object-contain"
-              />
+          <div className="p-2 bg-slate-100/40 dark:bg-slate-900/30 border border-slate-200/80 dark:border-white/10 rounded-2xl sm:rounded-3xl transition-all duration-300 hover:scale-105 hover:shadow-md">
+            <div className="relative w-full h-24 sm:h-28 bg-white rounded-xl sm:rounded-2xl flex items-center justify-center p-4 overflow-hidden border border-slate-100 dark:border-slate-800">
+              <div className="relative w-full h-full">
+                <Image 
+                  src="/flipkart_logo.png" 
+                  alt="Flipkart" 
+                  fill
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                  className="object-contain"
+                />
+              </div>
             </div>
           </div>
 
           {/* Ajio */}
-          <div className="flex items-center justify-center bg-white border border-slate-200/50 rounded-2xl shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-[#F1BF0A]/50 h-20 overflow-hidden">
-            <div className="relative w-[90%] h-[75%]">
-              <Image 
-                src="/ajio_logo.png" 
-                alt="Ajio" 
-                fill
-                sizes="(max-width: 768px) 50vw, 25vw"
-                className="object-contain"
-              />
-            </div>
-          </div>
-
-          {/* Meesho */}
-          <div className="flex items-center justify-center bg-[#5a004a] border border-[#5a004a] rounded-2xl shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-[#F1BF0A]/50 h-20 overflow-hidden">
-            <div className="relative w-[90%] h-[75%]">
-              <Image 
-                src="/meesho_logo.png" 
-                alt="Meesho" 
-                fill
-                sizes="(max-width: 768px) 50vw, 25vw"
-                className="object-contain"
-              />
+          <div className="p-2 bg-slate-100/40 dark:bg-slate-900/30 border border-slate-200/80 dark:border-white/10 rounded-2xl sm:rounded-3xl transition-all duration-300 hover:scale-105 hover:shadow-md">
+            <div className="relative w-full h-24 sm:h-28 bg-white rounded-xl sm:rounded-2xl flex items-center justify-center p-4 overflow-hidden border border-slate-100 dark:border-slate-800">
+              <div className="relative w-full h-full">
+                <Image 
+                  src="/ajio_logo.png" 
+                  alt="Ajio" 
+                  fill
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                  className="object-contain"
+                />
+              </div>
             </div>
           </div>
         </div>
