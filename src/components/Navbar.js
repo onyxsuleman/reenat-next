@@ -38,7 +38,7 @@ export default function Navbar() {
         </Link>
 
         {/* Right: Toggle/Search/Hamburger Pill */}
-        <div className="flex items-center gap-4.5 bg-white/90 dark:bg-[#0c1e44]/90 px-4.5 h-11 rounded-[9999px] nav-glass border border-white/20 dark:border-white/10 text-slate-800 dark:text-white shrink-0">
+        <div className="flex items-center justify-between w-[209.766px] bg-white/90 dark:bg-[#0c1e44]/90 px-5 h-11 rounded-[9999px] nav-glass border border-white/20 dark:border-white/10 text-slate-800 dark:text-white shrink-0">
           {/* Theme Toggle (Left) */}
           <button
             type="button"
