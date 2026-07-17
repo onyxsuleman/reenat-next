@@ -147,66 +147,101 @@ export default function About() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 max-w-3xl mx-auto">
-          {['Amazon', 'Flipkart', 'Ajio', 'Meesho'].map((channel) => (
-            <div key={channel} className="flex flex-col items-center justify-center p-4 bg-white/90 dark:bg-[#090e1a]/95 border border-slate-200/50 dark:border-slate-850/50 rounded-2xl shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-[#F1BF0A]/50">
-              <span className="font-anton uppercase tracking-wider text-slate-750 dark:text-slate-200 text-sm sm:text-base select-none">
-                {channel}
-              </span>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 max-w-4xl mx-auto">
+          {/* Amazon */}
+          <div className="flex items-center justify-center p-3 bg-white border border-slate-200/50 rounded-2xl shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-[#F1BF0A]/50 h-20 overflow-hidden relative">
+            <div className="w-full h-full" style={{
+              backgroundImage: 'url(/partners_strip.png)',
+              backgroundSize: '150px auto',
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'center 5%'
+            }} />
+          </div>
+
+          {/* Flipkart */}
+          <div className="flex items-center justify-center p-3 bg-white border border-slate-200/50 rounded-2xl shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-[#F1BF0A]/50 h-20 overflow-hidden relative">
+            <div className="w-full h-full" style={{
+              backgroundImage: 'url(/partners_strip.png)',
+              backgroundSize: '150px auto',
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'center 50%'
+            }} />
+          </div>
+
+          {/* Ajio */}
+          <div className="flex items-center justify-center p-4 bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-850/50 rounded-2xl shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-[#F1BF0A]/50 h-20 relative">
+            <div className="relative w-full h-10 max-w-[120px]">
+              <Image 
+                src="/ajio_logo.png" 
+                alt="Ajio" 
+                fill
+                sizes="(max-width: 768px) 50vw, 25vw"
+                className="object-contain dark:invert dark:brightness-200"
+              />
             </div>
-          ))}
+          </div>
+
+          {/* Meesho */}
+          <div className="flex items-center justify-center p-3 bg-white border border-slate-200/50 rounded-2xl shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md hover:border-[#F1BF0A]/50 h-20 overflow-hidden relative">
+            <div className="w-full h-full" style={{
+              backgroundImage: 'url(/partners_strip.png)',
+              backgroundSize: '150px auto',
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'center 95%'
+            }} />
+          </div>
         </div>
       </section>
 
       {/* Connect With Us */}
-      <section className="bg-slate-900/95 dark:bg-black/45 border border-slate-800 dark:border-white/10 rounded-[32px] text-white p-6 sm:p-10 shadow-xl relative overflow-hidden">
+      <section className="bg-white/80 dark:bg-slate-900/95 border border-slate-200/60 dark:border-white/10 rounded-[32px] text-slate-800 dark:text-white p-6 sm:p-10 shadow-xl relative overflow-hidden transition-colors duration-300">
         <div className="absolute top-0 right-0 w-64 h-64 bg-[#F1BF0A]/10 rounded-full blur-3xl -z-10 pointer-events-none" />
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
           <div className="space-y-4">
-            <span className="text-xs uppercase tracking-widest text-[#F1BF0A] font-bold">Get In Touch</span>
+            <span className="text-xs uppercase tracking-widest text-[#d9a05b] dark:text-[#F1BF0A] font-bold">Get In Touch</span>
             <h2 className="text-3xl sm:text-4xl font-anton uppercase tracking-wider">
               Connect With Us
             </h2>
-            <p className="text-sm text-slate-355 leading-relaxed">
+            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
               Whether you are a customer looking for the perfect festive drape or a business seeking collaboration, we would love to hear from you. Reach out via support or corporate channels.
             </p>
           </div>
 
-          <div className="bg-white/5 dark:bg-white/5 border border-white/10 p-6 rounded-2xl space-y-4">
+          <div className="bg-slate-50/70 dark:bg-white/5 border border-slate-200/50 dark:border-white/10 p-6 rounded-2xl space-y-4">
             <div className="flex items-start gap-3">
-              <div className="size-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-                <svg className="size-5 text-[#F1BF0A]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <div className="size-10 rounded-xl bg-slate-200/60 dark:bg-white/10 flex items-center justify-center shrink-0 text-slate-600 dark:text-[#F1BF0A]">
+                <svg className="size-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
               </div>
               <div>
-                <span className="text-xs text-slate-400 block font-semibold">Corporate Entity</span>
-                <span className="text-base font-bold text-white font-sans">Onyx Enterprises</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 block font-semibold">Corporate Entity</span>
+                <span className="text-base font-bold text-slate-800 dark:text-white font-sans">Onyx Enterprises</span>
               </div>
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="size-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-                <svg className="size-5 text-[#F1BF0A]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <div className="size-10 rounded-xl bg-slate-200/60 dark:bg-white/10 flex items-center justify-center shrink-0 text-slate-600 dark:text-[#F1BF0A]">
+                <svg className="size-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
               <div>
-                <span className="text-xs text-slate-400 block font-semibold">Brand</span>
-                <span className="text-base font-bold text-white font-sans">Reenat Trends</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 block font-semibold">Brand</span>
+                <span className="text-base font-bold text-slate-800 dark:text-white font-sans">Reenat Trends</span>
               </div>
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="size-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-                <svg className="size-5 text-[#F1BF0A]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <div className="size-10 rounded-xl bg-slate-200/60 dark:bg-white/10 flex items-center justify-center shrink-0 text-slate-600 dark:text-[#F1BF0A]">
+                <svg className="size-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
               <div className="min-w-0">
-                <span className="text-xs text-slate-400 block font-semibold">Email Support</span>
-                <a href="mailto:reenattrends@gmail.com" className="text-base font-bold text-[#F1BF0A] hover:underline break-all font-sans">
+                <span className="text-xs text-slate-500 dark:text-slate-400 block font-semibold">Email Support</span>
+                <a href="mailto:reenattrends@gmail.com" className="text-base font-bold text-[#183fad] dark:text-[#F1BF0A] hover:underline break-all font-sans">
                   reenattrends@gmail.com
                 </a>
               </div>
