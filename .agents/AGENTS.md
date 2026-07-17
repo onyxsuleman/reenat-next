@@ -178,6 +178,30 @@ This roadmap defines the remaining development, optimization, and verification t
   - Double check console logs during production run (`npm run build` and `npm start`) to guarantee no active hydration mismatches.
 - [ ] **Safari & Mobile Layout Verification**:
   - Verify styling layouts for the 6-image carousel on Apple devices and mobile webviews (checking flex-basis, aspect ratio, and sticky sidebars).
-- [ ] **Extreme Load Stress Test**:
+- [x] **Extreme Load Stress Test**:
   - Test cart with 20+ items, check for local storage capacity boundaries, and confirm fallback states when API keys are missing.
+
+---
+
+## Completed Milestones (Sync Record)
+
+### Milestone 3: High-Fidelity Neumorphic Sliding Theme Switch
+*   **Location**: Mobile and Desktop views inside [Navbar.js](file:///d:/SULEMAN/website/reenat-next/src/components/Navbar.js#L42-L51)
+*   **Details**: Implemented a realistic curved track with inset neumorphic shadows, recessed background Sun/Moon icons, and a sliding circular white knob that shifts 38px smoothly when toggling themes. Supports full CSS transitions.
+
+### Milestone 4: E-Commerce Compliance Policy Routes
+*   **New Routes Created**:
+    *   [Shipping Policy](file:///d:/SULEMAN/website/reenat-next/src/app/shipping-policy/page.js) (dispatch timelines, free shipping, COD collect fees)
+    *   [Refund Policy](file:///d:/SULEMAN/website/reenat-next/src/app/refund-policy/page.js) (7-day window, unwashed condition rules, bank details transfer timelines)
+    *   [Privacy Policy](file:///d:/SULEMAN/website/reenat-next/src/app/privacy-policy/page.js) (data handling, SSL verification, shipping sharing)
+    *   [Terms of Service](file:///d:/SULEMAN/website/reenat-next/src/app/terms/page.js) (store use guidelines, handloom texture properties)
+    *   [Returns & Exchanges](file:///d:/SULEMAN/website/reenat-next/src/app/returns/page.js) (how to initiate reverse pickup)
+*   **Footer Links**: Linked all compliance routes inside the site footer navigation list inside [Footer.js](file:///d:/SULEMAN/website/reenat-next/src/components/Footer.js).
+
+### Milestone 5: Shiprocket Fastrr Checkout API & SDK Integration
+*   **Credentials Saved**: Added `SHIPROCKET_MERCHANT_API_KEY` and `SHIPROCKET_MERCHANT_SECRET_KEY` inside `.env.local`.
+*   **Backend Token Route** (`/api/checkout/token`): Programmatically formats cart data, signs payloads using the Secret Key via HMAC-SHA256, and fetches Fastrr session tokens.
+*   **Webhook Route** (`/api/shiprocket/webhook/order`): Receives transactional order updates, verifies HMAC signatures, and writes new orders and customer profiles to Supabase.
+*   **Frontend SDK Launcher** (`/cart`): Loads Fastrr SDK via `<Script>` and triggers checkout on Proceed click, with a fail-safe fallback to the standard form modal if the SDK script is blocked.
+
 
