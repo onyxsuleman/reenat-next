@@ -156,86 +156,130 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Drawer Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden flex flex-col gap-2 p-4 bg-white/95 dark:bg-[#0c1e44]/95 rounded-2xl glass shadow-lg border border-white/20 dark:border-white/10 mt-1 transition-all duration-300">
-          <ul className="flex flex-col gap-3 py-1">
-            {navLinks.map((link) => {
-              const isActive = pathname === link.href;
-              return (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`block py-1.5 px-3 rounded-lg transition-colors text-sm font-medium ${
-                      isActive 
-                        ? 'bg-[#183fad]/10 text-[#183fad] dark:bg-[#F1BF0A]/10 dark:text-[#F1BF0A]' 
-                        : 'text-slate-700 hover:bg-slate-100 dark:text-white/80 dark:hover:bg-white/5'
-                    }`}
-                  >
-                    {link.name}
-                  </Link>
-                </li>
-              );
-            })}
-            
-            {/* Mobile Bulk Purchase */}
-            <li>
-              <a 
-                href="https://wa.me/919028571571?text=Hi%2C%20I%27m%20interested%20in%20wholesale%20buying%20from%20Reenat%20Trends."
-                target="_blank"
-                rel="noopener noreferrer"
+      {/* Mobile Drawer Menu (Sidebar sliding from right) */}
+      <div className={`fixed inset-0 z-[999] md:hidden transition-all duration-300 ${mobileMenuOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}>
+        {/* Backdrop overlay */}
+        <div 
+          className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+            mobileMenuOpen ? 'opacity-100' : 'opacity-0'
+          }`}
+          onClick={() => setMobileMenuOpen(false)}
+        />
+        
+        {/* Sliding Panel */}
+        <div 
+          className={`absolute inset-y-0 right-0 w-[300px] max-w-[85vw] bg-white dark:bg-[#0c1e44] border-l border-slate-200/80 dark:border-white/10 shadow-2xl p-6 flex flex-col justify-between transition-transform duration-300 ease-in-out glass ${
+            mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
+        >
+          <div className="flex flex-col gap-6">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/10 pb-4">
+              <div className="flex items-center gap-2">
+                <Image 
+                  src="/logo.png" 
+                  alt="Reenat Trends Logo" 
+                  width={28} 
+                  height={28} 
+                  className="rounded-full object-contain"
+                />
+                <span className="font-anton select-none text-slate-800 dark:text-white text-base tracking-wider">
+                  REENAT TRENDS
+                </span>
+              </div>
+              <button 
+                type="button" 
                 onClick={() => setMobileMenuOpen(false)}
-                className="block py-1.5 px-3 rounded-lg text-slate-700 hover:bg-slate-100 dark:text-white/80 dark:hover:bg-white/5 text-sm font-medium hover:no-underline"
+                className="cursor-pointer text-slate-400 hover:text-slate-800 dark:hover:text-white p-1 rounded-full hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+                aria-label="Close menu"
               >
-                💼 Bulk Purchase (WhatsApp)
-              </a>
-            </li>
-          </ul>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-6">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
 
-          <div className="h-[1px] bg-slate-200 dark:bg-white/10 my-2"></div>
+            {/* Links */}
+            <ul className="flex flex-col gap-3 py-1">
+              {navLinks.map((link) => {
+                const isActive = pathname === link.href;
+                return (
+                  <li key={link.href}>
+                    <Link
+                      href={link.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`block py-2.5 px-4 rounded-xl transition-all duration-200 text-sm font-semibold ${
+                        isActive 
+                          ? 'bg-[#183fad]/10 text-[#183fad] dark:bg-[#F1BF0A]/10 dark:text-[#F1BF0A]' 
+                          : 'text-slate-800 hover:bg-slate-100 dark:text-white/80 dark:hover:bg-white/5'
+                      }`}
+                    >
+                      {link.name}
+                    </Link>
+                  </li>
+                );
+              })}
+              
+              {/* Mobile Bulk Purchase */}
+              <li>
+                <a 
+                  href="https://wa.me/919028571571?text=Hi%2C%20I%27m%20interested%20in%20wholesale%20buying%20from%20Reenat%20Trends."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block py-2.5 px-4 rounded-xl text-slate-800 hover:bg-slate-100 dark:text-white/80 dark:hover:bg-white/5 text-sm font-medium hover:no-underline"
+                >
+                  💼 Bulk Purchase (WhatsApp)
+                </a>
+              </li>
+            </ul>
+          </div>
 
-          {/* Mobile Actions */}
-          <div className="grid grid-cols-3 gap-2 text-center text-xs py-2">
-            <Link
-              href="/wishlist"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex flex-col items-center gap-1 p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl text-slate-800 dark:text-slate-200"
-            >
-              <span className="relative">
-                ❤️
-                {wishlistCount > 0 && (
-                  <span className="absolute -top-1.5 -right-2 bg-rose-500 text-white rounded-full text-[9px] px-1 font-bold">{wishlistCount}</span>
-                )}
-              </span>
-              <span>Wishlist</span>
-            </Link>
+          <div className="space-y-6">
+            <div className="h-[1px] bg-slate-200 dark:bg-white/10"></div>
 
-            <Link
-              href="/cart"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex flex-col items-center gap-1 p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl text-slate-800 dark:text-slate-200"
-            >
-              <span className="relative">
-                🛒
-                {cartCount > 0 && (
-                  <span className="absolute -top-1.5 -right-2 bg-[#F1BF0A] text-slate-900 rounded-full text-[9px] px-1 font-bold">{cartCount}</span>
-                )}
-              </span>
-              <span>Cart</span>
-            </Link>
+            {/* Mobile Actions Grid */}
+            <div className="grid grid-cols-3 gap-2 text-center text-xs pb-2">
+              <Link
+                href="/wishlist"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex flex-col items-center gap-1.5 p-3 hover:bg-slate-100 dark:hover:bg-white/5 rounded-2xl text-slate-800 dark:text-slate-200 transition-colors"
+              >
+                <span className="relative text-xl">
+                  ❤️
+                  {wishlistCount > 0 && (
+                    <span className="absolute -top-1.5 -right-2 bg-rose-500 text-white rounded-full text-[9px] px-1 font-bold">{wishlistCount}</span>
+                  )}
+                </span>
+                <span className="font-semibold">Wishlist</span>
+              </Link>
 
-            <Link
-              href={userSession ? "/account" : "/login"}
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex flex-col items-center gap-1 p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl text-slate-800 dark:text-slate-200"
-            >
-              <span>👤</span>
-              <span>Account</span>
-            </Link>
+              <Link
+                href="/cart"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex flex-col items-center gap-1.5 p-3 hover:bg-slate-100 dark:hover:bg-white/5 rounded-2xl text-slate-800 dark:text-slate-200 transition-colors"
+              >
+                <span className="relative text-xl">
+                  🛒
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1.5 -right-2 bg-[#F1BF0A] text-slate-900 rounded-full text-[9px] px-1 font-bold">{cartCount}</span>
+                  )}
+                </span>
+                <span className="font-semibold">Cart</span>
+              </Link>
+
+              <Link
+                href={userSession ? "/account" : "/login"}
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex flex-col items-center gap-1.5 p-3 hover:bg-slate-100 dark:hover:bg-white/5 rounded-2xl text-slate-800 dark:text-slate-200 transition-colors"
+              >
+                <span className="text-xl">👤</span>
+                <span className="font-semibold">Account</span>
+              </Link>
+            </div>
           </div>
         </div>
-      )}
+      </div>
     </nav>
   );
 }
