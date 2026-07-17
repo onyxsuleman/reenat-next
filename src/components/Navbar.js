@@ -43,10 +43,10 @@ export default function Navbar() {
           <button
             type="button"
             onClick={toggleTheme}
-            className="cursor-pointer text-slate-800 dark:text-white select-none text-base font-medium flex items-center justify-center"
+            className="w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 active:translate-y-[1px] cursor-pointer border select-none text-sm font-semibold bg-gradient-to-b from-[#ff5e62] to-[#ff9966] text-white border-black/5 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),_inset_0_2px_4px_0_rgba(255,255,255,0.4),_0_0_0_1px_rgba(0,0,0,0.05)] active:shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.1)] dark:bg-gradient-to-b dark:from-[#2b32b2] dark:to-[#1488cc] dark:border-white/5 dark:shadow-[0_4px_6px_rgba(0,0,0,0.4),_inset_0_1.5px_2.5px_rgba(255,255,255,0.3),_0_0_0_1px_rgba(255,255,255,0.05)]"
             aria-label="Toggle theme"
           >
-            {theme === 'dark' ? '☀' : '☾'}
+            {theme === 'dark' ? '☀️' : '🌙'}
           </button>
 
           {/* Search Button (Center) */}
@@ -187,10 +187,10 @@ export default function Navbar() {
             <button
               type="button"
               onClick={toggleTheme}
-              className="cursor-pointer"
+              className="w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 active:translate-y-[1px] cursor-pointer border select-none text-sm font-semibold bg-gradient-to-b from-[#ff5e62] to-[#ff9966] text-white border-black/5 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),_inset_0_2px_4px_0_rgba(255,255,255,0.4),_0_0_0_1px_rgba(0,0,0,0.05)] active:shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.1)] dark:bg-gradient-to-b dark:from-[#2b32b2] dark:to-[#1488cc] dark:border-white/5 dark:shadow-[0_4px_6px_rgba(0,0,0,0.4),_inset_0_1.5px_2.5px_rgba(255,255,255,0.3),_0_0_0_1px_rgba(255,255,255,0.05)]"
               aria-label="Toggle theme"
             >
-              {theme === 'dark' ? '☀' : '☾'}
+              {theme === 'dark' ? '☀️' : '🌙'}
             </button>
           </div>
         </div>
