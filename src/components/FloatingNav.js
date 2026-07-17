@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useApp } from '../context/AppContext';
 
-export default function FloatingNav() {
+function FloatingNavContent() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { cart } = useApp();
   const [visible, setVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
@@ -25,7 +26,19 @@ export default function FloatingNav() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
+  // Hide the navigation button on the product details page
+  if (pathname.startsWith('/product') || pathname === '/product') {
+    return null;
+  }
+
   const cartCount = cart?.reduce((sum, item) => sum + (item.qty || 1), 0) || 0;
+  const tab = searchParams ? searchParams.get('tab') : null;
+
+  const isHomeActive = pathname === '/';
+  const isFilterActive = pathname === '/new-arrivals';
+  const isOrdersActive = pathname === '/account' && tab === 'orders';
+  const isCartActive = pathname === '/cart';
+  const isAccountActive = pathname === '/account' && tab !== 'orders';
 
   // Render on mobile only, transition visible state. Sitting at bottom-0 with no margin.
   return (
@@ -34,12 +47,15 @@ export default function FloatingNav() {
         visible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
       }`}
     >
-      <nav className="flex items-center justify-around bg-white dark:bg-[#0c1e44] border-t border-slate-200/80 dark:border-white/10 shadow-2xl rounded-t-[20px] px-4 pt-3 pb-[calc(10px+env(safe-area-inset-bottom,12px))] text-slate-800 dark:text-white">
-        {/* Home */}
+      <nav className="flex items-center justify-around bg-white dark:bg-[#0c1e44] border-t border-slate-200/80 dark:border-white/10 shadow-2xl rounded-t-[20px] px-4 pt-3 pb-[calc(10px+env(safe-area-inset-bottom,12px))] text-slate-800 dark:text-[#F1BF0A]">
+        
+        {/* 1. Home */}
         <Link 
           href="/" 
           className={`flex flex-col items-center gap-1.5 py-1 px-3 text-center transition-transform hover:scale-105 active:scale-95 ${
-            pathname === '/' ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-600 dark:text-slate-300 font-medium'
+            isHomeActive 
+              ? 'text-slate-900 dark:text-[#F1BF0A] font-bold' 
+              : 'text-slate-500 dark:text-[#F1BF0A]/60 font-medium'
           }`}
         >
           <svg className="size-6" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -49,24 +65,44 @@ export default function FloatingNav() {
           <span className="text-[10px] sm:text-xs">Home</span>
         </Link>
 
-        {/* Account */}
+        {/* 2. Filter */}
         <Link 
-          href="/account" 
+          href="/new-arrivals" 
           className={`flex flex-col items-center gap-1.5 py-1 px-3 text-center transition-transform hover:scale-105 active:scale-95 ${
-            pathname.startsWith('/account') || pathname === '/login' ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-600 dark:text-slate-300 font-medium'
+            isFilterActive 
+              ? 'text-slate-900 dark:text-[#F1BF0A] font-bold' 
+              : 'text-slate-500 dark:text-[#F1BF0A]/60 font-medium'
           }`}
         >
           <svg className="size-6" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
           </svg>
-          <span className="text-[10px] sm:text-xs">Account</span>
+          <span className="text-[10px] sm:text-xs">Filter</span>
         </Link>
 
-        {/* Cart */}
+        {/* 3. Orders */}
+        <Link 
+          href="/account?tab=orders" 
+          className={`flex flex-col items-center gap-1.5 py-1 px-3 text-center transition-transform hover:scale-105 active:scale-95 ${
+            isOrdersActive 
+              ? 'text-slate-900 dark:text-[#F1BF0A] font-bold' 
+              : 'text-slate-500 dark:text-[#F1BF0A]/60 font-medium'
+          }`}
+        >
+          <svg className="size-6" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            {/* Perspective Box Package Icon */}
+            <path strokeLinecap="round" strokeLinejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
+          </svg>
+          <span className="text-[10px] sm:text-xs">Orders</span>
+        </Link>
+
+        {/* 4. Cart */}
         <Link 
           href="/cart" 
           className={`flex flex-col items-center gap-1.5 py-1 px-3 text-center relative transition-transform hover:scale-105 active:scale-95 ${
-            pathname === '/cart' ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-600 dark:text-slate-300 font-medium'
+            isCartActive 
+              ? 'text-slate-900 dark:text-[#F1BF0A] font-bold' 
+              : 'text-slate-500 dark:text-[#F1BF0A]/60 font-medium'
           }`}
         >
           <div className="relative">
@@ -80,32 +116,29 @@ export default function FloatingNav() {
           <span className="text-[10px] sm:text-xs">Cart</span>
         </Link>
 
-        {/* Orders */}
+        {/* 5. Account */}
         <Link 
           href="/account" 
           className={`flex flex-col items-center gap-1.5 py-1 px-3 text-center transition-transform hover:scale-105 active:scale-95 ${
-            pathname.startsWith('/account') ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-600 dark:text-slate-300 font-medium'
+            isAccountActive 
+              ? 'text-slate-900 dark:text-[#F1BF0A] font-bold' 
+              : 'text-slate-500 dark:text-[#F1BF0A]/60 font-medium'
           }`}
         >
           <svg className="size-6" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
           </svg>
-          <span className="text-[10px] sm:text-xs">Orders</span>
-        </Link>
-
-        {/* Filter */}
-        <Link 
-          href="/new-arrivals" 
-          className={`flex flex-col items-center gap-1.5 py-1 px-3 text-center transition-transform hover:scale-105 active:scale-95 ${
-            pathname === '/new-arrivals' ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-600 dark:text-slate-300 font-medium'
-          }`}
-        >
-          <svg className="size-6" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
-          </svg>
-          <span className="text-[10px] sm:text-xs">Filter</span>
+          <span className="text-[10px] sm:text-xs">Account</span>
         </Link>
       </nav>
     </div>
+  );
+}
+
+export default function FloatingNav() {
+  return (
+    <Suspense fallback={null}>
+      <FloatingNavContent />
+    </Suspense>
   );
 }
