@@ -40,12 +40,21 @@ export default function GoogleOneTap() {
 
     const initOneTap = () => {
       if (window.google?.accounts?.id) {
+        // Prevent double initialization during React Strict Mode render cycles
+        if (window.googleOneTapInitialized) {
+          window.google.accounts.id.prompt();
+          return;
+        }
+
         window.google.accounts.id.initialize({
           client_id: clientId,
           callback: handleCredentialResponse,
           auto_select: false, // Prevents automatic login bugs on page reload
           cancel_on_tap_outside: true,
+          use_fedcm_for_prompt: false, // Disable FedCM to prevent AbortError/NetworkError conflicts in dev
         });
+
+        window.googleOneTapInitialized = true;
 
         window.google.accounts.id.prompt((notification) => {
           if (notification.isNotDisplayed()) {
