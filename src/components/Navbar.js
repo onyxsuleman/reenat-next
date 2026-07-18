@@ -24,30 +24,30 @@ export default function Navbar() {
     <nav className="flex flex-col max-w-5xl w-full mx-auto relative z-50 gap-4 mt-1.5 mb-4 px-2 sm:px-0">
       
       {/* Mobile Navbar Row */}
-      <div className="flex md:hidden items-center justify-between gap-2.5 w-full">
+      <div className="flex md:hidden items-center justify-center gap-1 w-full">
         {/* Left: Logo */}
-        <Link href="/" className="flex items-center gap-2 bg-white/90 dark:bg-[#0c1e44]/90 px-3.5 h-11 rounded-[9999px] nav-glass border border-white/20 dark:border-white/10 transition-colors duration-300 shrink-0 hover:no-underline">
+        <Link href="/" className="flex items-center justify-start gap-2 bg-white/90 dark:bg-[#0c1e44]/90 pl-2.5 pr-1 h-12 rounded-[9999px] nav-glass border border-white/20 dark:border-white/10 transition-colors duration-300 flex-1 min-w-0 hover:no-underline">
           <Image 
             src="/logo.png" 
             alt="Reenat Trends Logo" 
-            width={28} 
-            height={28} 
+            width={34} 
+            height={34} 
             className="rounded-full object-contain shrink-0"
           />
-          <span className="font-anton select-none text-slate-800 dark:text-white text-base tracking-wider transition-colors duration-300">REENAT TRENDS</span>
+          <span className="font-anton select-none text-slate-800 dark:text-white text-sm sm:text-base tracking-wider transition-colors duration-300 truncate">REENAT TRENDS</span>
         </Link>
 
         {/* Right: Toggle/Search/Hamburger Pill */}
-        <div className="flex items-center justify-between gap-3 bg-white/90 dark:bg-[#0c1e44]/90 px-3.5 h-11 rounded-[9999px] nav-glass border border-white/20 dark:border-white/10 text-slate-800 dark:text-white shrink-0">
+        <div className="flex items-center justify-between bg-white/90 dark:bg-[#0c1e44]/90 px-3.5 h-12 rounded-[9999px] nav-glass border border-white/20 dark:border-white/10 text-slate-800 dark:text-white flex-1 min-w-0">
           {/* Neumorphic Sliding Switch (Left) */}
           <button
             type="button"
             onClick={toggleTheme}
-            className="relative w-[56px] h-[28px] rounded-full p-[3px] bg-slate-200/90 dark:bg-slate-950/80 border border-black/5 dark:border-white/5 shadow-[inset_0_2.5px_4.5px_rgba(0,0,0,0.15)] flex items-center cursor-pointer transition-colors duration-300 select-none outline-none shrink-0"
+            className="relative w-[64px] h-[30px] rounded-full p-[3px] bg-slate-200/90 dark:bg-slate-950/80 border border-black/5 dark:border-white/5 shadow-[inset_0_2.5px_4.5px_rgba(0,0,0,0.15)] flex items-center cursor-pointer transition-colors duration-300 select-none outline-none shrink-0"
             aria-label="Toggle theme"
           >
             {/* Background Sun Icon (Recessed) */}
-            <div className={`absolute left-[7px] top-[5px] transition-all duration-300 ${
+            <div className={`absolute left-[9px] top-[6px] transition-all duration-300 ${
               theme === 'dark' ? 'opacity-40 text-slate-500' : 'opacity-0 scale-75'
             }`}>
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-3.5">
@@ -56,7 +56,7 @@ export default function Navbar() {
             </div>
 
             {/* Background Moon Icon (Recessed) */}
-            <div className={`absolute right-[7px] top-[5px] transition-all duration-300 ${
+            <div className={`absolute right-[9px] top-[6px] transition-all duration-300 ${
               theme !== 'dark' ? 'opacity-40 text-slate-500' : 'opacity-0 scale-75'
             }`}>
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-3.5">
@@ -66,8 +66,8 @@ export default function Navbar() {
 
             {/* Sliding Knob (Thumb) */}
             <div 
-              className={`w-[22px] h-[22px] rounded-full bg-white dark:bg-slate-100 flex items-center justify-center transition-transform duration-300 ease-out shadow-[0_3px_8px_rgba(0,0,0,0.15),_0_1px_3px_rgba(0,0,0,0.06),_inset_0_2px_3px_rgba(255,255,255,0.7)] border border-black/5 relative ${
-                theme === 'dark' ? 'translate-x-[28px]' : 'translate-x-0'
+              className={`w-[24px] h-[24px] rounded-full bg-white dark:bg-slate-100 flex items-center justify-center transition-transform duration-300 ease-out shadow-[0_3px_8px_rgba(0,0,0,0.15),_0_1px_3px_rgba(0,0,0,0.06),_inset_0_2px_3px_rgba(255,255,255,0.7)] border border-black/5 relative ${
+                theme === 'dark' ? 'translate-x-[34px]' : 'translate-x-0'
               }`}
             >
               {/* Active Sun Icon */}
