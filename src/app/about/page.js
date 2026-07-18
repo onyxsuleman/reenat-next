@@ -24,6 +24,7 @@ export default function About() {
                 alt="Reenat Trends Logo" 
                 width={160} 
                 height={160} 
+                style={{ width: 'auto', height: 'auto' }}
                 className="rounded-full object-contain"
                 priority
               />

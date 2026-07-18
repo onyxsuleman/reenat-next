@@ -305,6 +305,7 @@ export default function Navbar() {
                   alt="Reenat Trends Logo" 
                   width={28} 
                   height={28} 
+                  style={{ width: 'auto', height: 'auto' }}
                   className="rounded-full object-contain"
                 />
                 <span className="font-anton select-none text-slate-800 dark:text-white text-base tracking-wider">

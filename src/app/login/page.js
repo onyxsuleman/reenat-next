@@ -66,20 +66,25 @@ export default function Login() {
     try {
       const { RecaptchaVerifier, signInWithPhoneNumber } = require('firebase/auth');
       
-      // Setup invisible recaptcha fresh to prevent "reCAPTCHA client element has been removed" React re-render errors
+      // Destroy old verifier instance completely
       if (window.recaptchaVerifier) {
         try {
           window.recaptchaVerifier.clear();
         } catch (e) {
-          console.warn("reCAPTCHA clear warning:", e);
+          // Ignore — container may already be gone
         }
         window.recaptchaVerifier = null;
       }
 
-      // Empty container HTML to prevent "reCAPTCHA has already been rendered in this element" errors
-      const container = document.getElementById('recaptcha-container');
-      if (container) {
-        container.innerHTML = '';
+      // CRITICAL FIX: Destroy the old container and create a fresh DOM node.
+      // reCAPTCHA's internal registry remembers rendered elements by reference,
+      // so innerHTML='' is NOT enough — we must replace the entire node.
+      const oldContainer = document.getElementById('recaptcha-container');
+      if (oldContainer) {
+        const freshContainer = document.createElement('div');
+        freshContainer.id = 'recaptcha-container';
+        freshContainer.className = 'hidden';
+        oldContainer.parentNode.replaceChild(freshContainer, oldContainer);
       }
 
       window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
