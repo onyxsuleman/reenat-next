@@ -19,7 +19,7 @@ export default function Login() {
     if (userSession) {
       router.push('/account');
     }
-  }, [userSession]);
+  }, [userSession, router]);
 
   const handleSendOtp = async (e) => {
     e.preventDefault();
@@ -105,7 +105,7 @@ export default function Login() {
 
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
-    if (!isFirebaseConfigured || !auth || !window.confirmationResult) {
+    if (!window.confirmationResult) {
       showToast('Authentication session is invalid or has expired. Please try again.', 'error');
       return;
     }
@@ -132,7 +132,6 @@ export default function Login() {
         uid: user.uid
       };
       handleLogin(userObj);
-      showToast('Logged in successfully!', 'success');
       router.push('/account');
     } catch (error) {
       console.error("Error verifying OTP:", error);
@@ -169,7 +168,13 @@ export default function Login() {
       router.push('/account');
     } catch (error) {
       console.error("Google sign in error:", error);
-      showToast(error.message || "Google sign in failed.", 'error');
+      if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+        showToast('Google sign-in was cancelled. Please try again.', 'warning');
+      } else if (error.code === 'auth/network-request-failed') {
+        showToast('Network error: Please check your internet connection and try again.', 'error');
+      } else {
+        showToast(error.message || "Google sign in failed.", 'error');
+      }
     }
   };
 

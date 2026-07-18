@@ -32,6 +32,7 @@ export default function Navbar() {
             alt="Reenat Trends Logo" 
             width={34} 
             height={34} 
+            style={{ width: 'auto', height: 'auto' }}
             className="rounded-full object-contain shrink-0"
           />
           <span className="font-anton select-none text-slate-800 dark:text-white text-sm sm:text-base tracking-wider transition-colors duration-300 truncate">REENAT TRENDS</span>
@@ -124,6 +125,7 @@ export default function Navbar() {
             alt="Reenat Trends Logo" 
             width={32} 
             height={32} 
+            style={{ width: 'auto', height: 'auto' }}
             className="rounded-full object-contain shrink-0"
           />
           <span className="font-anton select-none text-slate-800 dark:text-white text-base tracking-wider transition-colors duration-300">REENAT TRENDS</span>

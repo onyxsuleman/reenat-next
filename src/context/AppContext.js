@@ -736,7 +736,6 @@ export function AppProvider({ children }) {
   const handleLogin = (userObj) => {
     setUserSession(userObj);
     localStorage.setItem('userSession', JSON.stringify(userObj));
-    showToast('Logged in successfully!', 'success');
   };
 
   const handleLogout = async () => {

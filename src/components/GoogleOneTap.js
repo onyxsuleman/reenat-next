@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useApp } from '../context/AppContext';
 import { auth, isFirebaseConfigured } from '../utils/firebase';
 import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 
 export default function GoogleOneTap() {
-  const { userSession, showToast } = useApp();
+  const router = useRouter();
+  const { userSession, handleLogin, showToast } = useApp();
 
   useEffect(() => {
     // 1. If user is already logged in, do not prompt
@@ -30,8 +32,21 @@ export default function GoogleOneTap() {
       try {
         showToast('Signing in with Google One-Tap...', 'info');
         const credential = GoogleAuthProvider.credential(response.credential);
-        await signInWithCredential(auth, credential);
-        showToast('Welcome back! Signed in successfully.', 'success');
+        const result = await signInWithCredential(auth, credential);
+        const user = result.user;
+
+        // Persist session to localStorage via AppContext
+        const username = user.displayName || user.email?.split('@')[0] || 'Google User';
+        handleLogin({
+          isLoggedIn: true,
+          email: user.email || '',
+          phone: user.phoneNumber || '',
+          username: username,
+          joinedDate: 'July 2026',
+          uid: user.uid
+        });
+        showToast(`Welcome ${username}!`, 'success');
+        router.push('/account');
       } catch (error) {
         console.error("Google One-Tap login error:", error);
         showToast('Google One-Tap sign-in failed.', 'error');
@@ -78,9 +93,23 @@ export default function GoogleOneTap() {
           initOneTap();
         }
       }, 1500);
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        // Cancel the One-Tap prompt when component unmounts or user logs in
+        if (window.google?.accounts?.id) {
+          window.google.accounts.id.cancel();
+        }
+      };
     }
+
+    // Cleanup: cancel the One-Tap prompt
+    return () => {
+      if (window.google?.accounts?.id) {
+        window.google.accounts.id.cancel();
+      }
+    };
   }, [userSession]);
 
   return null;
 }
+
