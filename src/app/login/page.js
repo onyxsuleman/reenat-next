@@ -49,6 +49,12 @@ export default function Login() {
         window.recaptchaVerifier = null;
       }
 
+      // Empty container HTML to prevent "reCAPTCHA has already been rendered in this element" errors
+      const container = document.getElementById('recaptcha-container');
+      if (container) {
+        container.innerHTML = '';
+      }
+
       window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         size: 'invisible'
       });
