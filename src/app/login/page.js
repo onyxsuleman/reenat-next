@@ -66,7 +66,11 @@ export default function Login() {
       showToast('OTP sent successfully!', 'success');
     } catch (error) {
       console.error("Error sending OTP:", error);
-      showToast(error.message || "Failed to send OTP.", 'error');
+      if (error.code === 'auth/network-request-failed' || error.message?.includes('network-request-failed')) {
+        showToast("Network/API blocked: Please check your internet, disable ad-blockers, or verify billing/domain settings.", 'error');
+      } else {
+        showToast(error.message || "Failed to send OTP.", 'error');
+      }
     } finally {
       setIsSubmitting(false);
     }
