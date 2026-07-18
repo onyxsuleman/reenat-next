@@ -22,14 +22,36 @@ export default function Cart() {
   const [paymentMethod, setPaymentMethod] = useState('Cash on Delivery');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [captchaToken, setCaptchaToken] = useState('');
+  const [savedAddresses, setSavedAddresses] = useState([]);
 
   useEffect(() => {
     if (userSession) {
       setEmail(userSession.email || '');
       setFullName(userSession.username || '');
-      setAddress('12, Weaver Street, Silk Nagar, Kanchipuram, Tamil Nadu - 631501');
+      
+      const cacheKey = `addresses_${userSession.uid || userSession.email}`;
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          const addrList = JSON.parse(cached);
+          setSavedAddresses(addrList);
+          const defaultAddr = addrList.find(addr => addr.isDefault) || addrList[0];
+          if (defaultAddr) {
+            setFullName(defaultAddr.name || '');
+            setPhone(defaultAddr.phone || '');
+            setAddress(`${defaultAddr.line1}${defaultAddr.line2 ? `, ${defaultAddr.line2}` : ''}, ${defaultAddr.city}, ${defaultAddr.state} - ${defaultAddr.pincode}`);
+          } else {
+            setAddress('12, Weaver Street, Silk Nagar, Kanchipuram, Tamil Nadu - 631501');
+          }
+        } catch (e) {
+          console.warn("Could not parse cached address book:", e);
+          setAddress('12, Weaver Street, Silk Nagar, Kanchipuram, Tamil Nadu - 631501');
+        }
+      } else {
+        setAddress('12, Weaver Street, Silk Nagar, Kanchipuram, Tamil Nadu - 631501');
+      }
     }
-  }, [userSession]);
+  }, [userSession, showCheckoutForm]);
 
   const subtotal = cart.reduce((sum, item) => sum + (item.price * (item.qty || 1)), 0);
   const taxRate = 0.08; // 8% sales tax
@@ -71,7 +93,14 @@ export default function Cart() {
       const response = await fetch('/api/checkout/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cart })
+        body: JSON.stringify({ 
+          cart,
+          customer: userSession ? {
+            email: userSession.email || '',
+            phone: userSession.phone || '',
+            name: userSession.username || ''
+          } : null
+        })
       });
 
       const resData = await response.json();
@@ -316,6 +345,32 @@ export default function Cart() {
               <hr className="border-slate-200 dark:border-slate-850" />
 
               <div className="space-y-3">
+                {savedAddresses.length > 0 && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                      Deliver to Saved Address
+                    </label>
+                    <select
+                      onChange={(e) => {
+                        const selected = savedAddresses.find(addr => addr.id === e.target.value);
+                        if (selected) {
+                          setFullName(selected.name || '');
+                          setPhone(selected.phone || '');
+                          setAddress(`${selected.line1}${selected.line2 ? `, ${selected.line2}` : ''}, ${selected.city}, ${selected.state} - ${selected.pincode}`);
+                        }
+                      }}
+                      className="w-full bg-white/50 dark:bg-black/10 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#183fad] dark:focus:ring-[#F1BF0A]"
+                    >
+                      <option value="">-- Choose a saved address --</option>
+                      {savedAddresses.map(addr => (
+                        <option key={addr.id} value={addr.id}>
+                          {addr.type} ({addr.city} - {addr.name})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Full Name</label>
                   <input 

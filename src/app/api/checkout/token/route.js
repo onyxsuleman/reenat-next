@@ -4,7 +4,7 @@ import crypto from 'crypto';
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { cart } = body;
+    const { cart, customer } = body;
 
     if (!cart || !Array.isArray(cart) || cart.length === 0) {
       return NextResponse.json({ error: 'Cart is empty or invalid.' }, { status: 400 });
@@ -39,6 +39,18 @@ export async function POST(request) {
         items: items
       }
     };
+
+    if (customer) {
+      const nameParts = (customer.name || 'Guest Customer').trim().split(/\s+/);
+      const firstName = nameParts[0] || 'Guest';
+      const lastName = nameParts.slice(1).join(' ') || 'Customer';
+      payload.customer_details = {
+        email: customer.email || '',
+        phone: customer.phone || '',
+        first_name: firstName,
+        last_name: lastName
+      };
+    }
 
     // 4. Calculate HMAC SHA256 signature in Base64
     const payloadString = JSON.stringify(payload);
