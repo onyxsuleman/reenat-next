@@ -34,7 +34,34 @@ export default function Login() {
     }
     
     setIsSubmitting(true);
-    const formattedPhone = `+91${phone.replace(/\D/g, '')}`;
+    const rawDigits = phone.replace(/\D/g, '');
+    const formattedPhone = `+91${rawDigits}`;
+    
+    // MOCK BYPASS FOR TESTING: Bypasses Firebase reCAPTCHA and SMS gateways for test numbers starting with 9999 or 9900
+    if (rawDigits.startsWith('9999') || rawDigits.startsWith('9900')) {
+      showToast('Local test mode: Bypassing reCAPTCHA...', 'info');
+      window.confirmationResult = {
+        confirm: async (code) => {
+          return {
+            user: {
+              uid: `mock-test-uid-${rawDigits}`,
+              phoneNumber: formattedPhone,
+              displayName: "Reenat Test User",
+              email: "tester@reenattrends.com",
+              metadata: {
+                creationTime: new Date().toISOString()
+              }
+            }
+          };
+        }
+      };
+      setTimeout(() => {
+        setOtpSent(true);
+        setIsSubmitting(false);
+        showToast('OTP sent successfully (Test Mode)!', 'success');
+      }, 800);
+      return;
+    }
     
     try {
       const { RecaptchaVerifier, signInWithPhoneNumber } = require('firebase/auth');
