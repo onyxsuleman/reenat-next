@@ -39,12 +39,19 @@ export default function Login() {
     try {
       const { RecaptchaVerifier, signInWithPhoneNumber } = require('firebase/auth');
       
-      // Setup invisible recaptcha
-      if (!window.recaptchaVerifier) {
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-          size: 'invisible'
-        });
+      // Setup invisible recaptcha fresh to prevent "reCAPTCHA client element has been removed" React re-render errors
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+        } catch (e) {
+          console.warn("reCAPTCHA clear warning:", e);
+        }
+        window.recaptchaVerifier = null;
       }
+
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: 'invisible'
+      });
       
       showToast('Sending OTP...', 'info');
       const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, window.recaptchaVerifier);
