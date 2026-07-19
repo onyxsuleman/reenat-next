@@ -97,13 +97,19 @@ export default function Login() {
       setOtpSent(true);
       showToast('OTP sent successfully!', 'success');
     } catch (error) {
-      console.error("Error sending OTP:", error);
-      if (error.code === 'auth/network-request-failed' || error.message?.includes('network-request-failed')) {
-        const isLocal = typeof window !== 'undefined' && 
-          (window.location.hostname === 'localhost' || 
-           window.location.hostname === '127.0.0.1' || 
-           window.location.hostname.includes('192.168.'));
+      const isNetworkError = error.code === 'auth/network-request-failed' || error.message?.includes('network-request-failed');
+      const isLocal = typeof window !== 'undefined' && 
+        (window.location.hostname === 'localhost' || 
+         window.location.hostname === '127.0.0.1' || 
+         window.location.hostname.includes('192.168.'));
 
+      if (isNetworkError && isLocal) {
+        console.warn("[Local Fallback Mode] Google reCAPTCHA/Firebase network block detected. Bypassing safely:", error);
+      } else {
+        console.error("Error sending OTP:", error);
+      }
+
+      if (isNetworkError) {
         if (isLocal) {
           showToast("Local SSL/Network block detected. Switching to Local Test verification mode...", 'warning');
           window.confirmationResult = {
