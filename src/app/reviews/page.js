@@ -4,7 +4,6 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase } from '../../utils/supabase';
 import ProductMiniCard from '../../components/ProductMiniCard';
-import Turnstile from '../../components/Turnstile';
 import ThreadContainer from '../../components/ThreadContainer';
 
 
@@ -43,7 +42,6 @@ function ReviewHubContent() {
   const [weightPerception, setWeightPerception] = useState(3);
   const [photoUrl, setPhotoUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [captchaToken, setCaptchaToken] = useState('');
 
   useEffect(() => {
     loadData();
@@ -101,8 +99,7 @@ function ReviewHubContent() {
       draping_tag: formType === 'review' ? drapingTag : null,
       texture_perception: formType === 'review' ? texturePerception : null,
       weight_perception: formType === 'review' ? weightPerception : null,
-      photo_url: formType === 'review' && photoUrl.trim() ? photoUrl.trim() : null,
-      captchaToken
+      photo_url: formType === 'review' && photoUrl.trim() ? photoUrl.trim() : null
     };
 
     try {
@@ -444,12 +441,7 @@ function ReviewHubContent() {
                 />
               </div>
 
-              <div className="flex justify-center py-2 border-t border-slate-200/20 dark:border-white/5">
-                <Turnstile 
-                  siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} 
-                  onVerify={(token) => setCaptchaToken(token)} 
-                />
-              </div>
+
 
               {/* Submit triggers */}
               <div className="flex justify-end gap-3 pt-2">

@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import Turnstile from '../../components/Turnstile';
 import Script from 'next/script';
 
 export default function Cart() {
@@ -21,7 +20,6 @@ export default function Cart() {
   const [address, setAddress] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Cash on Delivery');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [captchaToken, setCaptchaToken] = useState('');
   const [savedAddresses, setSavedAddresses] = useState([]);
 
   useEffect(() => {
@@ -157,8 +155,7 @@ export default function Cart() {
           address,
           cart,
           promoCode,
-          paymentMethod,
-          captchaToken
+          paymentMethod
         })
       });
 
@@ -445,12 +442,7 @@ export default function Cart() {
                   </div>
                 </div>
 
-                <div className="flex justify-center pt-2">
-                  <Turnstile 
-                    siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} 
-                    onVerify={(token) => setCaptchaToken(token)} 
-                  />
-                </div>
+
               </div>
 
               <div className="pt-4 border-t border-slate-200 dark:border-slate-850 flex items-center justify-between text-sm font-bold">

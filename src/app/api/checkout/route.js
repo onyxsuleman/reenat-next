@@ -11,38 +11,12 @@ export async function POST(request) {
       address, 
       cart, 
       promoCode, 
-      paymentMethod, 
-      captchaToken 
+      paymentMethod 
     } = body;
 
     // 1. Basic Field Validation
     if (!fullName || !email || !phone || !address || !cart || !Array.isArray(cart) || cart.length === 0) {
       return NextResponse.json({ error: 'Missing or invalid checkout fields.' }, { status: 400 });
-    }
-
-    // 2. Cloudflare Turnstile CAPTCHA Validation (if configured)
-    const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
-    if (turnstileSecret && captchaToken) {
-      try {
-        const verifyRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            secret: turnstileSecret,
-            response: captchaToken,
-          }),
-        });
-        const verifyData = await verifyRes.json();
-        if (!verifyData.success) {
-          return NextResponse.json({ error: 'CAPTCHA verification failed. Please try again.' }, { status: 400 });
-        }
-      } catch (captchaErr) {
-        console.error("CAPTCHA verification connection error:", captchaErr);
-        // Fail-safe logic: log and proceed if Turnstile API itself is down, or return 400
-        return NextResponse.json({ error: 'Verification service unreachable.' }, { status: 500 });
-      }
-    } else if (turnstileSecret && !captchaToken) {
-      return NextResponse.json({ error: 'CAPTCHA verification token is missing.' }, { status: 400 });
     }
 
     // 3. Connect to Supabase

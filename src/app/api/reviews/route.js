@@ -45,8 +45,7 @@ export async function POST(request) {
       draping_tag,
       texture_perception,
       weight_perception,
-      photo_url,
-      captchaToken
+      photo_url
     } = body;
 
     // 2. Validate essential fields
@@ -63,31 +62,6 @@ export async function POST(request) {
       if (isNaN(numRating) || numRating < 1 || numRating > 5) {
         return NextResponse.json({ error: 'Rating must be an integer between 1 and 5.' }, { status: 400 });
       }
-    }
-
-    // 3. CAPTCHA verification (if site keys are set)
-    const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
-    if (turnstileSecret && captchaToken) {
-      try {
-        const verifyRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            secret: turnstileSecret,
-            response: captchaToken,
-            remoteip: ip
-          }),
-        });
-        const verifyData = await verifyRes.json();
-        if (!verifyData.success) {
-          return NextResponse.json({ error: 'CAPTCHA validation failed. Please try again.' }, { status: 400 });
-        }
-      } catch (captchaErr) {
-        console.error("Reviews CAPTCHA connection error:", captchaErr);
-        return NextResponse.json({ error: 'Security service verification unavailable.' }, { status: 500 });
-      }
-    } else if (turnstileSecret && !captchaToken) {
-      return NextResponse.json({ error: 'CAPTCHA token is missing.' }, { status: 400 });
     }
 
     // 4. Save to Database
