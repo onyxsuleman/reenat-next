@@ -98,6 +98,7 @@ export default function Login() {
       showToast('OTP sent successfully!', 'success');
     } catch (error) {
       const isNetworkError = error.code === 'auth/network-request-failed' || error.message?.includes('network-request-failed');
+      const isTooManyRequests = error.code === 'auth/too-many-requests' || error.message?.includes('TOO_MANY_ATTEMPTS_TRY_LATER') || error.message?.includes('too-many-requests');
       const isLocal = typeof window !== 'undefined' && 
         (window.location.hostname === 'localhost' || 
          window.location.hostname === '127.0.0.1' || 
@@ -136,6 +137,8 @@ export default function Login() {
         } else {
           showToast("Network/API blocked: Please check your internet, disable ad-blockers, or verify billing/domain settings.", 'error');
         }
+      } else if (isTooManyRequests) {
+        showToast("Too many OTP requests sent to this number. Please try again in a few hours, or use a Firebase Console test number.", 'error');
       } else {
         showToast(error.message || "Failed to send OTP.", 'error');
       }
