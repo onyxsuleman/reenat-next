@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../utils/supabase';
-import { auth, isFirebaseConfigured } from '../utils/firebase';
 
 const AppContext = createContext();
 
@@ -568,52 +567,7 @@ export function AppProvider({ children }) {
     
   }, []);
  
-  // 4. Firebase Auth State Listener
-  useEffect(() => {
-    if (!isFirebaseConfigured || !auth) return;
 
-    let onAuthStateChanged;
-    try {
-      // Dynamic import/require to prevent bundler/SSR issues if firebase module isn't loaded yet
-      const firebaseAuth = require('firebase/auth');
-      onAuthStateChanged = firebaseAuth.onAuthStateChanged;
-    } catch (e) {
-      console.warn("Could not import onAuthStateChanged from firebase/auth", e);
-      return;
-    }
-
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
-        const username = currentUser.displayName || currentUser.email?.split('@')[0] || 'User';
-        const userObj = {
-          isLoggedIn: true,
-          email: currentUser.email || '',
-          phone: currentUser.phoneNumber || '',
-          username: username,
-          joinedDate: 'July 2026',
-          uid: currentUser.uid
-        };
-        setUserSession(userObj);
-        localStorage.setItem('userSession', JSON.stringify(userObj));
-      } else {
-        const stored = localStorage.getItem('userSession');
-        if (stored) {
-          try {
-            const parsed = JSON.parse(stored);
-            if (parsed.uid || parsed.isLoggedIn) {
-              setUserSession(null);
-              localStorage.removeItem('userSession');
-            }
-          } catch (e) {
-            setUserSession(null);
-            localStorage.removeItem('userSession');
-          }
-        }
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
 
 
 
@@ -739,14 +693,6 @@ export function AppProvider({ children }) {
   };
 
   const handleLogout = async () => {
-    if (isFirebaseConfigured && auth) {
-      try {
-        const { signOut } = require('firebase/auth');
-        await signOut(auth);
-      } catch (err) {
-        console.error("Firebase logout error:", err);
-      }
-    }
     setUserSession(null);
     localStorage.removeItem('userSession');
     showToast('Logged out successfully.', 'info');

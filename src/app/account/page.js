@@ -261,17 +261,6 @@ export default function Account() {
     // Save locally
     handleLogin(updatedUser);
     
-    // Firebase Profile update if configured
-    if (isFirebaseConfigured && auth && auth.currentUser) {
-      try {
-        const { updateProfile } = require('firebase/auth');
-        await updateProfile(auth.currentUser, {
-          displayName: editUsername
-        });
-      } catch (err) {
-        console.warn("Could not update display name in Firebase:", err);
-      }
-    }
     showToast('Profile updated successfully!', 'success');
     setActivePopup(null);
   };

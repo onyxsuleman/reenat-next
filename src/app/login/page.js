@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '../../context/AppContext';
-import { auth, isFirebaseConfigured } from '../../utils/firebase';
 
 export default function Login() {
   const router = useRouter();
@@ -23,10 +22,6 @@ export default function Login() {
 
   const handleSendOtp = async (e) => {
     e.preventDefault();
-    if (!isFirebaseConfigured || !auth) {
-      showToast('Authentication is currently offline. Please configure Firebase settings in .env.local.', 'error');
-      return;
-    }
 
     if (!phone || phone.replace(/\D/g, '').length < 10) {
       showToast('Please enter a valid 10-digit phone number.', 'warning');
@@ -34,125 +29,17 @@ export default function Login() {
     }
     
     setIsSubmitting(true);
-    const rawDigits = phone.replace(/\D/g, '');
-    const formattedPhone = `+91${rawDigits}`;
-    
-    // MOCK BYPASS FOR TESTING: Bypasses Firebase reCAPTCHA and SMS gateways for test numbers starting with 9999 or 9900
-    if (rawDigits.startsWith('9999') || rawDigits.startsWith('9900')) {
-      showToast('Local test mode: Bypassing reCAPTCHA...', 'info');
-      window.confirmationResult = {
-        confirm: async (code) => {
-          return {
-            user: {
-              uid: `mock-test-uid-${rawDigits}`,
-              phoneNumber: formattedPhone,
-              displayName: "Reenat Test User",
-              email: "tester@reenattrends.com",
-              metadata: {
-                creationTime: new Date().toISOString()
-              }
-            }
-          };
-        }
-      };
-      setTimeout(() => {
-        setOtpSent(true);
-        setIsSubmitting(false);
-        showToast('OTP sent successfully (Test Mode)!', 'success');
-      }, 800);
-      return;
-    }
-    
-    try {
-      const { RecaptchaVerifier, signInWithPhoneNumber } = require('firebase/auth');
-      
-      // Destroy old verifier instance completely
-      if (window.recaptchaVerifier) {
-        try {
-          window.recaptchaVerifier.clear();
-        } catch (e) {
-          // Ignore — container may already be gone
-        }
-        window.recaptchaVerifier = null;
-      }
+    showToast('[Mock] Sending OTP code via SMS...', 'info');
 
-      // CRITICAL FIX: Destroy the old container and create a fresh DOM node.
-      // reCAPTCHA's internal registry remembers rendered elements by reference,
-      // so innerHTML='' is NOT enough — we must replace the entire node.
-      const oldContainer = document.getElementById('recaptcha-container');
-      if (oldContainer) {
-        const freshContainer = document.createElement('div');
-        freshContainer.id = 'recaptcha-container';
-        freshContainer.className = 'hidden';
-        oldContainer.parentNode.replaceChild(freshContainer, oldContainer);
-      }
-
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        size: 'invisible'
-      });
-      
-      showToast('Sending OTP...', 'info');
-      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, window.recaptchaVerifier);
-      window.confirmationResult = confirmationResult;
-      setOtpSent(true);
-      showToast('OTP sent successfully!', 'success');
-    } catch (error) {
-      const isNetworkError = error.code === 'auth/network-request-failed' || error.message?.includes('network-request-failed');
-      const isTooManyRequests = error.code === 'auth/too-many-requests' || error.message?.includes('TOO_MANY_ATTEMPTS_TRY_LATER') || error.message?.includes('too-many-requests');
-      const isLocal = typeof window !== 'undefined' && 
-        (window.location.hostname === 'localhost' || 
-         window.location.hostname === '127.0.0.1' || 
-         window.location.hostname.includes('192.168.'));
-
-      if (isNetworkError && isLocal) {
-        console.warn("[Local Fallback Mode] Google reCAPTCHA/Firebase network block detected. Bypassing safely:", error);
-      } else {
-        console.error("Error sending OTP:", error);
-      }
-
-      if (isNetworkError) {
-        if (isLocal) {
-          showToast("Local SSL/Network block detected. Switching to Local Test verification mode...", 'warning');
-          window.confirmationResult = {
-            confirm: async (code) => {
-              return {
-                user: {
-                  uid: `mock-local-uid-${rawDigits}`,
-                  phoneNumber: formattedPhone,
-                  displayName: "Local Tester",
-                  email: "local-tester@reenattrends.com",
-                  metadata: {
-                    creationTime: new Date().toISOString()
-                  }
-                }
-              };
-            }
-          };
-          setTimeout(() => {
-            setOtpSent(true);
-            setIsSubmitting(false);
-            showToast("Test mode active. Enter any 6-digit code to log in.", 'success');
-          }, 1000);
-          return;
-        } else {
-          showToast("Network/API blocked: Please check your internet, disable ad-blockers, or verify billing/domain settings.", 'error');
-        }
-      } else if (isTooManyRequests) {
-        showToast("Too many OTP requests sent to this number. Please try again in a few hours, or use a Firebase Console test number.", 'error');
-      } else {
-        showToast(error.message || "Failed to send OTP.", 'error');
-      }
-    } finally {
+    setTimeout(() => {
       setIsSubmitting(false);
-    }
+      setOtpSent(true);
+      showToast('[Mock] OTP sent! Enter 123456 to verify.', 'success');
+    }, 800);
   };
 
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
-    if (!window.confirmationResult) {
-      showToast('Authentication session is invalid or has expired. Please try again.', 'error');
-      return;
-    }
 
     if (!otpCode || otpCode.length < 6) {
       showToast('Please enter the 6-digit OTP code.', 'warning');
@@ -160,73 +47,45 @@ export default function Login() {
     }
 
     setIsSubmitting(true);
+    showToast('[Mock] Verifying OTP...', 'info');
     
-    try {
-      showToast('Verifying OTP...', 'info');
-      const result = await window.confirmationResult.confirm(otpCode);
-      const user = result.user;
-      
-      const username = user.displayName || user.phoneNumber || 'User';
+    setTimeout(() => {
+      setIsSubmitting(false);
+      const rawDigits = phone.replace(/\D/g, '');
       const userObj = {
         isLoggedIn: true,
-        email: user.email || '',
-        phone: user.phoneNumber || '',
-        username: username,
+        email: `${rawDigits}@reenattrends.com`,
+        phone: `+91${rawDigits}`,
+        username: `Weaver Customer (${rawDigits.slice(-4)})`,
         joinedDate: 'July 2026',
-        uid: user.uid
+        uid: `mock-user-${rawDigits}`
       };
       handleLogin(userObj);
+      showToast('Logged in successfully (Mock Mode)!', 'success');
       router.push('/account');
-    } catch (error) {
-      console.error("Error verifying OTP:", error);
-      showToast(error.message || "Invalid OTP code. Please try again.", 'error');
-    } finally {
-      setIsSubmitting(false);
-    }
+    }, 800);
   };
 
   const handleGoogleLogin = async () => {
-    if (!isFirebaseConfigured || !auth) {
-      showToast('Authentication is currently offline. Please configure Firebase settings in .env.local.', 'error');
-      return;
-    }
+    showToast('[Mock] Connecting to Google account...', 'info');
 
-    try {
-      const { signInWithPopup, GoogleAuthProvider } = require('firebase/auth');
-      showToast('Connecting to Google...', 'info');
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      
-      const username = user.displayName || user.email?.split('@')[0] || 'Google User';
+    setTimeout(() => {
       const userObj = {
         isLoggedIn: true,
-        email: user.email || '',
-        phone: user.phoneNumber || '',
-        username: username,
+        email: 'google.tester@reenattrends.com',
+        phone: '',
+        username: 'Google Tester',
         joinedDate: 'July 2026',
-        uid: user.uid
+        uid: 'mock-google-uid-12345'
       };
       handleLogin(userObj);
-      showToast(`Welcome ${username}!`, 'success');
+      showToast('Welcome back! Signed in with Google.', 'success');
       router.push('/account');
-    } catch (error) {
-      console.error("Google sign in error:", error);
-      if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
-        showToast('Google sign-in was cancelled. Please try again.', 'warning');
-      } else if (error.code === 'auth/network-request-failed') {
-        showToast('Network error: Please check your internet connection and try again.', 'error');
-      } else {
-        showToast(error.message || "Google sign in failed.", 'error');
-      }
-    }
+    }, 600);
   };
 
   return (
     <main className="max-w-5xl mx-auto w-full flex-1 flex items-stretch justify-center p-4 py-8">
-      {/* Hidden container for Firebase Invisible Recaptcha */}
-      <div id="recaptcha-container" className="hidden"></div>
-      
       <div className="w-full grid grid-cols-1 md:grid-cols-2 rounded-3xl overflow-hidden bg-white/70 dark:bg-[#0f1f41]/60 border border-black/5 dark:border-white/10 shadow-lg glass min-h-[500px]">
         {/* Left Editorial Image */}
         <div className="hidden md:block relative bg-[#0c1e44]">
@@ -249,15 +108,13 @@ export default function Login() {
             </p>
           </div>
 
-          {!isFirebaseConfigured && (
-            <div className="bg-rose-50/80 dark:bg-rose-950/20 border border-rose-200/50 dark:border-rose-900/30 rounded-2xl p-4 text-xs text-rose-600 dark:text-rose-450 leading-relaxed shadow-sm">
-              <p className="font-semibold uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" /></svg>
-                Firebase Configuration Required
-              </p>
-              Please configure `NEXT_PUBLIC_FIREBASE_API_KEY` and `NEXT_PUBLIC_FIREBASE_APP_ID` environment variables in your local setting file to activate live authentication.
-            </div>
-          )}
+          <div className="bg-amber-50/80 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/30 rounded-2xl p-4 text-xs text-amber-700 dark:text-amber-450 leading-relaxed shadow-sm">
+            <p className="font-semibold uppercase tracking-wider mb-1 flex items-center gap-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" /></svg>
+              Developer Sandbox Active
+            </p>
+            This website is running in sandbox mode. Enter any 10-digit phone number (code 123456) or click the Google button below to sign in instantly.
+          </div>
           
           <form onSubmit={otpSent ? handleVerifyOtp : handleSendOtp} className="space-y-4 text-slate-800 dark:text-white">
             {!otpSent ? (
@@ -272,11 +129,10 @@ export default function Login() {
                     id="phone" 
                     required 
                     maxLength={10}
-                    disabled={!isFirebaseConfigured}
                     placeholder="9876543210" 
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                    className="flex-1 bg-white/50 dark:bg-black/10 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#183fad] dark:focus:ring-[#F1BF0A] transition-all disabled:opacity-50" 
+                    className="flex-1 bg-white/50 dark:bg-black/10 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#183fad] dark:focus:ring-[#F1BF0A] transition-all" 
                   />
                 </div>
               </div>
@@ -295,7 +151,7 @@ export default function Login() {
                   className="w-full tracking-[0.5em] text-center font-bold bg-white/50 dark:bg-black/10 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-lg text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#183fad] dark:focus:ring-[#F1BF0A] transition-all disabled:opacity-50" 
                 />
                 <div className="flex justify-between items-center mt-2">
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500">OTP sent to +91 {phone}</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500">Mock OTP sent to +91 {phone}</span>
                   <button 
                     type="button" 
                     onClick={() => setOtpSent(false)} 
@@ -310,7 +166,7 @@ export default function Login() {
             
             <button 
               type="submit" 
-              disabled={!isFirebaseConfigured || isSubmitting}
+              disabled={isSubmitting}
               className="w-full bg-[#183fad] hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 px-6 rounded-full border border-[#183fad] transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md cursor-pointer mt-2 text-sm"
             >
               {otpSent ? 'Verify OTP Code' : 'Get SMS Verification Code'}
@@ -331,8 +187,7 @@ export default function Login() {
           <button
             onClick={handleGoogleLogin}
             type="button"
-            disabled={!isFirebaseConfigured}
-            className="w-full flex items-center justify-center gap-3 bg-white/90 dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 py-2.5 px-6 rounded-full font-semibold transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md cursor-pointer text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-3 bg-white/90 dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 py-2.5 px-6 rounded-full font-semibold transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md cursor-pointer text-sm"
           >
             <svg className="size-5 select-none" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>

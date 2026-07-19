@@ -3,8 +3,6 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import FloatingNav from "../components/FloatingNav";
 import QuickViewModal from "../components/QuickViewModal";
-import GoogleOneTap from "../components/GoogleOneTap";
-import Script from "next/script";
 import "./globals.css";
 
 export const metadata = {
@@ -24,8 +22,6 @@ export default function RootLayout({ children }) {
           <Footer />
           <FloatingNav />
           <QuickViewModal />
-          <GoogleOneTap />
-          <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
         </AppProvider>
       </body>
     </html>
