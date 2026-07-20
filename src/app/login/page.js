@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '../../context/AppContext';
-import { auth, googleProvider, signInWithPopup } from '../../utils/firebase';
+import { auth, googleProvider, signInWithPopup, RecaptchaVerifier, signInWithPhoneNumber } from '../../utils/firebase';
 
 export default function Login() {
   const router = useRouter();
@@ -14,6 +14,7 @@ export default function Login() {
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmationResult, setConfirmationResult] = useState(null);
 
   useEffect(() => {
     if (userSession) {
@@ -21,22 +22,75 @@ export default function Login() {
     }
   }, [userSession, router]);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !window.recaptchaVerifier) {
+      try {
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+          'size': 'invisible',
+          'callback': (response) => {
+            // reCAPTCHA solved, allow signInWithPhoneNumber.
+          },
+          'expired-callback': () => {
+            // Response expired. Ask user to solve reCAPTCHA again.
+          }
+        });
+      } catch (err) {
+        console.error('Error initializing RecaptchaVerifier:', err);
+      }
+    }
+    return () => {
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+          window.recaptchaVerifier = null;
+        } catch (e) {
+          console.error('Error cleaning up RecaptchaVerifier:', e);
+        }
+      }
+    };
+  }, []);
+
   const handleSendOtp = async (e) => {
     e.preventDefault();
 
-    if (!phone || phone.replace(/\D/g, '').length < 10) {
+    const rawDigits = phone.replace(/\D/g, '');
+    if (!phone || rawDigits.length < 10) {
       showToast('Please enter a valid 10-digit phone number.', 'warning');
       return;
     }
     
     setIsSubmitting(true);
-    showToast('[Mock] Sending OTP code via SMS...', 'info');
+    showToast('Sending OTP code via SMS...', 'info');
 
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      const formattedPhone = `+91${rawDigits}`;
+      
+      // Ensure recaptchaVerifier is initialized
+      if (!window.recaptchaVerifier) {
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+          'size': 'invisible'
+        });
+      }
+
+      const confirmation = await signInWithPhoneNumber(auth, formattedPhone, window.recaptchaVerifier);
+      setConfirmationResult(confirmation);
       setOtpSent(true);
-      showToast('[Mock] OTP sent! Enter 123456 to verify.', 'success');
-    }, 800);
+      showToast('OTP code sent successfully to your phone!', 'success');
+    } catch (err) {
+      console.error('Error sending OTP:', err);
+      showToast(`Failed to send SMS: ${err.message}`, 'error');
+      // Reset reCAPTCHA on error so the user can retry
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+          window.recaptchaVerifier = null;
+        } catch (e) {
+          console.error('Error clearing RecaptchaVerifier:', e);
+        }
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleVerifyOtp = async (e) => {
@@ -47,24 +101,38 @@ export default function Login() {
       return;
     }
 
+    if (!confirmationResult) {
+      showToast('Session expired. Please try sending OTP again.', 'error');
+      setOtpSent(false);
+      return;
+    }
+
     setIsSubmitting(true);
-    showToast('[Mock] Verifying OTP...', 'info');
+    showToast('Verifying OTP...', 'info');
     
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      const result = await confirmationResult.confirm(otpCode);
+      const user = result.user;
+      
       const rawDigits = phone.replace(/\D/g, '');
       const userObj = {
         isLoggedIn: true,
-        email: `${rawDigits}@reenattrends.com`,
-        phone: `+91${rawDigits}`,
-        username: `Weaver Customer (${rawDigits.slice(-4)})`,
+        email: user.email || `${rawDigits}@reenattrends.com`,
+        phone: user.phoneNumber || `+91${rawDigits}`,
+        username: user.displayName || `Customer (${rawDigits.slice(-4)})`,
         joinedDate: 'July 2026',
-        uid: `mock-user-${rawDigits}`
+        uid: user.uid
       };
+      
       handleLogin(userObj);
-      showToast('Logged in successfully (Mock Mode)!', 'success');
+      showToast('Logged in successfully!', 'success');
       router.push('/account');
-    }, 800);
+    } catch (err) {
+      console.error('Error verifying OTP:', err);
+      showToast(`Invalid verification code: ${err.message}`, 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleGoogleLogin = async () => {
@@ -201,6 +269,7 @@ export default function Login() {
             </svg>
             <span>Continue with Google</span>
           </button>
+          <div id="recaptcha-container"></div>
         </div>
       </div>
     </main>
