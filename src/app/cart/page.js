@@ -180,10 +180,20 @@ export default function Cart() {
   };
 
   return (
-    <div className="space-y-6 py-6 pb-28 md:pb-6">
-      <h1 className="text-3xl font-anton text-slate-800 dark:text-white uppercase tracking-wider">
-        Your Cart
-      </h1>
+    <div className="space-y-4 py-4 pb-28 md:space-y-6 md:py-6">
+      <div className="flex justify-between items-center mb-2">
+        <h1 className="text-2xl font-anton text-slate-800 dark:text-white uppercase tracking-wider">
+          Your Cart
+        </h1>
+        {cart.length > 0 && (
+          <button 
+            onClick={handleClearCart}
+            className="bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-900/30 text-rose-600 dark:text-rose-400 font-semibold py-1.5 px-4 rounded-xl border border-rose-200/50 dark:border-rose-900/35 transition-all cursor-pointer text-xs shadow-sm"
+          >
+            Clear Cart
+          </button>
+        )}
+      </div>
 
       {cart.length === 0 ? (
         <div className="py-16 text-center text-slate-500 dark:text-slate-400 bg-white/40 dark:bg-black/10 border border-black/5 dark:border-white/10 rounded-3xl glass shadow-md">
@@ -195,12 +205,12 @@ export default function Cart() {
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8 items-start">
           {/* Left: Cart Items */}
           <div className="lg:col-span-2 space-y-4">
             <ul className="space-y-4">
               {cart.map((item, i) => (
-                <li key={item.id || i} className="flex items-center gap-4 p-4 bg-white/70 dark:bg-slate-800/80 border border-black/5 dark:border-white/5 shadow-sm rounded-2xl text-slate-855 dark:text-slate-100 transition-colors duration-200">
+                <li key={item.id || i} className="flex items-center gap-3 p-3 bg-white/70 dark:bg-slate-800/80 border border-black/5 dark:border-white/5 shadow-sm rounded-2xl text-slate-855 dark:text-slate-100 transition-colors duration-200">
                   <img src={item.image} alt={item.name} className="size-[90px] object-cover rounded-xl shadow-sm border border-black/5 dark:border-white/5" />
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-slate-900 dark:text-white text-base truncate">{item.name}</div>
@@ -238,23 +248,15 @@ export default function Cart() {
               ))}
             </ul>
             
-            <div className="pt-4 flex gap-4">
-              <button 
-                onClick={handleClearCart}
-                className="bg-rose-100 hover:bg-rose-200 dark:bg-rose-950/30 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 font-medium py-2.5 px-6 rounded-full transition-transform hover:scale-105 active:scale-95 cursor-pointer text-sm shadow-sm border border-rose-200 dark:border-rose-900/30"
-              >
-                Clear Cart
-              </button>
-            </div>
+            {/* Lower Clear Cart button container removed (moved to header row) */}
           </div>
           
-          {/* Right: Summary Card */}
-          <div className="bg-white/70 dark:bg-[#0f1f41]/60 border border-black/5 dark:border-white/10 p-6 rounded-3xl glass shadow-md space-y-6">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white border-b border-black/5 dark:border-white/5 pb-3">
+          <div className="bg-white/70 dark:bg-[#0f1f41]/60 border border-black/5 dark:border-white/10 p-4 sm:p-6 rounded-3xl glass shadow-md space-y-4">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white border-b border-black/5 dark:border-white/5 pb-2">
               Order Summary
             </h2>
             
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className="flex justify-between text-slate-600 dark:text-slate-350">
                 <span>Subtotal</span>
                 <span className="font-semibold text-slate-900 dark:text-white">
