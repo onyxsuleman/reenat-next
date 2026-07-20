@@ -15,13 +15,23 @@ export async function GET(request) {
     
     let query = supabase.from('orders').select('*').order('created_at', { ascending: false });
     
-    if (email && phone) {
-      query = query.or(`email.eq.${email.trim()},phone.eq.${phone.trim()}`);
-    } else if (email) {
-      query = query.eq('email', email.trim());
-    } else if (phone) {
-      query = query.eq('phone', phone.trim());
+    const conditions = [];
+    if (email) {
+      conditions.push(`email.eq.${email.trim()}`);
     }
+    if (phone) {
+      conditions.push(`phone.eq.${phone.trim()}`);
+      
+      const clean = phone.replace(/\D/g, '');
+      const tenDigit = clean.length > 10 ? clean.slice(-10) : clean;
+      
+      conditions.push(`phone.eq.${tenDigit}`);
+      conditions.push(`phone.eq.+91${tenDigit}`);
+      conditions.push(`phone.eq.91${tenDigit}`);
+    }
+    
+    query = query.or(conditions.join(','));
+
     
     const { data, error } = await query;
       
