@@ -108,7 +108,7 @@ export default function Cart() {
       }
 
       // Extract token (usually found in access_token or token property)
-      const token = resData.token || resData.access_token || resData.data?.token;
+      const token = resData.result?.token || resData.token || resData.access_token || resData.data?.token;
 
       if (!token) {
         throw new Error('Invalid token response from server.');
