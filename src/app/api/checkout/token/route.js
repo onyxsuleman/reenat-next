@@ -74,13 +74,14 @@ export async function POST(request) {
 
     if (!response.ok) {
       console.error('Shiprocket token generation failed:', resData);
-      return NextResponse.json({ error: resData.message || 'Failed to initialize checkout session.' }, { status: response.status });
+      const detailError = resData.message || (resData.error && typeof resData.error === 'string' ? resData.error : '') || JSON.stringify(resData);
+      return NextResponse.json({ error: `Shiprocket API: ${detailError}` }, { status: response.status });
     }
 
     // Return the response data containing token details
     return NextResponse.json(resData);
   } catch (err) {
     console.error('Token generation server error:', err);
-    return NextResponse.json({ error: 'Internal server error.' }, { status: 500 });
+    return NextResponse.json({ error: `Server exception: ${err.message}` }, { status: 500 });
   }
 }
