@@ -32,18 +32,56 @@ export async function POST(request) {
     }
 
     // Extracting details from Shiprocket's order payload.
-    const shiprocketOrderId = payload.shiprocket_order_id || payload.id;
-    const customerName = payload.customer_name || payload.billing_name || (payload.customer ? `${payload.customer.first_name || ''} ${payload.customer.last_name || ''}`.trim() : 'Customer');
-    const email = payload.customer_email || payload.email || (payload.customer ? payload.customer.email : '') || '';
-    const phone = payload.customer_phone || payload.phone || (payload.customer ? payload.customer.phone : '') || '';
+    const customerDetails = payload.customer_details || payload.customer || {};
+    const shippingAddress = payload.shipping_address || payload.shipping_line1 || {};
+    const billingAddress = payload.billing_address || {};
+
+    const shiprocketOrderId = String(payload.shiprocket_order_id || payload.order_id || payload.id || payload.transaction_id || '');
+    
+    const customerName = payload.customer_name || 
+                         payload.billing_name || 
+                         (customerDetails.first_name ? `${customerDetails.first_name} ${customerDetails.last_name || ''}`.trim() : '') ||
+                         (shippingAddress && typeof shippingAddress === 'object' ? shippingAddress.name || (shippingAddress.first_name ? `${shippingAddress.first_name} ${shippingAddress.last_name || ''}`.trim() : '') : '') ||
+                         (billingAddress.name ? billingAddress.name : '') || 
+                         'Customer';
+
+    const email = payload.customer_email || 
+                  payload.email || 
+                  customerDetails.email || 
+                  (shippingAddress && typeof shippingAddress === 'object' ? shippingAddress.email : '') || 
+                  billingAddress.email || 
+                  '';
+
+    const phone = payload.customer_phone || 
+                  payload.phone || 
+                  customerDetails.phone || 
+                  (shippingAddress && typeof shippingAddress === 'object' ? shippingAddress.phone : '') || 
+                  billingAddress.phone || 
+                  '';
 
     // Addresses
-    const shippingLine1 = payload.shipping_address || payload.shipping_line1 || '';
-    const shippingLine2 = payload.shipping_address_2 || payload.shipping_line2 || '';
-    const shippingCity = payload.shipping_city || payload.city || '';
-    const shippingState = payload.shipping_state || payload.state || '';
-    const shippingPincode = String(payload.shipping_pincode || payload.pincode || '');
-    const shippingCountry = payload.shipping_country || payload.country || 'India';
+    let shippingLine1 = '';
+    let shippingLine2 = '';
+    let shippingCity = '';
+    let shippingState = '';
+    let shippingPincode = '';
+    let shippingCountry = 'India';
+
+    if (shippingAddress && typeof shippingAddress === 'object') {
+      shippingLine1 = shippingAddress.address1 || shippingAddress.line1 || '';
+      shippingLine2 = shippingAddress.address2 || shippingAddress.line2 || '';
+      shippingCity = shippingAddress.city || '';
+      shippingState = shippingAddress.state || '';
+      shippingPincode = String(shippingAddress.zip || shippingAddress.pincode || '');
+      shippingCountry = shippingAddress.country || 'India';
+    } else if (typeof shippingAddress === 'string') {
+      shippingLine1 = shippingAddress;
+      shippingLine2 = payload.shipping_address_2 || payload.shipping_line2 || '';
+      shippingCity = payload.shipping_city || payload.city || '';
+      shippingState = payload.shipping_state || payload.state || '';
+      shippingPincode = String(payload.shipping_pincode || payload.pincode || '');
+      shippingCountry = payload.shipping_country || payload.country || 'India';
+    }
     
     // Concatenate full address
     const fullAddress = `${shippingLine1} ${shippingLine2}, ${shippingCity}, ${shippingState} - ${shippingPincode}, ${shippingCountry}`.replace(/\s+/g, ' ').trim();
@@ -60,15 +98,28 @@ export async function POST(request) {
 
     // Parse Line items
     const rawItems = payload.items || payload.line_items || [];
-    const orderItems = rawItems.map(item => ({
-      id: item.id || item.product_id || '',
-      name: item.title || item.name || 'Saree',
-      qty: Number(item.quantity || item.qty || 1),
-      price: Number(item.price || 0),
-      image: item.image_url || item.image || '',
-      color: item.color || '',
-      skuId: item.sku || item.styleid || ''
-    }));
+    const orderItems = rawItems.map(item => {
+      let localId = item.id || item.product_id || '';
+      const sku = item.sku || item.sku_id || item.styleid || item.styleId || item.style_id || '';
+      
+      // If local ID is not numeric or seems like a Shiprocket internal ID, try extracting from SKU (e.g. "NSY0042" -> "42")
+      if (sku && sku.startsWith('NSY')) {
+        const parsedId = parseInt(sku.replace('NSY', ''), 10);
+        if (!isNaN(parsedId)) {
+          localId = parsedId;
+        }
+      }
+
+      return {
+        id: localId,
+        name: item.title || item.name || 'Saree',
+        qty: Number(item.quantity || item.qty || 1),
+        price: Number(item.price || 0),
+        image: item.image_url || item.image || '',
+        color: item.color || '',
+        skuId: sku
+      };
+    });
 
     const supabase = getSupabaseServerClient();
 
