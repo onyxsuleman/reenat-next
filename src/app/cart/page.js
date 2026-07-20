@@ -119,13 +119,11 @@ export default function Cart() {
           fallbackUrl: window.location.href
         });
       } else {
-        console.warn('Fastrr SDK not loaded, falling back to manual form.');
-        setShowCheckoutForm(true);
+        throw new Error('Fastrr Headless SDK not loaded on this page.');
       }
     } catch (err) {
       console.error('Fastrr initialization error:', err);
-      showToast('Fastrr checkout unavailable. Using standard form.', 'warning');
-      setShowCheckoutForm(true);
+      showToast(`Fastrr Checkout Error: ${err.message}`, 'error');
     }
   };
 
