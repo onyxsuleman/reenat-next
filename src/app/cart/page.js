@@ -461,7 +461,7 @@ export default function Cart() {
       )}
 
       <Script 
-        src="https://checkout-ui.shiprocket.com/assets/js/channels/headless.js" 
+        src="https://checkout-ui.shiprocket.com/assets/js/channels/custom.js" 
         strategy="lazyOnload" 
       />
     </div>
