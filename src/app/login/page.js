@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '../../context/AppContext';
+import { auth, googleProvider, signInWithPopup } from '../../utils/firebase';
 
 export default function Login() {
   const router = useRouter();
@@ -67,21 +68,31 @@ export default function Login() {
   };
 
   const handleGoogleLogin = async () => {
-    showToast('[Mock] Connecting to Google account...', 'info');
+    setIsSubmitting(true);
+    showToast('Connecting to Google account...', 'info');
 
-    setTimeout(() => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      
       const userObj = {
         isLoggedIn: true,
-        email: 'google.tester@reenattrends.com',
-        phone: '',
-        username: 'Google Tester',
+        email: user.email || '',
+        phone: user.phoneNumber || '',
+        username: user.displayName || 'Google User',
         joinedDate: 'July 2026',
-        uid: 'mock-google-uid-12345'
+        uid: user.uid
       };
+      
       handleLogin(userObj);
-      showToast('Welcome back! Signed in with Google.', 'success');
+      showToast(`Welcome back! Signed in as ${userObj.username}.`, 'success');
       router.push('/account');
-    }, 600);
+    } catch (err) {
+      console.error('Google Sign-In Error:', err);
+      showToast(`Google Sign-In failed: ${err.message}`, 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
