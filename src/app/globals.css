@@ -805,5 +805,80 @@ button.bg-slate-800\/80 span {
   color: #fdfbf7 !important;
 }
 
+/* Fastrr / Shiprocket Headless Checkout Overlay Styles */
+#fastrr-main-container {
+  position: relative;
+  z-index: 99999;
+}
+
+.headless-modal {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  z-index: 99999 !important;
+  animation: fastrrFadeIn 0.2s ease-out !important;
+}
+
+.headless-modal-content {
+  background: white !important;
+  width: 100% !important;
+  max-width: 500px !important;
+  height: 90% !important;
+  max-height: 850px !important;
+  border-radius: 24px !important;
+  overflow: hidden !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  animation: fastrrSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.headless-modal-body {
+  width: 100% !important;
+  height: 100% !important;
+  flex: 1 !important;
+}
+
+#headless-iframe {
+  width: 100% !important;
+  height: 100% !important;
+  border: none !important;
+  background: white !important;
+}
+
+@keyframes fastrrFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fastrrSlideUp {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Mobile responsive full screen override */
+@media (max-width: 640px) {
+  .headless-modal-content {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    border-radius: 0 !important;
+  }
+}
+
+
 
 
