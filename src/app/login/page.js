@@ -108,14 +108,7 @@ export default function Login() {
             </p>
           </div>
 
-          <div className="bg-amber-50/80 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/30 rounded-2xl p-4 text-xs text-amber-700 dark:text-amber-450 leading-relaxed shadow-sm">
-            <p className="font-semibold uppercase tracking-wider mb-1 flex items-center gap-1.5">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" /></svg>
-              Developer Sandbox Active
-            </p>
-            This website is running in sandbox mode. Enter any 10-digit phone number (code 123456) or click the Google button below to sign in instantly.
-          </div>
-          
+
           <form onSubmit={otpSent ? handleVerifyOtp : handleSendOtp} className="space-y-4 text-slate-800 dark:text-white">
             {!otpSent ? (
               <div>
