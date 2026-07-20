@@ -459,28 +459,7 @@ export default function Account() {
             </button>
           </div>
 
-          {/* Card 5: Wallet */}
-          <div className="bg-white/70 dark:bg-[#0f1f41]/60 border border-black/5 dark:border-white/10 p-6 rounded-3xl glass shadow-md flex flex-col justify-between space-y-4 sm:col-span-2">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="space-y-2 flex-1">
-                <div className="size-10 rounded-xl bg-indigo-100 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="size-5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a2.25 2.25 0 0 0-2.25-2.25H15a3 3 0 1 1-6 0H5.25A2.25 2.25 0 0 0 3 12m18 0v6a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18v-6m18 0V9M3 12V9m18-3a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6" /></svg>
-                </div>
-                <h3 className="text-lg font-bold text-slate-800 dark:text-white uppercase tracking-wider font-anton">My Store Credit Wallet</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Review sign-up credits, cashback ledger, and complete recharges.</p>
-              </div>
-              <div className="text-left sm:text-right">
-                <span className="text-xs font-semibold text-slate-550 dark:text-slate-400 block uppercase">Balance</span>
-                <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-450 block">₹{walletBalance.toLocaleString('en-IN')}</span>
-              </div>
-            </div>
-            <button 
-              onClick={() => setActivePopup('wallet')}
-              className="w-full bg-[#183fad] text-white hover:bg-blue-800 dark:bg-slate-800 dark:hover:bg-slate-700 font-semibold py-2.5 px-4 rounded-xl transition-all text-xs cursor-pointer text-center"
-            >
-              Manage Wallet & Cashback History
-            </button>
-          </div>
+
 
         </div>
       </div>
@@ -513,10 +492,9 @@ export default function Account() {
         </div>
       )}
 
-      {/* 2. Orders slide-over / popup */}
       {activePopup === 'orders' && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[9500] flex items-center justify-center p-4">
-          <div className="bg-white/95 dark:bg-[#0c1e44]/95 text-slate-800 dark:text-white max-w-3xl w-full rounded-3xl shadow-2xl glass border border-white/20 dark:border-white/10 overflow-hidden relative animate-in fade-in zoom-in-95 duration-200 max-h-[85vh] flex flex-col">
+          <div className="bg-white dark:bg-[#0c1e44] text-slate-800 dark:text-white max-w-3xl w-full rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden relative animate-in fade-in zoom-in-95 duration-200 max-h-[85vh] flex flex-col">
             <button onClick={() => setActivePopup(null)} className="absolute top-4 right-4 p-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 cursor-pointer font-bold"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg></button>
             
             <div className="p-6 sm:p-8 flex-1 overflow-y-auto space-y-4">
@@ -541,13 +519,13 @@ export default function Account() {
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-bold">₹{Math.round(order.total).toLocaleString('en-IN')}</span>
-                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                            <strong className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
                               order.order_status === 'Pending' ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400' :
                               order.order_status === 'Shipped' ? 'bg-blue-100 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400' :
                               'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-450'
                             }`}>
                               {order.order_status}
-                            </span>
+                            </strong>
                           </div>
                         </div>
 

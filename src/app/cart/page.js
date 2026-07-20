@@ -180,7 +180,7 @@ export default function Cart() {
   };
 
   return (
-    <div className="space-y-6 py-6">
+    <div className="space-y-6 py-6 pb-28 md:pb-6">
       <h1 className="text-3xl font-anton text-slate-800 dark:text-white uppercase tracking-wider">
         Your Cart
       </h1>
@@ -307,7 +307,7 @@ export default function Cart() {
             
             <button 
               onClick={handleCheckout}
-              className="w-full bg-[#183fad] hover:bg-blue-800 text-white font-semibold py-3 px-6 rounded-full border border-[#183fad] transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md cursor-pointer block text-center text-sm"
+              className="w-full bg-[#183fad] hover:bg-blue-800 text-[#F1BF0A] font-bold py-3 px-6 rounded-full border border-[#183fad] transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md cursor-pointer block text-center text-sm"
             >
               Proceed to Checkout
             </button>

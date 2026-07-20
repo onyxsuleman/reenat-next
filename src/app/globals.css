@@ -879,6 +879,15 @@ button.bg-slate-800\/80 span {
   }
 }
 
+/* Fix text contrast for blue buttons in Light Mode */
+html:not(.dark) button.text-white,
+html:not(.dark) .text-white.bg-\[\#183fad\],
+html:not(.dark) button.bg-\[\#183fad\],
+html:not(.dark) .bg-\[\#183fad\] button {
+  color: #ffffff !important;
+}
+
+
 
 
 
