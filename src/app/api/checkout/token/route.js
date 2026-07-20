@@ -20,6 +20,7 @@ export async function POST(request) {
     // 1. Format cart items for Shiprocket
     const items = cart.map(item => ({
       id: String(item.id),
+      variant_id: String(item.id),
       title: item.name || 'Saree',
       quantity: Number(item.qty) || 1,
       price: parseFloat(item.price || '0').toFixed(2),
@@ -30,21 +31,19 @@ export async function POST(request) {
     // 2. Calculate subtotal & total
     const subtotal = items.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0);
 
-    // 3. Build cartData payload
-    const cartData = {
-      order_details: {
-        total_price: parseFloat(subtotal).toFixed(2),
-        subtotal_price: parseFloat(subtotal).toFixed(2),
-        currency: 'INR',
-        items: items
-      }
+    // 3. Build cart_data payload
+    const cart_data = {
+      items: items,
+      total_price: parseFloat(subtotal).toFixed(2),
+      subtotal_price: parseFloat(subtotal).toFixed(2),
+      currency: 'INR'
     };
 
     if (customer) {
       const nameParts = (customer.name || 'Guest Customer').trim().split(/\s+/);
       const firstName = nameParts[0] || 'Guest';
       const lastName = nameParts.slice(1).join(' ') || 'Customer';
-      cartData.customer_details = {
+      cart_data.customer_details = {
         email: customer.email || '',
         phone: customer.phone || '',
         first_name: firstName,
@@ -55,12 +54,12 @@ export async function POST(request) {
     // 4. Build root payload with required parameters
     const host = request.headers.get('host') || 'reenattrends.com';
     const proto = request.headers.get('x-forwarded-proto') || 'https';
-    const redirectUrl = `${proto}://${host}/cart`;
+    const redirect_url = `${proto}://${host}/cart`;
 
     const payload = {
-      cartData: cartData,
-      redirectUrl: redirectUrl,
-      timestamp: Date.now()
+      cart_data: cart_data,
+      redirect_url: redirect_url,
+      timestamp: Math.floor(Date.now() / 1000)
     };
 
     // 5. Calculate HMAC SHA256 signature in Base64
