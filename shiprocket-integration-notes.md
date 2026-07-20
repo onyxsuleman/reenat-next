@@ -54,7 +54,7 @@ Create a Next.js API route that:
 1. Create a server-side route `/api/checkout/token` that calls Shiprocket's token api (`https://checkout-api.shiprocket.com/api/v1/access-token/checkout`) using your seller credentials to get a checkout transaction token.
 2. Modify your `/cart` page to load the Shiprocket Fastrr JavaScript SDK:
    ```html
-   <script src="https://checkout-ui.shiprocket.com/assets/js/channels/shopify.js"></script>
+    <script src="https://checkout-ui.shiprocket.com/assets/js/channels/headless.js"></script>
    ```
 3. Connect the cart checkout button to retrieve the transaction token and launch the Fastrr overlay iframe:
    ```javascript

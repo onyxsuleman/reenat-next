@@ -463,7 +463,7 @@ export default function Cart() {
       )}
 
       <Script 
-        src="https://checkout-ui.shiprocket.com/assets/js/channels/shopify.js" 
+        src="https://checkout-ui.shiprocket.com/assets/js/channels/headless.js" 
         strategy="lazyOnload" 
       />
     </div>
