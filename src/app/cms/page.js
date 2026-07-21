@@ -477,19 +477,73 @@ export default function CMSConsole() {
     setShowDrawer(false);
   };
 
+  const compressImageToWebP = (file, maxWidth = 1600, quality = 0.85) => {
+    return new Promise((resolve, reject) => {
+      if (!file.type.startsWith('image/')) {
+        return resolve(file);
+      }
+      if (file.type === 'image/webp' && file.size < 150000) {
+        return resolve(file);
+      }
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const newFileName = file.name.substring(0, file.name.lastIndexOf('.')) + '.webp';
+                const compressedFile = new File([blob], newFileName, {
+                  type: 'image/webp',
+                  lastModified: Date.now()
+                });
+                console.log(`[Compression] "${file.name}" (${(file.size / 1024).toFixed(1)} KB) -> "${newFileName}" (${(compressedFile.size / 1024).toFixed(1)} KB)`);
+                resolve(compressedFile);
+              } else {
+                resolve(file);
+              }
+            },
+            'image/webp',
+            quality
+          );
+        };
+        img.onerror = () => resolve(file);
+      };
+      reader.onerror = () => resolve(file);
+    });
+  };
+
   const handleImageUpload = async (e, slot) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const originalFile = e.target.files[0];
+    if (!originalFile) return;
 
     setUploadStatus(prev => ({ ...prev, [slot]: 'UPLOADING...' }));
+    showToast('Optimizing image...', 'info');
 
+    let processedFile = originalFile;
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `saree_${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+      // Compress and convert to WebP client-side
+      processedFile = await compressImageToWebP(originalFile);
+
+      // Name it with a webp extension
+      const fileName = `saree_${Date.now()}_${Math.random().toString(36).substring(2, 9)}.webp`;
       const filePath = `${fileName}`;
 
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', processedFile);
       formData.append('path', filePath);
 
       const response = await fetch('/api/cms/upload', {
@@ -506,7 +560,7 @@ export default function CMSConsole() {
       updateActiveProductField(field, publicUrl);
 
       setUploadStatus(prev => ({ ...prev, [slot]: 'SUCCESS' }));
-      showToast('Image uploaded to cloud successfully!', 'success');
+      showToast('Image uploaded and optimized successfully!', 'success');
       setTimeout(() => {
         setUploadStatus(prev => ({ ...prev, [slot]: 'CLICK TO UPLOAD' }));
       }, 3000);
@@ -524,7 +578,7 @@ export default function CMSConsole() {
           setUploadStatus(prev => ({ ...prev, [slot]: 'CLICK TO UPLOAD' }));
         }, 3000);
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(processedFile);
     }
   };
 
