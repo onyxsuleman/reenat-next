@@ -249,6 +249,21 @@ export default function About() {
                 </a>
               </div>
             </div>
+
+            <div className="flex items-start gap-3">
+              <div className="size-10 rounded-xl bg-slate-200/60 dark:bg-white/10 flex items-center justify-center shrink-0 text-slate-600 dark:text-[#F1BF0A]">
+                <svg className="size-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs text-slate-500 dark:text-slate-400 block font-semibold">Address</span>
+                <span className="text-sm font-bold text-slate-800 dark:text-white font-sans block leading-relaxed">
+                  ONYX ENTERPRISES, SR No 91 H NO 4/A , Jafar Nagar , Malegaon , District Nashik 423203
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
