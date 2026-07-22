@@ -15,6 +15,43 @@ export async function POST(request) {
     const { action, table, data, id, ids, eqCol = 'id', eqVal } = body;
     
     const supabase = getSupabaseServerClient();
+    
+    // Auto-resolve collection_id for products table to ensure Shiprocket catalog sync works
+    if (table === 'products' && data && (action === 'insert' || action === 'update' || action === 'upsert')) {
+      const items = Array.isArray(data) ? data : [data];
+      for (const item of items) {
+        if (item.type && (item.collection_id === undefined || item.collection_id === null)) {
+          const typeStr = String(item.type).trim();
+          if (typeStr) {
+            const { data: cols } = await supabase
+              .from('collections')
+              .select('id')
+              .ilike('title', typeStr)
+              .limit(1);
+
+            if (cols && cols.length > 0) {
+              item.collection_id = cols[0].id;
+            } else {
+              const handle = typeStr.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+              const { data: newCol } = await supabase
+                .from('collections')
+                .insert({
+                  title: typeStr,
+                  handle: handle,
+                  body_html: `<p>Exquisite selection of handcrafted ${typeStr} sarees.</p>`
+                })
+                .select('id')
+                .single();
+
+              if (newCol) {
+                item.collection_id = newCol.id;
+              }
+            }
+          }
+        }
+      }
+    }
+
     let result;
     
     if (action === 'select') {

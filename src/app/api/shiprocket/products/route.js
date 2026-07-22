@@ -86,8 +86,18 @@ export async function GET(request) {
       const tags = tagsList.join(', ');
 
       const formattedVariants = variants.map(v => {
-        const weightVal = parseFloat(v.weight || '0.8');
-        const grams = Math.round(weightVal * 1000);
+        let dbWeight = parseFloat(v.weight || '0.85'); // default 850g if empty
+        let weightKg;
+        let grams;
+        if (dbWeight > 10) {
+          // Stored in grams (e.g., 450)
+          weightKg = dbWeight / 1000;
+          grams = Math.round(dbWeight);
+        } else {
+          // Stored in kg (e.g., 0.45)
+          weightKg = dbWeight;
+          grams = Math.round(dbWeight * 1000);
+        }
         
         return {
           id: v.id,
@@ -103,7 +113,7 @@ export async function GET(request) {
             Color: v.color || 'Default'
           },
           grams: grams,
-          weight: weightVal,
+          weight: weightKg,
           weight_unit: 'kg',
           image: {
             src: v.image
