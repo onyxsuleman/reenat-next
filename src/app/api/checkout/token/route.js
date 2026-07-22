@@ -18,15 +18,24 @@ export async function POST(request) {
     }
 
     // 1. Format cart items for Shiprocket
-    const items = cart.map(item => ({
-      id: String(item.id),
-      variant_id: String(item.id),
-      title: item.name || 'Saree',
-      quantity: Number(item.qty) || 1,
-      price: parseFloat(item.price || '0').toFixed(2),
-      sku: item.skuId || item.styleId || item.styleid || `NSY${String(item.id).padStart(4, '0')}`,
-      image_url: item.image || ''
-    }));
+    const fallbackImage = 'https://eilxtuedgtimrxfvqojv.supabase.co/storage/v1/object/public/saree-images/saree_1783168166519_7otfupt.png';
+    const items = cart.map(item => {
+      let imageUrl = item.image || '';
+      // If the image URL contains sslip.io, localhost, or is missing, replace it with a valid public fallback image.
+      // Fastrr checkout runs on their cloud servers, which cannot resolve local development DNS subdomains or private ranges.
+      if (!imageUrl || imageUrl.includes('sslip.io') || imageUrl.includes('localhost') || imageUrl.includes('127.0.0.1')) {
+        imageUrl = fallbackImage;
+      }
+      return {
+        id: String(item.id),
+        variant_id: String(item.id),
+        title: item.name || 'Saree',
+        quantity: Number(item.qty) || 1,
+        price: parseFloat(item.price || '0').toFixed(2),
+        sku: item.skuId || item.styleId || item.styleid || `NSY${String(item.id).padStart(4, '0')}`,
+        image_url: imageUrl
+      };
+    });
 
     // 2. Calculate subtotal & total
     const subtotal = items.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0);
