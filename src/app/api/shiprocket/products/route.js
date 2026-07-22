@@ -85,6 +85,8 @@ export async function GET(request) {
       if (mainVariant.loom) tagsList.push(mainVariant.loom);
       const tags = tagsList.join(', ');
 
+      const fallbackImage = 'https://eilxtuedgtimrxfvqojv.supabase.co/storage/v1/object/public/saree-images/saree_1783168166519_7otfupt.png';
+
       const formattedVariants = variants.map(v => {
         let dbWeight = parseFloat(v.weight || '0.85'); // default 850g if empty
         let weightKg;
@@ -99,6 +101,11 @@ export async function GET(request) {
           grams = Math.round(dbWeight * 1000);
         }
         
+        let variantImage = v.image || '';
+        if (!variantImage || variantImage.includes('sslip.io') || variantImage.includes('localhost') || variantImage.includes('127.0.0.1')) {
+          variantImage = fallbackImage;
+        }
+
         return {
           id: v.id,
           title: v.color || 'Default',
@@ -116,12 +123,17 @@ export async function GET(request) {
           weight: weightKg,
           weight_unit: 'kg',
           image: {
-            src: v.image
+            src: variantImage
           }
         };
       });
 
       const optionColors = Array.from(new Set(variants.map(v => v.color || 'Default')));
+
+      let mainImage = mainVariant.image || '';
+      if (!mainImage || mainImage.includes('sslip.io') || mainImage.includes('localhost') || mainImage.includes('127.0.0.1')) {
+        mainImage = fallbackImage;
+      }
 
       formattedProducts.push({
         id: productId,
@@ -136,7 +148,7 @@ export async function GET(request) {
         status: 'active',
         variants: formattedVariants,
         image: {
-          src: mainVariant.image
+          src: mainImage
         },
         options: [
           {
