@@ -32,7 +32,7 @@ export async function POST(request) {
         title: item.name || 'Saree',
         quantity: Number(item.qty) || 1,
         price: parseFloat(item.price || '0').toFixed(2),
-        sku: item.skuId || item.styleId || item.styleid || `NSY${String(item.id).padStart(4, '0')}`,
+        sku: item.styleid || item.styleId || item.skuId || `NSY${String(item.id).padStart(4, '0')}`,
         image_url: imageUrl
       };
     });
