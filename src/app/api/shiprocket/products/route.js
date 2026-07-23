@@ -102,7 +102,7 @@ export async function GET(request) {
         }
         
         let variantImage = v.image || '';
-        if (!variantImage || variantImage.includes('sslip.io') || variantImage.includes('localhost') || variantImage.includes('127.0.0.1')) {
+        if (!variantImage || variantImage.includes('localhost') || variantImage.includes('127.0.0.1')) {
           variantImage = fallbackImage;
         }
 
@@ -131,7 +131,7 @@ export async function GET(request) {
       const optionColors = Array.from(new Set(variants.map(v => v.color || 'Default')));
 
       let mainImage = mainVariant.image || '';
-      if (!mainImage || mainImage.includes('sslip.io') || mainImage.includes('localhost') || mainImage.includes('127.0.0.1')) {
+      if (!mainImage || mainImage.includes('localhost') || mainImage.includes('127.0.0.1')) {
         mainImage = fallbackImage;
       }
 
