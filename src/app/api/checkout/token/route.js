@@ -21,9 +21,9 @@ export async function POST(request) {
     const fallbackImage = 'https://eilxtuedgtimrxfvqojv.supabase.co/storage/v1/object/public/saree-images/saree_1783168166519_7otfupt.png';
     const items = cart.map(item => {
       let imageUrl = item.image || '';
-      // If the image URL contains sslip.io, localhost, or is missing, replace it with a valid public fallback image.
+      // If the image URL contains localhost, 127.0.0.1, or is missing, replace it with a valid public fallback image.
       // Fastrr checkout runs on their cloud servers, which cannot resolve local development DNS subdomains or private ranges.
-      if (!imageUrl || imageUrl.includes('sslip.io') || imageUrl.includes('localhost') || imageUrl.includes('127.0.0.1')) {
+      if (!imageUrl || imageUrl.includes('localhost') || imageUrl.includes('127.0.0.1')) {
         imageUrl = fallbackImage;
       }
       return {

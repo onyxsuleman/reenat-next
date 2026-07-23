@@ -92,13 +92,26 @@ export async function POST(request) {
     const tax = Math.round(Number(payload.tax_price || payload.tax || 0));
     const discount = Math.round(Number(payload.discount_amount || payload.discount || 0));
 
-    const paymentMethod = payload.payment_method || 'Pay Online';
-    const paymentStatus = payload.payment_status || 'paid';
+    let paymentMethod = 'Pay Online';
+    const rawPayment = payload.payment_method || payload.payment_type || payload.payment_mode || '';
+    if (rawPayment) {
+      const pmUpper = String(rawPayment).toUpperCase();
+      if (pmUpper === 'COD' || pmUpper === 'CASH ON DELIVERY' || pmUpper === 'CASH_ON_DELIVERY') {
+        paymentMethod = 'COD';
+      } else if (pmUpper === 'PREPAID' || pmUpper === 'ONLINE' || pmUpper === 'PAY ONLINE' || pmUpper === 'PAY_ONLINE') {
+        paymentMethod = 'Pay Online';
+      } else {
+        paymentMethod = rawPayment;
+      }
+    }
+    const paymentStatus = payload.payment_status || (paymentMethod === 'COD' ? 'pending' : 'paid');
     const orderStatus = payload.order_status || 'Pending';
 
-    // Parse Line items
+    const supabase = getSupabaseServerClient();
+
+    // Parse Line items with self-healing DB lookup
     const rawItems = payload.items || payload.line_items || [];
-    const orderItems = rawItems.map(item => {
+    const orderItems = await Promise.all(rawItems.map(async item => {
       let localId = item.id || item.product_id || '';
       const sku = item.sku || item.sku_id || item.styleid || item.styleId || item.style_id || '';
       
@@ -110,18 +123,36 @@ export async function POST(request) {
         }
       }
 
+      let dbProduct = null;
+      if (sku || localId) {
+        try {
+          const query = supabase.from('products').select('id, name, image, color, styleid');
+          if (sku && localId && !isNaN(Number(localId))) {
+            query.or(`styleid.eq."${sku}",id.eq.${localId}`);
+          } else if (sku) {
+            query.eq('styleid', sku);
+          } else if (localId && !isNaN(Number(localId))) {
+            query.eq('id', localId);
+          }
+          const { data: prodData } = await query.maybeSingle();
+          if (prodData) {
+            dbProduct = prodData;
+          }
+        } catch (dbErr) {
+          console.error('Failed to lookup product details from db for webhook item:', dbErr);
+        }
+      }
+
       return {
-        id: localId,
-        name: item.title || item.name || 'Saree',
+        id: dbProduct ? dbProduct.id : localId,
+        name: dbProduct ? dbProduct.name : (item.title || item.name || 'Saree'),
         qty: Number(item.quantity || item.qty || 1),
         price: Number(item.price || 0),
-        image: item.image_url || item.image || '',
-        color: item.color || '',
-        skuId: sku
+        image: dbProduct ? dbProduct.image : (item.image_url || item.image || ''),
+        color: dbProduct ? dbProduct.color : (item.color || ''),
+        skuId: dbProduct ? dbProduct.styleid : sku
       };
-    });
-
-    const supabase = getSupabaseServerClient();
+    }));
 
     // 1. Insert/Update customer profile if email is present
     if (email) {

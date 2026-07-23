@@ -159,6 +159,13 @@ export default function CMSConsole() {
         const mapped = data.map(order => {
           const firstItem = (order.items && order.items.length > 0) ? order.items[0] : {};
           const totalQty = (order.items || []).reduce((sum, i) => sum + (i.qty || 1), 0);
+          const skuIds = (order.items || []).map(i => i.skuId || i.sku || 'N/A').filter(Boolean).join(', ') || 'N/A';
+          const productIds = (order.items || []).map(i => {
+            if (i.id && !String(i.id).startsWith('temp-')) {
+              return `NSY${String(i.id).padStart(4, '0')}`;
+            }
+            return 'N/A';
+          }).filter(Boolean).join(', ') || 'N/A';
           return {
             id: `RT-${order.id}`,
             dbId: order.id,
@@ -169,6 +176,8 @@ export default function CMSConsole() {
             productName: firstItem.name || 'Saree',
             productImage: firstItem.image || '',
             color: firstItem.color || '',
+            skuId: skuIds,
+            productId: productIds,
             amount: firstItem.price || order.subtotal,
             qty: firstItem.qty || 1,
             totalQty: totalQty,
@@ -1647,6 +1656,7 @@ export default function CMSConsole() {
       { name: 'To Dispatch', count: orders.filter(o => o.status === 'To Dispatch').length },
       { name: 'Shipped', count: orders.filter(o => o.status === 'Shipped').length },
       { name: 'Completed Orders', count: orders.filter(o => o.status === 'Delivered').length },
+      { name: 'Cancelled Orders', count: orders.filter(o => o.status === 'Cancelled').length },
     ];
 
     const filteredOrders = orders.filter(o => {
@@ -1655,6 +1665,7 @@ export default function CMSConsole() {
       if (activeOrderTab === 'To Dispatch') return o.status === 'To Dispatch';
       if (activeOrderTab === 'Shipped') return o.status === 'Shipped';
       if (activeOrderTab === 'Completed Orders') return o.status === 'Delivered';
+      if (activeOrderTab === 'Cancelled Orders') return o.status === 'Cancelled';
       return true;
     });
 
@@ -1783,7 +1794,7 @@ export default function CMSConsole() {
                       <div className="text-sm text-slate-700 dark:text-slate-300">{item.skuId || 'N/A'}</div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="text-sm text-slate-700 dark:text-slate-300">{item.color || 'N/A'}</div>
+                      <div className="text-sm text-slate-700 dark:text-slate-300">{item.productId || 'N/A'}</div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-center">
                       <div className="text-sm font-medium">{item.qty}</div>
@@ -1805,51 +1816,92 @@ export default function CMSConsole() {
                       </div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-right">
-                      {(item.status === 'Pending' || item.status === 'To Accept') && (
-                        <button 
-                          onClick={() => handleUpdateOrderStatus(item.id, 'To Pack')}
-                          className="inline-flex items-center px-3 py-1.5 border border-slate-300 dark:border-slate-700 shadow-sm text-sm font-medium rounded-md text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700"
-                        >
-                          Accept Order
-                        </button>
-                      )}
-                      {item.status === 'To Pack' && (
-                        <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-2">
+                        {(item.status === 'Pending' || item.status === 'To Accept') && (
+                          <>
+                            <button 
+                              onClick={() => handleUpdateOrderStatus(item.id, 'To Pack')}
+                              className="inline-flex items-center px-3 py-1.5 border border-slate-300 dark:border-slate-700 shadow-sm text-sm font-medium rounded-md text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700"
+                            >
+                              Accept Order
+                            </button>
+                            <button 
+                              onClick={() => {
+                                if (confirm('Are you sure you want to cancel this order?')) {
+                                  handleUpdateOrderStatus(item.id, 'Cancelled');
+                                }
+                              }}
+                              className="inline-flex items-center px-3 py-1.5 border border-rose-350 dark:border-rose-900 shadow-sm text-sm font-medium rounded-md text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-900/10"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        )}
+                        {item.status === 'To Pack' && (
+                          <>
+                            <button 
+                              onClick={() => alert('Generate Label functionality coming soon!')}
+                              className="inline-flex items-center px-3 py-1.5 border border-slate-300 dark:border-slate-700 shadow-sm text-sm font-medium rounded-md text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700"
+                            >
+                              Generate Label
+                            </button>
+                            <button 
+                              onClick={() => handleUpdateOrderStatus(item.id, 'To Dispatch')}
+                              className="inline-flex items-center px-3 py-1.5 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                            >
+                              RTD
+                            </button>
+                            <button 
+                              onClick={() => {
+                                if (confirm('Are you sure you want to cancel this order?')) {
+                                  handleUpdateOrderStatus(item.id, 'Cancelled');
+                                }
+                              }}
+                              className="inline-flex items-center px-3 py-1.5 border border-rose-350 dark:border-rose-900 shadow-sm text-sm font-medium rounded-md text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-900/10"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        )}
+                        {item.status === 'To Dispatch' && (
+                          <>
+                            <button 
+                              onClick={() => handleUpdateOrderStatus(item.id, 'Shipped')}
+                              className="inline-flex items-center px-3 py-1.5 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                            >
+                              Mark as Shipped
+                            </button>
+                            <button 
+                              onClick={() => {
+                                if (confirm('Are you sure you want to cancel this order?')) {
+                                  handleUpdateOrderStatus(item.id, 'Cancelled');
+                                }
+                              }}
+                              className="inline-flex items-center px-3 py-1.5 border border-rose-350 dark:border-rose-900 shadow-sm text-sm font-medium rounded-md text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-900/10"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        )}
+                        {item.status === 'Shipped' && (
                           <button 
-                            onClick={() => alert('Generate Label functionality coming soon!')}
-                            className="inline-flex items-center px-3 py-1.5 border border-slate-300 dark:border-slate-700 shadow-sm text-sm font-medium rounded-md text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700"
+                            onClick={() => handleUpdateOrderStatus(item.id, 'Delivered')}
+                            className="inline-flex items-center px-3 py-1.5 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-emerald-600 hover:bg-emerald-700"
                           >
-                            Generate Label
+                            Mark as Delivered
                           </button>
-                          <button 
-                            onClick={() => handleUpdateOrderStatus(item.id, 'To Dispatch')}
-                            className="inline-flex items-center px-3 py-1.5 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                          >
-                            RTD
-                          </button>
-                        </div>
-                      )}
-                      {item.status === 'To Dispatch' && (
-                        <button 
-                          onClick={() => handleUpdateOrderStatus(item.id, 'Shipped')}
-                          className="inline-flex items-center px-3 py-1.5 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-                        >
-                          Mark as Shipped
-                        </button>
-                      )}
-                      {item.status === 'Shipped' && (
-                        <button 
-                          onClick={() => handleUpdateOrderStatus(item.id, 'Delivered')}
-                          className="inline-flex items-center px-3 py-1.5 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-emerald-600 hover:bg-emerald-700"
-                        >
-                          Mark as Delivered
-                        </button>
-                      )}
-                      {item.status === 'Delivered' && (
-                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500 flex items-center justify-end gap-1 select-none">
-                          ✓ Completed
-                        </span>
-                      )}
+                        )}
+                        {item.status === 'Delivered' && (
+                          <span className="text-xs font-bold text-slate-400 dark:text-slate-500 flex items-center justify-end gap-1 select-none">
+                            ✓ Completed
+                          </span>
+                        )}
+                        {item.status === 'Cancelled' && (
+                          <span className="text-xs font-bold text-rose-500 dark:text-rose-400 flex items-center justify-end gap-1 select-none">
+                            ✕ Cancelled
+                          </span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
