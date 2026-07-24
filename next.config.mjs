@@ -10,6 +10,10 @@ const remotePatterns = [
   },
   {
     protocol: 'https',
+    hostname: 'upload.meeshosupplyassets.com',
+  },
+  {
+    protocol: 'https',
     hostname: 'reenat-trends.vercel.app',
   },
   {

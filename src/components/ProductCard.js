@@ -51,7 +51,7 @@ export default function ProductCard({ product }) {
           <Link href={`/product?id=${product.id}`} className="absolute inset-0 w-full h-full cursor-pointer z-0" />
           
           {/* Buttons */}
-          <div className="relative z-10 flex items-center justify-center gap-3 w-full h-full">
+          <div className="relative z-10 flex items-center justify-center gap-3 w-full h-full pointer-events-none">
             <button 
               type="button" 
               onClick={(e) => {
@@ -59,7 +59,7 @@ export default function ProductCard({ product }) {
                 e.stopPropagation();
                 addToCart(product);
               }}
-              className="p-3 bg-white dark:bg-slate-900 hover:bg-[#F1BF0A] dark:hover:bg-[#F1BF0A] text-slate-800 dark:text-slate-100 rounded-full shadow-md transition-colors duration-200 cursor-pointer" 
+              className="p-3 bg-white dark:bg-slate-900 hover:bg-[#F1BF0A] dark:hover:bg-[#F1BF0A] text-slate-800 dark:text-slate-100 rounded-full shadow-md transition-colors duration-200 cursor-pointer pointer-events-auto" 
               title="Add to Cart"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="size-5">
@@ -73,7 +73,7 @@ export default function ProductCard({ product }) {
                 e.stopPropagation();
                 toggleWishlist(product);
               }}
-              className={`p-3 rounded-full shadow-md transition-colors duration-200 cursor-pointer ${
+              className={`p-3 rounded-full shadow-md transition-colors duration-200 cursor-pointer pointer-events-auto ${
                 inWishlist 
                   ? 'bg-rose-500 hover:bg-rose-600 text-white' 
                   : 'bg-white dark:bg-slate-900 hover:bg-rose-500 hover:text-white text-slate-800 dark:text-slate-100'
@@ -91,7 +91,7 @@ export default function ProductCard({ product }) {
                 e.stopPropagation();
                 setQuickViewProduct(product);
               }}
-              className="p-3 bg-white dark:bg-slate-900 hover:bg-[#183fad] hover:text-white text-slate-800 dark:text-slate-100 rounded-full shadow-md transition-colors duration-200 cursor-pointer" 
+              className="p-3 bg-white dark:bg-slate-900 hover:bg-[#183fad] hover:text-white text-slate-800 dark:text-slate-100 rounded-full shadow-md transition-colors duration-200 cursor-pointer pointer-events-auto" 
               title="Quick View"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="size-5">

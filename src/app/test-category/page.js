@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useApp } from '../../context/AppContext';
 import ProductCard from '../../components/ProductCard';
 import { ProductSkeletonGrid } from '../../components/ProductSkeleton';
@@ -193,6 +194,7 @@ export default function TestCategoryPage() {
             z-index: 20;
             opacity: 1;
             transition: transform 1.2s cubic-bezier(0.19, 1, 0.22, 1), opacity 1s ease-out;
+            pointer-events: none; /* Prevent background split-dot from blocking category hover/clicks */
         }
 
         .category-section-custom.is-revealed .central-core-custom {
@@ -233,7 +235,8 @@ export default function TestCategoryPage() {
             display: flex;
             flex-direction: column;
             align-items: center;
-            animation: float-custom 6s ease-in-out infinite;
+            /* Floating animation disabled to keep tap targets still and ensure clicks/taps register reliably */
+            /* animation: float-custom 6s ease-in-out infinite; */
         }
 
         .reveal-wrapper-custom.top-left .float-layer-custom { animation-delay: 0s; }
@@ -283,7 +286,7 @@ export default function TestCategoryPage() {
 
         @media (hover: hover) {
             .orb-custom:hover {
-                transform: scale(1.06) translateY(-6px);
+                /* Hover zoom removed to keep tap targets stable and still */
                 box-shadow: 
                     inset 0 6px 12px rgba(255, 255, 255, 0.95),
                     inset 0 -4px 10px rgba(139, 115, 85, 0.15),
@@ -313,7 +316,7 @@ export default function TestCategoryPage() {
         }
 
         .orb-custom:active {
-            transform: scale(0.92) translateY(5px);
+            /* Active shift removed to keep click targets stable */
             box-shadow: inset 0 4px 10px rgba(255, 255, 255, 0.8), 0 5px 10px rgba(139, 115, 85, 0.2);
         }
 
@@ -579,8 +582,14 @@ export default function TestCategoryPage() {
             <div className="reveal-wrapper-custom top-left">
               <div className="float-layer-custom">
                 <div className="orb-custom">
-                  <div className="orb-image-custom">
-                    <img src="https://upload.meeshosupplyassets.com/cataloging/1783968560581/1.png" alt="Paithani Sarees" />
+                  <div className="orb-image-custom relative">
+                    <Image 
+                      src="https://upload.meeshosupplyassets.com/cataloging/1783968560581/1.png" 
+                      alt="Paithani Sarees" 
+                      fill
+                      sizes="(max-width: 768px) 140px, 170px"
+                      className="object-cover rounded-full"
+                    />
                   </div>
                 </div>
                 <div className="orb-label-custom font-sans">Sarees</div>
@@ -591,8 +600,14 @@ export default function TestCategoryPage() {
             <div className="reveal-wrapper-custom top-right">
               <div className="float-layer-custom">
                 <div className="orb-custom">
-                  <div className="orb-image-custom">
-                    <img src="https://upload.meeshosupplyassets.com/cataloging/1783968607590/lemonrani.png" alt="Trending" />
+                  <div className="orb-image-custom relative">
+                    <Image 
+                      src="https://upload.meeshosupplyassets.com/cataloging/1783968607590/lemonrani.png" 
+                      alt="Trending" 
+                      fill
+                      sizes="(max-width: 768px) 140px, 170px"
+                      className="object-cover rounded-full"
+                    />
                   </div>
                 </div>
                 <div className="orb-label-custom font-sans font-bold">Trending</div>
@@ -603,8 +618,14 @@ export default function TestCategoryPage() {
             <div className="reveal-wrapper-custom bottom-left">
               <div className="float-layer-custom">
                 <div className="orb-custom">
-                  <div className="orb-image-custom">
-                    <img src="https://upload.meeshosupplyassets.com/cataloging/1783968697416/3.png" alt="Popular" />
+                  <div className="orb-image-custom relative">
+                    <Image 
+                      src="https://upload.meeshosupplyassets.com/cataloging/1783968697416/3.png" 
+                      alt="Popular" 
+                      fill
+                      sizes="(max-width: 768px) 140px, 170px"
+                      className="object-cover rounded-full"
+                    />
                   </div>
                 </div>
                 <div className="orb-label-custom font-sans font-bold">Popular</div>
@@ -615,8 +636,14 @@ export default function TestCategoryPage() {
             <div className="reveal-wrapper-custom bottom-right">
               <div className="float-layer-custom">
                 <div className="orb-custom">
-                  <div className="orb-image-custom">
-                    <img src="https://upload.meeshosupplyassets.com/cataloging/1783968891146/3.png" alt="Clearance" />
+                  <div className="orb-image-custom relative">
+                    <Image 
+                      src="https://upload.meeshosupplyassets.com/cataloging/1783968891146/3.png" 
+                      alt="Clearance" 
+                      fill
+                      sizes="(max-width: 768px) 140px, 170px"
+                      className="object-cover rounded-full"
+                    />
                   </div>
                 </div>
                 <div className="orb-label-custom font-sans font-bold">Clearance</div>

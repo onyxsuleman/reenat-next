@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useApp } from '../context/AppContext';
 import ProductCard from '../components/ProductCard';
 import { ProductSkeletonGrid } from '../components/ProductSkeleton';
@@ -327,6 +328,7 @@ export default function Home() {
             z-index: 20;
             opacity: 1;
             transition: transform 1.2s cubic-bezier(0.19, 1, 0.22, 1), opacity 1s ease-out;
+            pointer-events: none; /* Prevent this background overlay dot from blocking hover/click events */
         }
 
         .category-section-custom.is-revealed .central-core-custom {
@@ -367,7 +369,8 @@ export default function Home() {
             display: flex;
             flex-direction: column;
             align-items: center;
-            animation: float-custom 6s ease-in-out infinite;
+            /* Floating animation disabled to keep tap targets still and ensure clicks/taps register reliably */
+            /* animation: float-custom 6s ease-in-out infinite; */
         }
 
         .reveal-wrapper-custom.top-left .float-layer-custom { animation-delay: 0s; }
@@ -417,7 +420,7 @@ export default function Home() {
 
         @media (hover: hover) {
             .orb-custom:hover {
-                transform: scale(1.06) translateY(-6px);
+                /* Hover zoom removed to keep tap targets stable and still */
                 box-shadow: 
                     inset 0 6px 12px rgba(255, 255, 255, 0.95),
                     inset 0 -4px 10px rgba(139, 115, 85, 0.15),
@@ -447,7 +450,7 @@ export default function Home() {
         }
 
         .orb-custom:active {
-            transform: scale(0.92) translateY(5px);
+            /* Active shift removed to keep click targets stable */
             box-shadow: inset 0 4px 10px rgba(255, 255, 255, 0.8), 0 5px 10px rgba(139, 115, 85, 0.2);
         }
 
@@ -520,8 +523,14 @@ export default function Home() {
                   <div className="float-layer-custom">
                     <Link href={card.link || "#product-list"} className="flex flex-col items-center hover:no-underline group animate-none">
                       <div className="orb-custom">
-                        <div className="orb-image-custom">
-                          <img src={card.image || "/saree_kanjivaram.png"} alt={card.name} className="w-full h-full object-cover" />
+                        <div className="orb-image-custom relative">
+                          <Image 
+                            src={card.image || "/saree_kanjivaram.png"} 
+                            alt={card.name} 
+                            fill
+                            sizes="(max-width: 768px) 140px, 170px"
+                            className="object-cover rounded-full"
+                          />
                         </div>
                       </div>
                       <div className="orb-label-custom font-sans font-bold">{card.name}</div>
