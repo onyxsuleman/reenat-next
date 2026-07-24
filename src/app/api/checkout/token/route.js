@@ -18,14 +18,29 @@ export async function POST(request) {
     }
 
     // 1. Format cart items for Shiprocket
-    const fallbackImage = 'https://eilxtuedgtimrxfvqojv.supabase.co/storage/v1/object/public/saree-images/saree_1783168166519_7otfupt.png';
+    const fallbackImage = 'https://www.reenattrends.com/saree_kanjivaram.png';
     const items = cart.map(item => {
-      let imageUrl = item.image || '';
-      // If the image URL contains localhost, 127.0.0.1, or is missing, replace it with a valid public fallback image.
-      // Fastrr checkout runs on their cloud servers, which cannot resolve local development DNS subdomains or private ranges.
-      if (!imageUrl || imageUrl.includes('localhost') || imageUrl.includes('127.0.0.1')) {
+      let rawImage = item.image || item.image_front || item.image_url || item.image1 || '';
+      let imageUrl = '';
+
+      if (rawImage) {
+        if (rawImage.startsWith('/')) {
+          imageUrl = `https://www.reenattrends.com${rawImage}`;
+        } else if (rawImage.startsWith('http://') || rawImage.startsWith('https://')) {
+          // If image URL contains localhost or 127.0.0.1, replace with fallback
+          if (rawImage.includes('localhost') || rawImage.includes('127.0.0.1')) {
+            imageUrl = fallbackImage;
+          } else {
+            // Route through reenattrends.com image proxy so Fastrr Checkout receives a clean, trusted domain URL
+            imageUrl = `https://www.reenattrends.com/api/image-proxy?url=${encodeURIComponent(rawImage)}`;
+          }
+        }
+      }
+
+      if (!imageUrl) {
         imageUrl = fallbackImage;
       }
+
       return {
         id: String(item.id),
         variant_id: String(item.id),

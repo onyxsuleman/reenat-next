@@ -85,7 +85,7 @@ export async function GET(request) {
       if (mainVariant.loom) tagsList.push(mainVariant.loom);
       const tags = tagsList.join(', ');
 
-      const fallbackImage = 'https://eilxtuedgtimrxfvqojv.supabase.co/storage/v1/object/public/saree-images/saree_1783168166519_7otfupt.png';
+      const fallbackImage = 'https://www.reenattrends.com/saree_kanjivaram.png';
 
       const formattedVariants = variants.map(v => {
         let dbWeight = parseFloat(v.weight || '0.85'); // default 850g if empty
@@ -101,8 +101,22 @@ export async function GET(request) {
           grams = Math.round(dbWeight * 1000);
         }
         
-        let variantImage = v.image || '';
-        if (!variantImage || variantImage.includes('localhost') || variantImage.includes('127.0.0.1')) {
+        let rawVariantImage = v.image || v.image_front || v.image1 || '';
+        let variantImage = '';
+
+        if (rawVariantImage) {
+          if (rawVariantImage.startsWith('/')) {
+            variantImage = `https://www.reenattrends.com${rawVariantImage}`;
+          } else if (rawVariantImage.startsWith('http://') || rawVariantImage.startsWith('https://')) {
+            if (rawVariantImage.includes('localhost') || rawVariantImage.includes('127.0.0.1')) {
+              variantImage = fallbackImage;
+            } else {
+              variantImage = `https://www.reenattrends.com/api/image-proxy?url=${encodeURIComponent(rawVariantImage)}`;
+            }
+          }
+        }
+
+        if (!variantImage) {
           variantImage = fallbackImage;
         }
 
