@@ -3,7 +3,7 @@
  * Pushes storefront orders to Shiprocket Shipping Dashboard (app.shiprocket.in)
  */
 
-import { getSupabaseServerClient } from './supabaseServer';
+import { getSupabaseServerClient } from './supabaseServer.js';
 
 let cachedToken = null;
 let tokenExpiry = 0;
