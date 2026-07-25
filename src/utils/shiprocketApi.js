@@ -7,14 +7,21 @@ import { getSupabaseServerClient } from './supabaseServer.js';
 
 let cachedToken = null;
 let tokenExpiry = 0;
+let lockUntil = 0;
 
 /**
  * Obtain JWT Token from Shiprocket API
  */
 export async function getShiprocketAuthToken() {
-  // Return cached token if valid (expires in 10 days, we cache for 24h)
+  // Return cached token if valid
   if (cachedToken && Date.now() < tokenExpiry) {
     return cachedToken;
+  }
+
+  // If under temporary security lockout, pause auth calls until cooldown expires
+  if (lockUntil && Date.now() < lockUntil) {
+    console.warn(`Shiprocket API in security cooldown until ${new Date(lockUntil).toLocaleTimeString()}. Orders remain stored safely in database.`);
+    return null;
   }
 
   // 1. First check if a manual JWT token is configured
@@ -26,8 +33,8 @@ export async function getShiprocketAuthToken() {
   }
 
   // 2. Otherwise authenticate using email and password
-  const email = (process.env.SHIPROCKET_EMAIL || 'onyxsuleman@gmail.com').trim();
-  const password = (process.env.SHIPROCKET_PASSWORD || 'Apple@6003').trim();
+  const email = (process.env.SHIPROCKET_EMAIL || 'reenattrends@gmail.com').trim();
+  const password = (process.env.SHIPROCKET_PASSWORD || '8!OZfm8Tr1Mof%^lQcrIZ9$1z@629GwW').trim();
 
   try {
     const res = await fetch('https://apiv2.shiprocket.in/v1/external/auth/login', {
@@ -44,9 +51,14 @@ export async function getShiprocketAuthToken() {
     if (res.ok && data.token) {
       cachedToken = data.token;
       tokenExpiry = Date.now() + (24 * 60 * 60 * 1000); // cache for 24 hours
+      lockUntil = 0;
       return cachedToken;
     } else {
-      console.warn('Shiprocket API Login Warning:', data.message || res.statusText);
+      if (res.status === 403 || (data.message && String(data.message).includes('blocked'))) {
+        // Set 2-hour cooldown lock to respect Shiprocket's security window
+        lockUntil = Date.now() + (2 * 60 * 60 * 1000);
+        console.warn('Shiprocket 2-hour security lockout detected. Pausing login requests until:', new Date(lockUntil).toLocaleTimeString());
+      }
       return null;
     }
   } catch (err) {
