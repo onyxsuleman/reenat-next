@@ -165,6 +165,28 @@ export async function POST(request) {
         }
       }
 
+      // Title-based fallback search if ID or SKU lookup returned null
+      if (!dbProduct && (item.title || item.name)) {
+        try {
+          const rawTitle = (item.title || item.name).trim();
+          const cleanSearch = rawTitle.split('(')[0].trim().substring(0, 30);
+          if (cleanSearch) {
+            const { data: titleProds } = await supabase
+              .from('products')
+              .select('id, name, image, color, styleid')
+              .ilike('name', `%${cleanSearch}%`)
+              .limit(5);
+
+            if (titleProds && titleProds.length > 0) {
+              const exact = titleProds.find(p => p.name.toLowerCase() === rawTitle.toLowerCase());
+              dbProduct = exact || titleProds[0];
+            }
+          }
+        } catch (titleErr) {
+          console.error('Title lookup error in webhook:', titleErr);
+        }
+      }
+
       let resolvedImage = dbProduct ? dbProduct.image : (
         item.image || item.image_url || item.product_image || item.src || item.image_front || item.image1 || item.thumbnail || ''
       );

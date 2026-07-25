@@ -156,20 +156,44 @@ export default function CMSConsole() {
       const { data, error } = resData;
 
       if (!error && data) {
-        // Build a product lookup map by numeric ID for instant enrichment
-        const prodLookup = {};
+        // Build product lookup maps (by numeric ID and by normalized product name) for 100% self-healing
+        const prodLookupById = {};
+        const prodLookupByName = {};
         if (products && products.length > 0) {
           products.forEach(p => {
             const numId = String(p.id || '').replace(/\D/g, '');
-            if (numId) prodLookup[numId] = p;
+            if (numId) prodLookupById[numId] = p;
+            if (p.name) {
+              const cleanKey = p.name.toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+              prodLookupByName[cleanKey] = p;
+            }
           });
         }
 
         const mapped = data.map(order => {
-          // Enrich items with product data from loaded inventory
+          // Enrich items with product data from loaded inventory (ID match or Title match)
           const enrichedItems = (order.items || []).map(rawItem => {
             const itemNumId = String(rawItem.id || '').replace(/\D/g, '');
-            const matchedProd = itemNumId ? prodLookup[itemNumId] : null;
+            let matchedProd = itemNumId ? prodLookupById[itemNumId] : null;
+
+            if (!matchedProd && rawItem.name) {
+              const itemCleanKey = rawItem.name.toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+              matchedProd = prodLookupByName[itemCleanKey];
+
+              if (!matchedProd && products && products.length > 0) {
+                const words = itemCleanKey.split(' ').filter(w => w.length > 2);
+                matchedProd = products.find(p => {
+                  const pKey = (p.name || '').toLowerCase();
+                  return words.length > 0 && words.every(w => pKey.includes(w));
+                }) || products.find(p => {
+                  const pKey = (p.name || '').toLowerCase();
+                  const matchCount = words.filter(w => pKey.includes(w)).length;
+                  return matchCount >= Math.min(2, words.length);
+                });
+              }
+            }
+
+            const resolvedId = matchedProd ? matchedProd.id : rawItem.id;
 
             const image = (matchedProd && matchedProd.image) 
               ? matchedProd.image 
@@ -187,7 +211,7 @@ export default function CMSConsole() {
               ? matchedProd.color
               : (rawItem.color || '');
 
-            return { ...rawItem, image, skuId, name, color };
+            return { ...rawItem, id: resolvedId, image, skuId, name, color };
           });
 
           const firstItem = enrichedItems.length > 0 ? enrichedItems[0] : {};
@@ -201,9 +225,9 @@ export default function CMSConsole() {
             return 'N/A';
           }).filter(Boolean).join(', ') || 'N/A';
 
-          // Detect COD from stored payment_method (handle legacy "Pay Online" mis-tags)
+          // Detect COD from stored payment_method or status
           const rawPm = String(order.payment_method || '').toUpperCase();
-          const isCod = rawPm === 'COD' || rawPm.includes('CASH') || rawPm.includes('DELIVERY');
+          const isCod = rawPm === 'COD' || rawPm.includes('CASH') || rawPm.includes('DELIVERY') || order.payment_status === 'pending' || !order.payment_method;
           const paymentMethod = isCod ? 'COD' : order.payment_method;
 
           return {
