@@ -113,29 +113,51 @@ export async function POST(request) {
     const tax = subtotal * taxRate;
     const total = subtotal + tax - discountAmount;
 
-    // 7. Insert the Order
-    const paymentStatus = paymentMethod === 'Pay Online' ? 'paid' : 'pending';
-    const { data: order, error: insertErr } = await supabase
+    // 7. Deduplication check: Prevent duplicate orders within 60 seconds
+    const oneMinuteAgo = new Date(Date.now() - 60000).toISOString();
+    const roundedTotal = Math.round(total);
+    const { data: existingLocalOrders } = await supabase
       .from('orders')
-      .insert({
-        customer_name: fullName.trim(),
-        email: email.trim(),
-        phone: phone.trim(),
-        address: address.trim(),
-        subtotal: Math.round(subtotal),
-        tax: Math.round(tax),
-        discount: Math.round(discountAmount),
-        total: Math.round(total),
-        payment_method: paymentMethod,
-        payment_status: paymentStatus,
-        order_status: 'Pending',
-        items: verifiedOrderItems
-      })
-      .select();
+      .select('id, created_at')
+      .eq('phone', phone.trim())
+      .eq('total', roundedTotal)
+      .gte('created_at', oneMinuteAgo)
+      .limit(1);
 
-    if (insertErr) {
-      console.error("Database order insertion failed:", insertErr.message, insertErr.details, insertErr.hint);
-      return NextResponse.json({ error: `Order insert failed: ${insertErr.message}` }, { status: 500 });
+    let order = null;
+
+    if (existingLocalOrders && existingLocalOrders.length > 0) {
+      console.log(`Duplicate local checkout detected (Order #${existingLocalOrders[0].id}). Returning existing record.`);
+      const { data: fetchedData } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', existingLocalOrders[0].id);
+      order = fetchedData;
+    } else {
+      const paymentStatus = paymentMethod === 'Pay Online' ? 'paid' : 'pending';
+      const { data: newOrder, error: insertErr } = await supabase
+        .from('orders')
+        .insert({
+          customer_name: fullName.trim(),
+          email: email.trim(),
+          phone: phone.trim(),
+          address: address.trim(),
+          subtotal: Math.round(subtotal),
+          tax: Math.round(tax),
+          discount: Math.round(discountAmount),
+          total: roundedTotal,
+          payment_method: paymentMethod,
+          payment_status: paymentStatus,
+          order_status: 'Pending',
+          items: verifiedOrderItems
+        })
+        .select();
+
+      if (insertErr) {
+        console.error("Database order insertion failed:", insertErr.message, insertErr.details, insertErr.hint);
+        return NextResponse.json({ error: `Order insert failed: ${insertErr.message}` }, { status: 500 });
+      }
+      order = newOrder;
     }
 
     // 8. Decrement Stock Levels

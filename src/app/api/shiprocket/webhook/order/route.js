@@ -236,35 +236,76 @@ export async function POST(request) {
       }
     }
 
-    // 2. Insert order details in orders database table
-    const { data: insertedOrder, error: orderErr } = await supabase
+    // 2. Deduplication check: Prevent duplicate orders from webhook retries or double events
+    const twoMinutesAgo = new Date(Date.now() - 120000).toISOString();
+    let existingQuery = supabase
       .from('orders')
-      .insert({
-        customer_name: customerName,
-        email: email.trim(),
-        phone: phone.trim(),
-        address: fullAddress,
-        shipping_line1: shippingLine1,
-        shipping_line2: shippingLine2,
-        shipping_city: shippingCity,
-        shipping_state: shippingState,
-        shipping_pincode: shippingPincode,
-        shipping_country: shippingCountry,
-        shiprocket_order_id: String(shiprocketOrderId),
-        subtotal: subtotal,
-        tax: tax,
-        discount: discount,
-        total: total,
-        payment_method: paymentMethod,
-        payment_status: paymentStatus,
-        order_status: orderStatus,
-        items: orderItems
-      })
-      .select();
+      .select('id, shiprocket_order_id, created_at')
+      .gte('created_at', twoMinutesAgo);
 
-    if (orderErr) {
-      console.error('Failed to write order from webhook payload:', orderErr.message);
-      return NextResponse.json({ error: 'Database order save failed' }, { status: 500 });
+    if (shiprocketOrderId && shiprocketOrderId.length > 0) {
+      existingQuery = existingQuery.eq('shiprocket_order_id', shiprocketOrderId);
+    } else if (phone && phone.trim()) {
+      existingQuery = existingQuery.eq('phone', phone.trim()).eq('total', total);
+    }
+
+    const { data: existingOrders } = await existingQuery.limit(1);
+
+    let insertedOrder = null;
+
+    if (existingOrders && existingOrders.length > 0) {
+      const existingId = existingOrders[0].id;
+      console.log(`Duplicate order detected (Order #${existingId}). Updating existing record instead of creating a duplicate.`);
+      const { data: updatedData, error: updateErr } = await supabase
+        .from('orders')
+        .update({
+          payment_method: paymentMethod,
+          payment_status: paymentStatus,
+          order_status: orderStatus,
+          items: orderItems,
+          address: fullAddress,
+          shiprocket_order_id: String(shiprocketOrderId || existingOrders[0].shiprocket_order_id || '')
+        })
+        .eq('id', existingId)
+        .select();
+
+      if (updateErr) {
+        console.error('Failed to update duplicate order:', updateErr.message);
+      } else {
+        insertedOrder = updatedData;
+      }
+    } else {
+      // Insert order details in orders database table
+      const { data: newOrder, error: orderErr } = await supabase
+        .from('orders')
+        .insert({
+          customer_name: customerName,
+          email: email.trim(),
+          phone: phone.trim(),
+          address: fullAddress,
+          shipping_line1: shippingLine1,
+          shipping_line2: shippingLine2,
+          shipping_city: shippingCity,
+          shipping_state: shippingState,
+          shipping_pincode: shippingPincode,
+          shipping_country: shippingCountry,
+          shiprocket_order_id: String(shiprocketOrderId),
+          subtotal: subtotal,
+          tax: tax,
+          discount: discount,
+          total: total,
+          payment_method: paymentMethod,
+          payment_status: paymentStatus,
+          order_status: orderStatus,
+          items: orderItems
+        })
+        .select();
+
+      if (orderErr) {
+        console.error('Failed to write order from webhook payload:', orderErr.message);
+        return NextResponse.json({ error: 'Database order save failed' }, { status: 500 });
+      }
+      insertedOrder = newOrder;
     }
 
     // 3. Decrement stock levels for purchased items
