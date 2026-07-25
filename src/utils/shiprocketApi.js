@@ -55,9 +55,9 @@ export async function getShiprocketAuthToken() {
       return cachedToken;
     } else {
       if (res.status === 403 || (data.message && String(data.message).includes('blocked'))) {
-        // Set 2-hour cooldown lock to respect Shiprocket's security window
-        lockUntil = Date.now() + (2 * 60 * 60 * 1000);
-        console.warn('Shiprocket 2-hour security lockout detected. Pausing login requests until:', new Date(lockUntil).toLocaleTimeString());
+        // Set 3-hour safety cooldown lock to ensure complete lockout clearance (8:08 PM IST)
+        lockUntil = Date.now() + (3 * 60 * 60 * 1000);
+        console.warn('Shiprocket security lockout detected. Pausing login requests safely until 8:08 PM IST:', new Date(lockUntil).toLocaleTimeString());
       }
       return null;
     }
