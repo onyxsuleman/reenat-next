@@ -156,16 +156,56 @@ export default function CMSConsole() {
       const { data, error } = resData;
 
       if (!error && data) {
+        // Build a product lookup map by numeric ID for instant enrichment
+        const prodLookup = {};
+        if (products && products.length > 0) {
+          products.forEach(p => {
+            const numId = String(p.id || '').replace(/\D/g, '');
+            if (numId) prodLookup[numId] = p;
+          });
+        }
+
         const mapped = data.map(order => {
-          const firstItem = (order.items && order.items.length > 0) ? order.items[0] : {};
-          const totalQty = (order.items || []).reduce((sum, i) => sum + (i.qty || 1), 0);
-          const skuIds = (order.items || []).map(i => i.skuId || i.sku || 'N/A').filter(Boolean).join(', ') || 'N/A';
-          const productIds = (order.items || []).map(i => {
-            if (i.id && !String(i.id).startsWith('temp-')) {
-              return `NSY${String(i.id).padStart(4, '0')}`;
+          // Enrich items with product data from loaded inventory
+          const enrichedItems = (order.items || []).map(rawItem => {
+            const itemNumId = String(rawItem.id || '').replace(/\D/g, '');
+            const matchedProd = itemNumId ? prodLookup[itemNumId] : null;
+
+            const image = (matchedProd && matchedProd.image) 
+              ? matchedProd.image 
+              : (rawItem.image && rawItem.image.startsWith('http') ? rawItem.image : '');
+            
+            const skuId = (matchedProd && matchedProd.styleid) 
+              ? matchedProd.styleid 
+              : (rawItem.skuId && rawItem.skuId !== 'N/A' ? rawItem.skuId : '');
+
+            const name = (matchedProd && matchedProd.name)
+              ? matchedProd.name
+              : (rawItem.name || 'Saree');
+
+            const color = (matchedProd && matchedProd.color)
+              ? matchedProd.color
+              : (rawItem.color || '');
+
+            return { ...rawItem, image, skuId, name, color };
+          });
+
+          const firstItem = enrichedItems.length > 0 ? enrichedItems[0] : {};
+          const totalQty = enrichedItems.reduce((sum, i) => sum + (i.qty || 1), 0);
+          const skuIds = enrichedItems.map(i => i.skuId || 'N/A').filter(Boolean).join(', ') || 'N/A';
+          const productIds = enrichedItems.map(i => {
+            const numId = String(i.id || '').replace(/\D/g, '');
+            if (numId && !String(i.id).startsWith('temp-')) {
+              return `NSY${numId.padStart(4, '0')}`;
             }
             return 'N/A';
           }).filter(Boolean).join(', ') || 'N/A';
+
+          // Detect COD from stored payment_method (handle legacy "Pay Online" mis-tags)
+          const rawPm = String(order.payment_method || '').toUpperCase();
+          const isCod = rawPm === 'COD' || rawPm.includes('CASH') || rawPm.includes('DELIVERY');
+          const paymentMethod = isCod ? 'COD' : order.payment_method;
+
           return {
             id: `RT-${order.id}`,
             dbId: order.id,
@@ -181,9 +221,9 @@ export default function CMSConsole() {
             amount: firstItem.price || order.subtotal,
             qty: firstItem.qty || 1,
             totalQty: totalQty,
-            paymentMethod: order.payment_method,
+            paymentMethod: paymentMethod,
             status: order.order_status,
-            items: order.items || []
+            items: enrichedItems
           };
         });
         setOrders(mapped);
@@ -195,7 +235,7 @@ export default function CMSConsole() {
 
   useEffect(() => {
     fetchDbOrders();
-  }, []);
+  }, [products]);
 
   // Mock Returns state
   const [returns, setReturns] = useState([
