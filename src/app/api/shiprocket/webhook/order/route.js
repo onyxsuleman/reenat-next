@@ -94,18 +94,30 @@ export async function POST(request) {
     const tax = Math.round(Number(payload.tax_price || payload.tax || 0));
     const discount = Math.round(Number(payload.discount_amount || payload.discount || 0));
 
-    let paymentMethod = 'Pay Online';
-    const rawPayment = payload.payment_method || payload.payment_type || payload.payment_mode || '';
-    if (rawPayment) {
-      const pmUpper = String(rawPayment).toUpperCase();
-      if (pmUpper === 'COD' || pmUpper === 'CASH ON DELIVERY' || pmUpper === 'CASH_ON_DELIVERY') {
-        paymentMethod = 'COD';
-      } else if (pmUpper === 'PREPAID' || pmUpper === 'ONLINE' || pmUpper === 'PAY ONLINE' || pmUpper === 'PAY_ONLINE') {
-        paymentMethod = 'Pay Online';
-      } else {
-        paymentMethod = rawPayment;
-      }
+    let isCod = false;
+    const checkCod = (val) => {
+      if (!val) return false;
+      if (val === true || val === 1 || val === '1') return true;
+      const s = String(val).toUpperCase();
+      return s === 'COD' || s.includes('CASH') || s.includes('DELIVERY');
+    };
+
+    if (
+      checkCod(payload.is_cod) ||
+      checkCod(payload.cod) ||
+      checkCod(payload.payment_method) ||
+      checkCod(payload.payment_type) ||
+      checkCod(payload.payment_mode) ||
+      checkCod(payload.payment_gateway) ||
+      checkCod(payload.gateway) ||
+      checkCod(payload.payment_details?.method) ||
+      checkCod(payload.payment_details?.mode) ||
+      checkCod(payload.order?.payment_method)
+    ) {
+      isCod = true;
     }
+
+    const paymentMethod = isCod ? 'COD' : 'Pay Online';
     const paymentStatus = payload.payment_status || (paymentMethod === 'COD' ? 'pending' : 'paid');
     const orderStatus = payload.order_status || 'Pending';
 
@@ -114,35 +126,60 @@ export async function POST(request) {
     // Parse Line items with self-healing DB lookup
     const rawItems = payload.items || payload.line_items || [];
     const orderItems = await Promise.all(rawItems.map(async item => {
-      let localId = item.id || item.product_id || '';
-      const sku = item.sku || item.sku_id || item.styleid || item.styleId || item.style_id || '';
+      let localId = item.id || item.product_id || item.variant_id || '';
+      const rawSku = [item.sku, item.sku_id, item.styleid, item.styleId, item.style_id]
+        .map(s => (typeof s === 'string' ? s.trim() : ''))
+        .find(s => s.length > 0 && s !== 'N/A') || '';
       
       // If local ID is not numeric or seems like a Shiprocket internal ID, try extracting from SKU (e.g. "NSY0042" -> "42")
-      if (sku && sku.startsWith('NSY')) {
-        const parsedId = parseInt(sku.replace('NSY', ''), 10);
+      if (rawSku && rawSku.startsWith('NSY')) {
+        const parsedId = parseInt(rawSku.replace('NSY', ''), 10);
         if (!isNaN(parsedId)) {
           localId = parsedId;
         }
       }
 
       let dbProduct = null;
-      if (sku || localId) {
+      if (rawSku || localId) {
         try {
-          const query = supabase.from('products').select('id, name, image, color, styleid');
-          if (sku && localId && !isNaN(Number(localId))) {
-            query.or(`styleid.eq."${sku}",id.eq.${localId}`);
-          } else if (sku) {
-            query.eq('styleid', sku);
-          } else if (localId && !isNaN(Number(localId))) {
-            query.eq('id', localId);
+          const numId = String(localId || '').replace(/\D/g, '');
+          const conditions = [];
+          if (rawSku && rawSku !== 'N/A') {
+            conditions.push(`styleid.eq."${rawSku}"`);
           }
-          const { data: prodData } = await query.maybeSingle();
-          if (prodData) {
-            dbProduct = prodData;
+          if (numId) {
+            conditions.push(`id.eq.${numId}`);
+          }
+          if (conditions.length > 0) {
+            const { data: prodData } = await supabase
+              .from('products')
+              .select('id, name, image, color, styleid')
+              .or(conditions.join(','))
+              .maybeSingle();
+            if (prodData) {
+              dbProduct = prodData;
+            }
           }
         } catch (dbErr) {
           console.error('Failed to lookup product details from db for webhook item:', dbErr);
         }
+      }
+
+      let resolvedImage = dbProduct ? dbProduct.image : (
+        item.image || item.image_url || item.product_image || item.src || item.image_front || item.image1 || item.thumbnail || ''
+      );
+
+      const fallbackImg = 'https://www.reenattrends.com/saree_kanjivaram.png';
+      if (!resolvedImage || typeof resolvedImage !== 'string' || resolvedImage.includes('localhost')) {
+        resolvedImage = fallbackImg;
+      } else if (resolvedImage.startsWith('/')) {
+        resolvedImage = `https://www.reenattrends.com${resolvedImage}`;
+      }
+
+      let resolvedSku = dbProduct ? (dbProduct.styleid || rawSku) : rawSku;
+      if (!resolvedSku || resolvedSku === 'N/A') {
+        const cleanId = String(localId || item.id || '').replace(/\D/g, '');
+        resolvedSku = cleanId ? `NSY${cleanId.padStart(4, '0')}` : 'NSY0001';
       }
 
       return {
@@ -150,9 +187,9 @@ export async function POST(request) {
         name: dbProduct ? dbProduct.name : (item.title || item.name || 'Saree'),
         qty: Number(item.quantity || item.qty || 1),
         price: Number(item.price || 0),
-        image: dbProduct ? dbProduct.image : (item.image_url || item.image || ''),
+        image: resolvedImage,
         color: dbProduct ? dbProduct.color : (item.color || ''),
-        skuId: dbProduct ? dbProduct.styleid : sku
+        skuId: resolvedSku
       };
     }));
 
