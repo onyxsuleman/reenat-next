@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { getSupabaseServerClient } from '../../../../../utils/supabaseServer';
+import { pushOrderToShiprocket } from '../../../../../utils/shiprocketApi';
 
 export async function POST(request) {
   try {
@@ -328,6 +329,13 @@ export async function POST(request) {
             .eq('id', item.id);
         }
       }
+    }
+
+    // 4. Push order to Shiprocket Shipping Dashboard via Adhoc API
+    if (insertedOrder && insertedOrder[0]) {
+      pushOrderToShiprocket(insertedOrder[0]).catch(err => {
+        console.error('Background Shiprocket order push error:', err);
+      });
     }
 
     return NextResponse.json({ success: true, order: insertedOrder[0] });

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '../../../utils/supabaseServer';
+import { pushOrderToShiprocket } from '../../../utils/shiprocketApi';
 
 export async function POST(request) {
   try {
@@ -171,6 +172,13 @@ export async function POST(request) {
         // Log stock decrement failures but don't crash checkout
         console.error(`Failed to update stock quantity for product ID ${update.id}:`, stockErr.message);
       }
+    }
+
+    // 9. Push order to Shiprocket Shipping Dashboard via Adhoc API
+    if (order && order[0]) {
+      pushOrderToShiprocket(order[0]).catch(err => {
+        console.error('Background Shiprocket order push error in direct checkout:', err);
+      });
     }
 
     return NextResponse.json({ success: true, order: order[0] });
