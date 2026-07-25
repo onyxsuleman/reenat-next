@@ -40,14 +40,15 @@ export async function POST(request) {
 
       if (rawImage && typeof rawImage === 'string') {
         rawImage = rawImage.trim();
-        if (rawImage.startsWith('/')) {
-          imageUrl = `https://www.reenattrends.com${rawImage}`;
-        } else if (rawImage.startsWith('http://') || rawImage.startsWith('https://')) {
+        if (rawImage.startsWith('http://') || rawImage.startsWith('https://')) {
           if (rawImage.includes('localhost') || rawImage.includes('127.0.0.1')) {
             imageUrl = fallbackImage;
           } else {
             imageUrl = rawImage;
           }
+        } else {
+          const cleanPath = rawImage.startsWith('/') ? rawImage : `/${rawImage}`;
+          imageUrl = `https://www.reenattrends.com${cleanPath}`;
         }
       }
 
@@ -55,14 +56,25 @@ export async function POST(request) {
         imageUrl = fallbackImage;
       }
 
+      const cleanTitle = item.name || 'Saree';
+      const cleanId = String(item.id || '1');
+
       return {
-        id: String(item.id),
-        variant_id: String(item.id),
-        title: item.name || 'Saree',
+        id: cleanId,
+        variant_id: cleanId,
+        product_id: cleanId,
+        title: cleanTitle,
+        name: cleanTitle,
         quantity: Number(item.qty) || 1,
         price: parseFloat(item.price || '0').toFixed(2),
         sku: resolvedSku,
-        image_url: imageUrl
+        sku_id: resolvedSku,
+        styleid: resolvedSku,
+        style_id: resolvedSku,
+        image: imageUrl,
+        image_url: imageUrl,
+        product_image: imageUrl,
+        src: imageUrl
       };
     });
 
@@ -74,7 +86,11 @@ export async function POST(request) {
       items: items,
       total_price: parseFloat(subtotal).toFixed(2),
       subtotal_price: parseFloat(subtotal).toFixed(2),
-      currency: 'INR'
+      currency: 'INR',
+      cod_available: true,
+      is_cod_available: true,
+      allow_cod: true,
+      payment_methods: ['COD', 'PREPAID', 'ONLINE']
     };
 
     if (customer && typeof customer === 'object') {
