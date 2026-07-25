@@ -67,24 +67,26 @@ export async function POST(request) {
     let shippingPincode = '';
     let shippingCountry = 'India';
 
+    const cleanStr = (val) => (typeof val === 'string' ? val : (typeof val === 'number' ? String(val) : ''));
+
     if (shippingAddress && typeof shippingAddress === 'object') {
-      shippingLine1 = shippingAddress.address1 || shippingAddress.line1 || '';
-      shippingLine2 = shippingAddress.address2 || shippingAddress.line2 || '';
-      shippingCity = shippingAddress.city || '';
-      shippingState = shippingAddress.state || '';
-      shippingPincode = String(shippingAddress.zip || shippingAddress.pincode || '');
-      shippingCountry = shippingAddress.country || 'India';
+      shippingLine1 = cleanStr(shippingAddress.address1 || shippingAddress.line1);
+      shippingLine2 = cleanStr(shippingAddress.address2 || shippingAddress.line2);
+      shippingCity = cleanStr(shippingAddress.city);
+      shippingState = cleanStr(shippingAddress.state);
+      shippingPincode = cleanStr(shippingAddress.zip || shippingAddress.pincode);
+      shippingCountry = cleanStr(shippingAddress.country) || 'India';
     } else if (typeof shippingAddress === 'string') {
       shippingLine1 = shippingAddress;
-      shippingLine2 = payload.shipping_address_2 || payload.shipping_line2 || '';
-      shippingCity = payload.shipping_city || payload.city || '';
-      shippingState = payload.shipping_state || payload.state || '';
-      shippingPincode = String(payload.shipping_pincode || payload.pincode || '');
-      shippingCountry = payload.shipping_country || payload.country || 'India';
+      shippingLine2 = cleanStr(payload.shipping_address_2 || payload.shipping_line2);
+      shippingCity = cleanStr(payload.shipping_city || payload.city);
+      shippingState = cleanStr(payload.shipping_state || payload.state);
+      shippingPincode = cleanStr(payload.shipping_pincode || payload.pincode);
+      shippingCountry = cleanStr(payload.shipping_country || payload.country) || 'India';
     }
     
     // Concatenate full address
-    const fullAddress = `${shippingLine1} ${shippingLine2}, ${shippingCity}, ${shippingState} - ${shippingPincode}, ${shippingCountry}`.replace(/\s+/g, ' ').trim();
+    const fullAddress = `${shippingLine1} ${shippingLine2}, ${shippingCity}, ${shippingState} - ${shippingPincode}, ${shippingCountry}`.replace(/\s+/g, ' ').replace(/^[\s,]+|[\s,]+$/g, '').trim();
 
     // Financials
     const total = Math.round(Number(payload.total_price || payload.total || 0));

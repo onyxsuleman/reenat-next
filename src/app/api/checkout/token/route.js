@@ -20,17 +20,32 @@ export async function POST(request) {
     // 1. Format cart items for Shiprocket
     const fallbackImage = 'https://www.reenattrends.com/saree_kanjivaram.png';
     const items = cart.map(item => {
-      let rawImage = item.image || item.image_front || item.image_url || item.image1 || item.image2 || '';
+      // 1. Resolve SKU cleanly (filter out empty/falsy strings)
+      let resolvedSku = [item.skuId, item.sku, item.styleid, item.styleId]
+        .map(s => (typeof s === 'string' ? s.trim() : ''))
+        .find(s => s.length > 0);
+
+      if (!resolvedSku) {
+        const numId = String(item.id || '').replace(/\D/g, '');
+        const padId = numId ? numId.padStart(4, '0') : '0001';
+        const catalog = item.catalog_id || item.catalogId;
+        resolvedSku = catalog 
+          ? `${catalog}||${item.color || 'DEFAULT'}`
+          : `NSY${padId}`;
+      }
+
+      // 2. Resolve Image URL cleanly
+      let rawImage = item.image || item.image_front || item.image_url || item.image1 || item.image2 || item.image3 || item.image4 || '';
       let imageUrl = '';
 
-      if (rawImage) {
+      if (rawImage && typeof rawImage === 'string') {
+        rawImage = rawImage.trim();
         if (rawImage.startsWith('/')) {
           imageUrl = `https://www.reenattrends.com${rawImage}`;
         } else if (rawImage.startsWith('http://') || rawImage.startsWith('https://')) {
           if (rawImage.includes('localhost') || rawImage.includes('127.0.0.1')) {
             imageUrl = fallbackImage;
           } else {
-            // Send direct image URL to Shiprocket Fastrr so it can resolve and render product thumbnail
             imageUrl = rawImage;
           }
         }
@@ -46,7 +61,7 @@ export async function POST(request) {
         title: item.name || 'Saree',
         quantity: Number(item.qty) || 1,
         price: parseFloat(item.price || '0').toFixed(2),
-        sku: item.styleid || item.styleId || item.skuId || `NSY${String(item.id).padStart(4, '0')}`,
+        sku: resolvedSku,
         image_url: imageUrl
       };
     });
@@ -62,13 +77,17 @@ export async function POST(request) {
       currency: 'INR'
     };
 
-    if (customer) {
-      const nameParts = (customer.name || 'Guest Customer').trim().split(/\s+/);
+    if (customer && typeof customer === 'object') {
+      const rawName = typeof customer.name === 'string' ? customer.name : '';
+      const nameParts = (rawName || 'Guest Customer').trim().split(/\s+/);
       const firstName = nameParts[0] || 'Guest';
       const lastName = nameParts.slice(1).join(' ') || 'Customer';
+      const email = typeof customer.email === 'string' ? customer.email : '';
+      const phone = typeof customer.phone === 'string' ? customer.phone : '';
+
       cart_data.customer_details = {
-        email: customer.email || '',
-        phone: customer.phone || '',
+        email: email,
+        phone: phone,
         first_name: firstName,
         last_name: lastName
       };
