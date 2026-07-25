@@ -113,7 +113,7 @@ export default function Home() {
       </div>
 
       {/* Hero Header Section */}
-      <header className="max-w-5xl mx-auto bg-[#0c1e44]/95 text-white px-3.5 pb-3.5 pt-8 sm:pt-14 rounded-tl-4xl rounded-b-4xl relative z-0 overflow-hidden glass page-hero">
+      <header className="max-w-5xl mx-auto bg-[#0c1e44]/95 text-white px-3.5 pb-3.5 pt-8 sm:pt-14 rounded-tl-4xl rounded-b-4xl relative z-10 glass page-hero">
         <div className="w-full flex justify-center overflow-hidden py-4 sm:py-6 select-none">
           <span className="font-anton text-[11vw] sm:text-[12vw] md:text-[100px] leading-none tracking-wider text-white/95 dark:text-[#f1bf0a] uppercase w-full text-center drop-shadow-md block select-none">
             REENAT'S

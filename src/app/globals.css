@@ -887,6 +887,18 @@ html:not(.dark) .bg-\[\#183fad\] button {
   color: #ffffff !important;
 }
 
+/* Hero Image Stacking & Overflow Fix */
+header.page-hero {
+  overflow: visible !important;
+  z-index: 10;
+}
+
+img#hero-image {
+  position: absolute;
+  z-index: 100;
+}
+
+
 
 
 
