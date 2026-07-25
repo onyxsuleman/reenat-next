@@ -20,19 +20,18 @@ export async function POST(request) {
     // 1. Format cart items for Shiprocket
     const fallbackImage = 'https://www.reenattrends.com/saree_kanjivaram.png';
     const items = cart.map(item => {
-      let rawImage = item.image || item.image_front || item.image_url || item.image1 || '';
+      let rawImage = item.image || item.image_front || item.image_url || item.image1 || item.image2 || '';
       let imageUrl = '';
 
       if (rawImage) {
         if (rawImage.startsWith('/')) {
           imageUrl = `https://www.reenattrends.com${rawImage}`;
         } else if (rawImage.startsWith('http://') || rawImage.startsWith('https://')) {
-          // If image URL contains localhost or 127.0.0.1, replace with fallback
           if (rawImage.includes('localhost') || rawImage.includes('127.0.0.1')) {
             imageUrl = fallbackImage;
           } else {
-            // Route through reenattrends.com image proxy so Fastrr Checkout receives a clean, trusted domain URL
-            imageUrl = `https://www.reenattrends.com/api/image-proxy?url=${encodeURIComponent(rawImage)}`;
+            // Send direct image URL to Shiprocket Fastrr so it can resolve and render product thumbnail
+            imageUrl = rawImage;
           }
         }
       }

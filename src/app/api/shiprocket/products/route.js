@@ -111,7 +111,7 @@ export async function GET(request) {
             if (rawVariantImage.includes('localhost') || rawVariantImage.includes('127.0.0.1')) {
               variantImage = fallbackImage;
             } else {
-              variantImage = `https://www.reenattrends.com/api/image-proxy?url=${encodeURIComponent(rawVariantImage)}`;
+              variantImage = rawVariantImage;
             }
           }
         }
@@ -144,8 +144,10 @@ export async function GET(request) {
 
       const optionColors = Array.from(new Set(variants.map(v => v.color || 'Default')));
 
-      let mainImage = mainVariant.image || '';
-      if (!mainImage || mainImage.includes('localhost') || mainImage.includes('127.0.0.1')) {
+      let mainImage = mainVariant.image || mainVariant.image_front || mainVariant.image1 || '';
+      if (mainImage.startsWith('/')) {
+        mainImage = `https://www.reenattrends.com${mainImage}`;
+      } else if (!mainImage || mainImage.includes('localhost') || mainImage.includes('127.0.0.1')) {
         mainImage = fallbackImage;
       }
 
