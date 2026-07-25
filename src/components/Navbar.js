@@ -24,22 +24,22 @@ export default function Navbar() {
     <nav className="flex flex-col max-w-5xl w-full mx-auto relative z-50 gap-4 mt-1.5 mb-4 px-2 sm:px-0">
       
       {/* Mobile Navbar Row */}
-      <div className="flex md:hidden items-center justify-between px-4 w-full gap-3 nav-parent">
+      <div className="flex md:hidden items-center justify-center gap-1 w-full">
         {/* Left: Logo */}
-        <Link href="/" className="flex items-center justify-start gap-2 bg-white/70 dark:bg-[#0c1e44]/70 pl-2.5 pr-3 h-10 rounded-[9999px] nav-pill border border-white/20 dark:border-white/10 transition-colors duration-300 hover:no-underline">
+        <Link href="/" className="flex items-center justify-start gap-2 bg-white/90 dark:bg-[#0c1e44]/90 pl-2.5 pr-1 h-12 rounded-[9999px] nav-glass border border-white/20 dark:border-white/10 transition-colors duration-300 flex-1 min-w-0 hover:no-underline">
           <Image 
             src="/logo.png" 
             alt="Reenat Trends Logo" 
-            width={28} 
-            height={28} 
+            width={34} 
+            height={34} 
             style={{ width: 'auto', height: 'auto' }}
             className="rounded-full object-contain shrink-0"
           />
-          <span className="font-anton select-none text-slate-800 dark:text-white text-xs sm:text-sm tracking-wider transition-colors duration-300 truncate">REENAT TRENDS</span>
+          <span className="font-anton select-none text-slate-800 dark:text-white text-sm sm:text-base tracking-wider transition-colors duration-300 truncate">REENAT TRENDS</span>
         </Link>
 
         {/* Right: Toggle/Search/Hamburger Pill */}
-        <div className="flex items-center justify-between gap-3 bg-white/70 dark:bg-[#0c1e44]/70 px-3 h-10 rounded-[9999px] nav-pill border border-white/20 dark:border-white/10 text-slate-800 dark:text-white">
+        <div className="flex items-center justify-between bg-white/90 dark:bg-[#0c1e44]/90 px-3.5 h-12 rounded-[9999px] nav-glass border border-white/20 dark:border-white/10 text-slate-800 dark:text-white flex-1 min-w-0">
           {/* Neumorphic Sliding Switch (Left) */}
           <button
             type="button"
