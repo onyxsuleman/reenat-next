@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '../../../../utils/supabaseServer';
 import { pushOrderToShiprocket } from '../../../../utils/shiprocketApi';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request) {
   try {
     const { orderId } = await request.json();

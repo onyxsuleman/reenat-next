@@ -3,6 +3,8 @@ import crypto from 'crypto';
 import { getSupabaseServerClient } from '../../../../../utils/supabaseServer';
 import { pushOrderToShiprocket } from '../../../../../utils/shiprocketApi';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request) {
   try {
     const rawBody = await request.text();

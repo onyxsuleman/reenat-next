@@ -1756,8 +1756,9 @@ export default function CMSConsole() {
         </div>
       </div>
     );
-  };;
+  };
 
+  const renderOrdersView = () => {
     const isToAcceptStatus = (status) => {
       if (!status) return true;
       const s = String(status).trim().toLowerCase();
