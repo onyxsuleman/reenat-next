@@ -225,14 +225,16 @@ export default function CMSConsole() {
             return 'N/A';
           }).filter(Boolean).join(', ') || 'N/A';
 
-          // Detect COD from stored payment_method or status
-          const rawPm = String(order.payment_method || '').toUpperCase();
-          const isCod = rawPm === 'COD' || rawPm.includes('CASH') || rawPm.includes('DELIVERY') || order.payment_status === 'pending' || !order.payment_method;
-          const paymentMethod = isCod ? 'COD' : order.payment_method;
+          // Detect Payment Method accurately (Prepaid vs COD)
+          const rawPm = String(order.payment_method || '').trim().toUpperCase();
+          const rawPs = String(order.payment_status || '').trim().toLowerCase();
+          const isExplicitPrepaid = (rawPm === 'PREPAID' || rawPm === 'PAY ONLINE' || rawPm === 'ONLINE') && rawPs === 'paid';
+          const paymentMethod = isExplicitPrepaid ? 'Prepaid' : 'COD';
 
           return {
             id: `RT-${order.id}`,
             dbId: order.id,
+            shiprocketOrderId: order.shiprocket_order_id || '',
             date: new Date(order.created_at).toISOString().split('T')[0],
             customer: order.customer_name,
             phone: order.phone,
@@ -1852,7 +1854,12 @@ export default function CMSConsole() {
                       </div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium">{item.id}</div>
+                      <div className="text-sm font-bold text-slate-900 dark:text-white">{item.id}</div>
+                      {item.shiprocketOrderId && (
+                        <div className="text-[11px] font-mono text-blue-600 dark:text-blue-400 font-semibold mt-0.5" title="Shiprocket Order ID">
+                          SR: {item.shiprocketOrderId}
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
                       <div className="text-sm text-slate-700 dark:text-slate-300">{item.skuId || 'N/A'}</div>
@@ -1864,12 +1871,12 @@ export default function CMSConsole() {
                       <div className="text-sm font-medium">{item.qty}</div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        item.paymentMethod === 'Pay Online' 
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                        item.paymentMethod === 'Prepaid' || item.paymentMethod === 'Pay Online' 
                           ? 'bg-green-100 text-green-800 dark:bg-green-500/10 dark:text-green-400 border border-green-200 dark:border-green-500/20' 
                           : 'bg-orange-100 text-orange-800 dark:bg-orange-500/10 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20'
                       }`}>
-                        {item.paymentMethod === 'Pay Online' ? 'Prepaid' : 'COD'}
+                        {item.paymentMethod === 'Prepaid' || item.paymentMethod === 'Pay Online' ? 'Prepaid' : 'COD'}
                       </span>
                     </td>
                     <td className="px-4 py-4">

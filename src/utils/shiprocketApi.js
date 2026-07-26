@@ -34,7 +34,7 @@ export async function getShiprocketAuthToken() {
 
   // 2. Otherwise authenticate using email and password
   const email = (process.env.SHIPROCKET_EMAIL || 'reenattrends@gmail.com').trim();
-  const password = (process.env.SHIPROCKET_PASSWORD || '8!OZfm8Tr1Mof%^lQcrIZ9$1z@629GwW').trim();
+  const password = (process.env.SHIPROCKET_PASSWORD || 'blb@PO8lnCHSvRua#Bv*0ZrbWk^Z%B5q').trim();
 
   try {
     const res = await fetch('https://apiv2.shiprocket.in/v1/external/auth/login', {
@@ -91,10 +91,11 @@ export async function pushOrderToShiprocket(order) {
     const firstName = nameParts[0] || 'Customer';
     const lastName = nameParts.slice(1).join(' ') || '';
 
-    const phone = String(order.phone || '').replace(/\D/g, '');
-    const cleanPhone = phone.length > 10 ? phone.slice(-10) : (phone || '9876543210');
+    const phoneDigits = String(order.phone || '').replace(/\D/g, '');
+    const cleanPhone = phoneDigits.length >= 10 ? phoneDigits.slice(-10) : '9876543210';
 
-    const address = order.shipping_line1 || order.address || 'Address details on record';
+    const rawAddress = order.shipping_line1 || order.address || 'Address details on record';
+    const address = String(rawAddress).trim().slice(0, 180);
     const city = order.shipping_city || 'Nashik';
     const state = order.shipping_state || 'Maharashtra';
     const pincode = order.shipping_pincode || '423203';
@@ -121,12 +122,15 @@ export async function pushOrderToShiprocket(order) {
       };
     });
 
-    const isCod = String(order.payment_method || '').toUpperCase().includes('COD');
+    const pMethod = String(order.payment_method || '').toUpperCase();
+    const pStatus = String(order.payment_status || '').toLowerCase();
+    const isExplicitPrepaid = (pMethod.includes('PREPAID') || pMethod.includes('ONLINE')) && pStatus === 'paid';
+    const isCod = !isExplicitPrepaid;
 
     const payload = {
       order_id: orderIdStr,
       order_date: orderDateStr,
-      pickup_location: process.env.SHIPROCKET_PICKUP_LOCATION || 'Primary',
+      pickup_location: process.env.SHIPROCKET_PICKUP_LOCATION || 'work',
       channel_id: '',
       comment: 'Storefront Online Purchase',
       billing_customer_name: firstName,

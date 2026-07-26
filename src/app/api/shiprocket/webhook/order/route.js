@@ -95,31 +95,26 @@ export async function POST(request) {
     const tax = Math.round(Number(payload.tax_price || payload.tax || 0));
     const discount = Math.round(Number(payload.discount_amount || payload.discount || 0));
 
-    let isCod = false;
-    const checkCod = (val) => {
-      if (!val) return false;
-      if (val === true || val === 1 || val === '1') return true;
-      const s = String(val).toUpperCase();
-      return s === 'COD' || s.includes('CASH') || s.includes('DELIVERY');
-    };
+    // Parse Payment Mode accurately from Fastrr / Shiprocket payload
+    const rawPaymentMode = String(
+      payload.payment_method || 
+      payload.payment_mode || 
+      payload.payment_type || 
+      (payload.payment_info && payload.payment_info.payment_mode) || 
+      ''
+    ).trim().toUpperCase();
 
-    if (
-      checkCod(payload.is_cod) ||
-      checkCod(payload.cod) ||
-      checkCod(payload.payment_method) ||
-      checkCod(payload.payment_type) ||
-      checkCod(payload.payment_mode) ||
-      checkCod(payload.payment_gateway) ||
-      checkCod(payload.gateway) ||
-      checkCod(payload.payment_details?.method) ||
-      checkCod(payload.payment_details?.mode) ||
-      checkCod(payload.order?.payment_method)
-    ) {
-      isCod = true;
-    }
+    const rawPaymentStatus = String(
+      payload.payment_status || 
+      (payload.payment_info && payload.payment_info.payment_status) || 
+      ''
+    ).trim().toLowerCase();
 
-    const paymentMethod = isCod ? 'COD' : 'Pay Online';
-    const paymentStatus = payload.payment_status || (paymentMethod === 'COD' ? 'pending' : 'paid');
+    const isExplicitPrepaid = (rawPaymentMode === 'PREPAID' || rawPaymentMode === 'ONLINE' || rawPaymentMode === 'PAY ONLINE') && rawPaymentStatus === 'paid';
+    const isCod = !isExplicitPrepaid;
+
+    const paymentMethod = isCod ? 'COD' : 'Prepaid';
+    const paymentStatus = isCod ? (rawPaymentStatus || 'pending') : (rawPaymentStatus || 'paid');
     const orderStatus = payload.order_status || 'Pending';
 
     const supabase = getSupabaseServerClient();
