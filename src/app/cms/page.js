@@ -231,11 +231,15 @@ export default function CMSConsole() {
           const isExplicitPrepaid = (rawPm === 'PREPAID' || rawPm === 'PAY ONLINE' || rawPm === 'ONLINE') && rawPs === 'paid';
           const paymentMethod = isExplicitPrepaid ? 'Prepaid' : 'COD';
 
+          const rawDate = order.created_at ? new Date(order.created_at) : new Date();
+          const formattedDate = rawDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+          const formattedTime = rawDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+
           return {
             id: `RT-${order.id}`,
             dbId: order.id,
             shiprocketOrderId: order.shiprocket_order_id || '',
-            date: new Date(order.created_at).toISOString().split('T')[0],
+            date: `${formattedDate}, ${formattedTime}`,
             customer: order.customer_name,
             phone: order.phone,
             address: order.address,
@@ -1878,6 +1882,7 @@ export default function CMSConsole() {
                   </th>
                   <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider min-w-[250px] text-slate-600 dark:text-slate-400">Items to Pack in Each Order</th>
                   <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Order ID</th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Date & Time</th>
                   <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">SKU IDs</th>
                   <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Product ID</th>
                   <th scope="col" className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Qty</th>
@@ -1915,6 +1920,9 @@ export default function CMSConsole() {
                       )}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">{item.date}</div>
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
                       <div className="text-sm text-slate-700 dark:text-slate-300">{item.skuId || 'N/A'}</div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
@@ -1944,19 +1952,24 @@ export default function CMSConsole() {
                         <button
                           onClick={() => handlePushToShiprocket(item)}
                           disabled={syncingOrderId === item.id}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 border text-xs font-bold rounded-lg transition-all cursor-pointer shadow-sm disabled:opacity-50 ${
+                          className={`inline-flex items-center gap-1 px-2.5 py-1.5 border text-xs font-bold rounded-lg transition-all cursor-pointer shadow-sm disabled:opacity-50 ${
                             item.shiprocketOrderId 
                               ? 'border-emerald-500/30 text-emerald-700 dark:text-emerald-400 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50' 
                               : 'border-blue-500/30 text-blue-700 dark:text-blue-400 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50'
                           }`}
-                          title={item.shiprocketOrderId ? `Synced to Shiprocket (ID: ${item.shiprocketOrderId}). Click to Re-sync.` : "Push order directly to Shiprocket Shipping Dashboard (app.shiprocket.in)"}
+                          title={item.shiprocketOrderId ? `Synced to Shiprocket (ID: ${item.shiprocketOrderId}). Click to Re-push.` : "Push directly to Shiprocket Shipping Dashboard (app.shiprocket.in)"}
                         >
                           {syncingOrderId === item.id ? (
-                            <span>Pushing...</span>
+                            <span className="text-xs animate-pulse">⏳ Pushing...</span>
+                          ) : item.shiprocketOrderId ? (
+                            <>
+                              <span className="text-emerald-600 dark:text-emerald-400">✓</span>
+                              <span>Synced</span>
+                            </>
                           ) : (
                             <>
                               <span>🚀</span>
-                              <span>{item.shiprocketOrderId ? 'Re-push Shiprocket' : 'Push to Shiprocket'}</span>
+                              <span>Push SR</span>
                             </>
                           )}
                         </button>
