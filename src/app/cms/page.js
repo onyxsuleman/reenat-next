@@ -335,6 +335,45 @@ export default function CMSConsole() {
     showToast(`Order ${orderId} marked as ${newStatus}.`, 'success');
   };
 
+  const [syncingOrderId, setSyncingOrderId] = useState(null);
+
+  const handlePushToShiprocket = async (order) => {
+    const dbId = order.dbId || String(order.id || '').replace(/\D/g, '');
+    if (!dbId) {
+      showToast('Invalid order ID for Shiprocket push', 'error');
+      return;
+    }
+
+    setSyncingOrderId(order.id);
+    showToast(`Pushing Order ${order.id} to Shiprocket Shipping Dashboard...`, 'info');
+
+    try {
+      const response = await fetch('/api/cms/shiprocket-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: Number(dbId) })
+      });
+
+      const resData = await response.json();
+
+      if (response.ok && resData.success) {
+        showToast(`✅ Order ${order.id} pushed! Shiprocket Order ID: ${resData.shiprocket_order_id}`, 'success');
+        setOrders(prev => prev.map(o => o.id === order.id ? { 
+          ...o, 
+          shiprocketOrderId: resData.shiprocket_order_id,
+          status: 'Synced to Shiprocket'
+        } : o));
+      } else {
+        showToast(`⚠️ Shiprocket Push Error: ${resData.error || 'Failed to sync'}`, 'error');
+      }
+    } catch (err) {
+      console.error('Shiprocket sync error:', err);
+      showToast(`Push failed: ${err.message}`, 'error');
+    } finally {
+      setSyncingOrderId(null);
+    }
+  };
+
   const handleUpdateReturnStatus = (returnId, newStatus) => {
     setReturns(prev => prev.map(r => r.id === returnId ? { ...r, status: newStatus } : r));
     showToast(`Return ${returnId} marked as ${newStatus}.`, 'info');
@@ -1888,6 +1927,25 @@ export default function CMSConsole() {
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handlePushToShiprocket(item)}
+                          disabled={syncingOrderId === item.id}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 border text-xs font-bold rounded-lg transition-all cursor-pointer shadow-sm disabled:opacity-50 ${
+                            item.shiprocketOrderId 
+                              ? 'border-emerald-500/30 text-emerald-700 dark:text-emerald-400 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50' 
+                              : 'border-blue-500/30 text-blue-700 dark:text-blue-400 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50'
+                          }`}
+                          title={item.shiprocketOrderId ? `Synced to Shiprocket (ID: ${item.shiprocketOrderId}). Click to Re-sync.` : "Push order directly to Shiprocket Shipping Dashboard (app.shiprocket.in)"}
+                        >
+                          {syncingOrderId === item.id ? (
+                            <span>Pushing...</span>
+                          ) : (
+                            <>
+                              <span>🚀</span>
+                              <span>{item.shiprocketOrderId ? 'Re-push Shiprocket' : 'Push to Shiprocket'}</span>
+                            </>
+                          )}
+                        </button>
                         {(item.status === 'Pending' || item.status === 'To Accept') && (
                           <>
                             <button 
