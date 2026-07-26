@@ -138,28 +138,41 @@ export async function POST(request) {
       }
 
       let dbProduct = null;
-      if (rawSku || localId) {
+
+      // 1. Primary Lookup: Match exact seller SKU (styleid) first
+      if (rawSku && rawSku !== 'N/A') {
+        try {
+          const { data: skuProd } = await supabase
+            .from('products')
+            .select('id, name, image, color, styleid')
+            .eq('styleid', rawSku)
+            .maybeSingle();
+
+          if (skuProd) {
+            dbProduct = skuProd;
+          }
+        } catch (skuErr) {
+          console.error('SKU lookup error in webhook:', skuErr);
+        }
+      }
+
+      // 2. Secondary Lookup: Try numeric Product ID match if SKU lookup returned null
+      if (!dbProduct && localId) {
         try {
           const numId = String(localId || '').replace(/\D/g, '');
-          const conditions = [];
-          if (rawSku && rawSku !== 'N/A') {
-            conditions.push(`styleid.eq."${rawSku}"`);
-          }
           if (numId) {
-            conditions.push(`id.eq.${numId}`);
-          }
-          if (conditions.length > 0) {
-            const { data: prodData } = await supabase
+            const { data: idProd } = await supabase
               .from('products')
               .select('id, name, image, color, styleid')
-              .or(conditions.join(','))
+              .eq('id', Number(numId))
               .maybeSingle();
-            if (prodData) {
-              dbProduct = prodData;
+
+            if (idProd) {
+              dbProduct = idProd;
             }
           }
-        } catch (dbErr) {
-          console.error('Failed to lookup product details from db for webhook item:', dbErr);
+        } catch (idErr) {
+          console.error('ID lookup error in webhook:', idErr);
         }
       }
 
