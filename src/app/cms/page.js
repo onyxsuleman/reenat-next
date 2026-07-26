@@ -1754,23 +1754,37 @@ export default function CMSConsole() {
     );
   };;
 
-  const renderOrdersView = () => {
+    const isToAcceptStatus = (status) => {
+      if (!status) return true;
+      const s = String(status).trim().toLowerCase();
+      return (
+        s === 'pending' || 
+        s === 'to accept' || 
+        s === 'synced to shiprocket' || 
+        s === 'synced' || 
+        s === 'new' || 
+        s === 'order placed' ||
+        (!['to pack', 'to dispatch', 'shipped', 'delivered', 'completed', 'cancelled'].includes(s))
+      );
+    };
+
     const tabs = [
-      { name: 'To Accept', count: orders.filter(o => o.status === 'Pending' || o.status === 'To Accept').length },
-      { name: 'To Pack', count: orders.filter(o => o.status === 'To Pack').length },
-      { name: 'To Dispatch', count: orders.filter(o => o.status === 'To Dispatch').length },
-      { name: 'Shipped', count: orders.filter(o => o.status === 'Shipped').length },
-      { name: 'Completed Orders', count: orders.filter(o => o.status === 'Delivered').length },
-      { name: 'Cancelled Orders', count: orders.filter(o => o.status === 'Cancelled').length },
+      { name: 'To Accept', count: orders.filter(o => isToAcceptStatus(o.status)).length },
+      { name: 'To Pack', count: orders.filter(o => String(o.status || '').toLowerCase() === 'to pack').length },
+      { name: 'To Dispatch', count: orders.filter(o => String(o.status || '').toLowerCase() === 'to dispatch').length },
+      { name: 'Shipped', count: orders.filter(o => String(o.status || '').toLowerCase() === 'shipped').length },
+      { name: 'Completed Orders', count: orders.filter(o => String(o.status || '').toLowerCase() === 'delivered' || String(o.status || '').toLowerCase() === 'completed').length },
+      { name: 'Cancelled Orders', count: orders.filter(o => String(o.status || '').toLowerCase() === 'cancelled').length },
     ];
 
     const filteredOrders = orders.filter(o => {
-      if (activeOrderTab === 'To Accept') return o.status === 'Pending' || o.status === 'To Accept';
-      if (activeOrderTab === 'To Pack') return o.status === 'To Pack';
-      if (activeOrderTab === 'To Dispatch') return o.status === 'To Dispatch';
-      if (activeOrderTab === 'Shipped') return o.status === 'Shipped';
-      if (activeOrderTab === 'Completed Orders') return o.status === 'Delivered';
-      if (activeOrderTab === 'Cancelled Orders') return o.status === 'Cancelled';
+      const s = String(o.status || '').toLowerCase();
+      if (activeOrderTab === 'To Accept') return isToAcceptStatus(o.status);
+      if (activeOrderTab === 'To Pack') return s === 'to pack';
+      if (activeOrderTab === 'To Dispatch') return s === 'to dispatch';
+      if (activeOrderTab === 'Shipped') return s === 'shipped';
+      if (activeOrderTab === 'Completed Orders') return s === 'delivered' || s === 'completed';
+      if (activeOrderTab === 'Cancelled Orders') return s === 'cancelled';
       return true;
     });
 
