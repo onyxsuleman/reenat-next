@@ -35,11 +35,13 @@ export async function POST(request) {
             const fullAddress = `${shipAddr.address_line1 || ''} ${shipAddr.address_line2 || ''}, ${shipAddr.city || ''}, ${shipAddr.state || ''} - ${shipAddr.pincode || ''}`.replace(/\s+/g, ' ').replace(/^[\s,]+|[\s,]+$/g, '').trim();
             const shipment = (o.shipments || [])[0] || {};
 
+            const rawOrderId = o.shiprocket_order_id || o.fastrr_order_id || (o.legacy_id ? String(o.legacy_id) : String(o.id));
+
             return {
-              id: o.legacy_id || o.id,
+              id: rawOrderId,
               dbId: o.legacy_id || o.id,
               uuid: o.id,
-              shiprocket_order_id: o.shiprocket_order_id,
+              shiprocket_order_id: o.shiprocket_order_id || rawOrderId,
               fastrr_order_id: o.fastrr_order_id,
               customer_name: o.customer_name,
               email: o.customer_email,
@@ -62,7 +64,8 @@ export async function POST(request) {
               tracking_url: shipment.tracking_url || '',
               created_at: o.created_at,
               items: (o.items || []).map(i => ({
-                id: i.product_id || i.id,
+                id: i.product_id ? `NSY${String(i.product_id).padStart(4, '0')}` : (i.id ? `NSY${String(i.id).replace(/\D/g, '').padStart(4, '0')}` : 'NSY0001'),
+                numericId: i.product_id || i.id,
                 name: i.product_name,
                 qty: i.quantity,
                 price: Number(i.unit_price || 0),

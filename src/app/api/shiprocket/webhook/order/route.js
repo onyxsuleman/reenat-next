@@ -415,23 +415,9 @@ export async function POST(request) {
       }
     }
 
-    // 4. Background Push to Shiprocket Dashboard
-    const orderToPush = (legacyInsertedOrder && legacyInsertedOrder[0]) ? legacyInsertedOrder[0] : {
-      id: Date.now(),
-      customer_name: customerName,
-      email,
-      phone,
-      address: fullAddress,
-      total,
-      payment_method: paymentMethod,
-      items: orderItems
-    };
+    console.log(`✅ Order synced successfully to CMS Database! (Fastrr Order ID: ${fastrrOrderId}, Shiprocket Order ID: ${shiprocketOrderId})`);
 
-    pushOrderToShiprocket(orderToPush).catch(err => {
-      console.error('Background Shiprocket order push error:', err);
-    });
-
-    return NextResponse.json({ success: true, order: orderToPush });
+    return NextResponse.json({ success: true, shiprocket_order_id: shiprocketOrderId, fastrr_order_id: fastrrOrderId });
   } catch (err) {
     console.error('Webhook execution crashed:', err);
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });

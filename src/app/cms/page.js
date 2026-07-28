@@ -193,23 +193,21 @@ export default function CMSConsole() {
               }
             }
 
-            const resolvedId = matchedProd ? matchedProd.id : rawItem.id;
+            const resolvedId = (rawItem.id && String(rawItem.id).startsWith('NSY')) 
+              ? rawItem.id 
+              : (matchedProd ? matchedProd.id : rawItem.id);
 
-            const image = (matchedProd && matchedProd.image) 
-              ? matchedProd.image 
-              : (rawItem.image && rawItem.image.startsWith('http') ? rawItem.image : '');
+            // ALWAYS prioritize rawItem data received directly from Fastrr order payload
+            const image = (rawItem.image && typeof rawItem.image === 'string' && rawItem.image.startsWith('http')) 
+              ? rawItem.image 
+              : (matchedProd && matchedProd.image ? matchedProd.image : 'https://www.reenattrends.com/saree_kanjivaram.png');
             
-            const skuId = (matchedProd && matchedProd.styleid) 
-              ? matchedProd.styleid 
-              : (rawItem.skuId && rawItem.skuId !== 'N/A' ? rawItem.skuId : '');
+            const skuId = (rawItem.skuId && rawItem.skuId !== 'N/A' && rawItem.skuId.length > 0)
+              ? rawItem.skuId
+              : (matchedProd && matchedProd.styleid ? matchedProd.styleid : 'N/A');
 
-            const name = (matchedProd && matchedProd.name)
-              ? matchedProd.name
-              : (rawItem.name || 'Saree');
-
-            const color = (matchedProd && matchedProd.color)
-              ? matchedProd.color
-              : (rawItem.color || '');
+            const name = rawItem.name || (matchedProd && matchedProd.name ? matchedProd.name : 'Saree');
+            const color = rawItem.color || (matchedProd && matchedProd.color ? matchedProd.color : '');
 
             return { ...rawItem, id: resolvedId, image, skuId, name, color };
           });
@@ -218,6 +216,7 @@ export default function CMSConsole() {
           const totalQty = enrichedItems.reduce((sum, i) => sum + (i.qty || 1), 0);
           const skuIds = enrichedItems.map(i => i.skuId || 'N/A').filter(Boolean).join(', ') || 'N/A';
           const productIds = enrichedItems.map(i => {
+            if (i.id && String(i.id).startsWith('NSY')) return i.id;
             const numId = String(i.id || '').replace(/\D/g, '');
             if (numId && !String(i.id).startsWith('temp-')) {
               return `NSY${numId.padStart(4, '0')}`;
@@ -235,14 +234,16 @@ export default function CMSConsole() {
           const formattedDate = rawDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
           const formattedTime = rawDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 
+          const displayOrderId = order.shiprocket_order_id || order.fastrr_order_id || (order.id ? String(order.id) : `SR-${Date.now()}`);
+
           return {
-            id: `RT-${order.id}`,
-            dbId: order.id,
-            shiprocketOrderId: order.shiprocket_order_id || '',
+            id: displayOrderId,
+            dbId: order.dbId || order.id,
+            shiprocketOrderId: order.shiprocket_order_id || displayOrderId,
             date: `${formattedDate}, ${formattedTime}`,
-            customer: order.customer_name,
-            phone: order.phone,
-            address: order.address,
+            customer: order.customer_name || order.customer || 'Customer',
+            phone: order.phone || '',
+            address: order.address || '',
             productName: firstItem.name || 'Saree',
             productImage: firstItem.image || '',
             color: firstItem.color || '',
@@ -1914,7 +1915,7 @@ export default function CMSConsole() {
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
                       <div className="text-sm font-bold text-slate-900 dark:text-white">{item.id}</div>
-                      {item.shiprocketOrderId && (
+                      {item.shiprocketOrderId && item.shiprocketOrderId !== item.id && (
                         <div className="text-[11px] font-mono text-blue-600 dark:text-blue-400 font-semibold mt-0.5" title="Shiprocket Order ID">
                           SR: {item.shiprocketOrderId}
                         </div>
