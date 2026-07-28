@@ -217,9 +217,9 @@ export default function CMSConsole() {
 
           // Detect Payment Method accurately (Prepaid vs COD)
           const rawPm = String(order.payment_method || '').trim().toUpperCase();
-          const rawPs = String(order.payment_status || '').trim().toLowerCase();
-          const isExplicitPrepaid = (rawPm === 'PREPAID' || rawPm === 'PAY ONLINE' || rawPm === 'ONLINE') && rawPs === 'paid';
-          const paymentMethod = isExplicitPrepaid ? 'Prepaid' : 'COD';
+          const rawPs = String(order.payment_status || order.financial_status || '').trim().toLowerCase();
+          const isPrepaid = rawPm.includes('PREPAID') || rawPm.includes('ONLINE') || rawPm.includes('UPI') || rawPm.includes('CARD') || rawPm.includes('PAYU') || rawPs === 'paid' || rawPs === 'success' || rawPs === 'completed';
+          const paymentMethod = isPrepaid ? 'Prepaid' : 'COD';
 
           const rawDate = order.created_at ? new Date(order.created_at) : new Date();
           const formattedDate = rawDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
@@ -1925,13 +1925,19 @@ export default function CMSConsole() {
                       <div className="text-sm font-medium">{item.qty}</div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                        item.paymentMethod === 'Prepaid' || item.paymentMethod === 'Pay Online' 
-                          ? 'bg-green-100 text-green-800 dark:bg-green-500/10 dark:text-green-400 border border-green-200 dark:border-green-500/20' 
-                          : 'bg-orange-100 text-orange-800 dark:bg-orange-500/10 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20'
-                      }`}>
-                        {item.paymentMethod === 'Prepaid' || item.paymentMethod === 'Pay Online' ? 'Prepaid' : 'COD'}
-                      </span>
+                      {(() => {
+                        const pmStr = String(item.paymentMethod || '').toLowerCase();
+                        const isPrepaidBadge = pmStr.includes('prepaid') || pmStr.includes('online') || pmStr.includes('upi') || pmStr.includes('card') || pmStr.includes('payu');
+                        return (
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                            isPrepaidBadge 
+                              ? 'bg-green-100 text-green-800 dark:bg-green-500/10 dark:text-green-400 border border-green-200 dark:border-green-500/20' 
+                              : 'bg-orange-100 text-orange-800 dark:bg-orange-500/10 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20'
+                          }`}>
+                            {isPrepaidBadge ? 'Prepaid' : 'COD'}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex flex-col">

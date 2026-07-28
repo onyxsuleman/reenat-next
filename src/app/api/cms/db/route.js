@@ -56,7 +56,14 @@ export async function POST(request) {
               tax: Number(o.tax_amount || 0),
               discount: Number(o.discount_amount || 0),
               total: Number(o.total_amount || 0),
-              payment_method: String(o.payment_method).toUpperCase() === 'PREPAID' ? 'Prepaid' : 'COD',
+              payment_method: (
+                String(o.payment_method || '').toUpperCase().includes('PREPAID') || 
+                String(o.payment_method || '').toUpperCase().includes('ONLINE') || 
+                String(o.payment_method || '').toUpperCase().includes('UPI') || 
+                String(o.payment_method || '').toUpperCase().includes('CARD') || 
+                String(o.payment_method || '').toUpperCase().includes('PAYU') || 
+                String(o.financial_status || '').toLowerCase() === 'paid'
+              ) ? 'Prepaid' : 'COD',
               payment_status: o.financial_status || 'pending',
               order_status: o.order_status || 'Pending',
               courier_name: shipment.courier_name || '',
