@@ -1974,11 +1974,11 @@ export default function CMSConsole() {
                             </>
                           )}
                         </button>
-                        {(item.status === 'Pending' || item.status === 'To Accept') && (
+                        {isToAcceptStatus(item.status) && (
                           <>
                             <button 
                               onClick={() => handleUpdateOrderStatus(item.id, 'To Pack')}
-                              className="inline-flex items-center px-3 py-1.5 border border-slate-300 dark:border-slate-700 shadow-sm text-sm font-medium rounded-md text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700"
+                              className="inline-flex items-center px-3 py-1.5 border border-emerald-300 dark:border-emerald-700 shadow-sm text-xs font-bold rounded-lg text-emerald-700 dark:text-emerald-300 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 cursor-pointer"
                             >
                               Accept Order
                             </button>
@@ -1988,7 +1988,7 @@ export default function CMSConsole() {
                                   handleUpdateOrderStatus(item.id, 'Cancelled');
                                 }
                               }}
-                              className="inline-flex items-center px-3 py-1.5 border border-rose-350 dark:border-rose-900 shadow-sm text-sm font-medium rounded-md text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-900/10"
+                              className="inline-flex items-center px-3 py-1.5 border border-rose-350 dark:border-rose-900 shadow-sm text-xs font-bold rounded-lg text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-900/10 cursor-pointer"
                             >
                               Cancel
                             </button>
