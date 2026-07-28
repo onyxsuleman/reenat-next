@@ -126,7 +126,7 @@ export async function POST(request) {
 
     const supabase = getSupabaseServerClient();
 
-    // Parse Line Items with Self-Healing Product Lookup
+    // Parse Line Items with Self-Healing Product Lookup by Unique Product ID (NSY00xx)
     const rawItems = payload.items || payload.line_items || [];
     const orderItems = await Promise.all(rawItems.map(async item => {
       let localId = item.id || item.product_id || item.variant_id || '';
@@ -134,20 +134,47 @@ export async function POST(request) {
         .map(s => (typeof s === 'string' ? s.trim() : ''))
         .find(s => s.length > 0 && s !== 'N/A') || '';
       
-      if (rawSku && rawSku.startsWith('NSY')) {
-        const parsedId = parseInt(rawSku.replace('NSY', ''), 10);
-        if (!isNaN(parsedId)) {
-          localId = parsedId;
+      // Extract NSY Product ID (e.g. NSY0069 -> 69) from SKU string or localId
+      let targetDbId = null;
+      if (rawSku && rawSku.includes('NSY')) {
+        const match = rawSku.match(/NSY(\d+)/i);
+        if (match && match[1]) {
+          targetDbId = parseInt(match[1], 10);
+        }
+      }
+
+      if (!targetDbId && localId) {
+        const cleanDigits = String(localId).replace(/\D/g, '');
+        if (cleanDigits) {
+          targetDbId = parseInt(cleanDigits, 10);
         }
       }
 
       let dbProduct = null;
 
-      if (rawSku && rawSku !== 'N/A') {
+      // 1. Primary Lookup: Direct lookup by unique Product ID
+      if (targetDbId) {
+        try {
+          const { data: idProd } = await supabase
+            .from('products')
+            .select('id, name, image, color, styleid, catalog_id')
+            .eq('id', targetDbId)
+            .maybeSingle();
+
+          if (idProd) {
+            dbProduct = idProd;
+          }
+        } catch (idErr) {
+          console.error('Direct Product ID lookup error in webhook:', idErr);
+        }
+      }
+
+      // 2. Secondary Lookup: Direct SKU lookup if Product ID missed
+      if (!dbProduct && rawSku && rawSku !== 'N/A') {
         try {
           const { data: skuProd } = await supabase
             .from('products')
-            .select('id, name, image, color, styleid')
+            .select('id, name, image, color, styleid, catalog_id')
             .eq('styleid', rawSku)
             .maybeSingle();
 
@@ -159,25 +186,7 @@ export async function POST(request) {
         }
       }
 
-      if (!dbProduct && localId) {
-        try {
-          const numId = String(localId || '').replace(/\D/g, '');
-          if (numId) {
-            const { data: idProd } = await supabase
-              .from('products')
-              .select('id, name, image, color, styleid')
-              .eq('id', Number(numId))
-              .maybeSingle();
-
-            if (idProd) {
-              dbProduct = idProd;
-            }
-          }
-        } catch (idErr) {
-          console.error('ID lookup error in webhook:', idErr);
-        }
-      }
-
+      // 3. Fallback: Search by clean title substring if needed
       if (!dbProduct && (item.title || item.name)) {
         try {
           const rawTitle = (item.title || item.name).trim();
@@ -185,7 +194,7 @@ export async function POST(request) {
           if (cleanSearch) {
             const { data: titleProds } = await supabase
               .from('products')
-              .select('id, name, image, color, styleid')
+              .select('id, name, image, color, styleid, catalog_id')
               .ilike('name', `%${cleanSearch}%`)
               .limit(5);
 

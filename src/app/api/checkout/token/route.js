@@ -20,18 +20,24 @@ export async function POST(request) {
     // 1. Format cart items for Shiprocket
     const fallbackImage = 'https://www.reenattrends.com/saree_kanjivaram.png';
     const items = cart.map(item => {
-      // 1. Resolve SKU cleanly (filter out empty/falsy strings)
-      let resolvedSku = [item.skuId, item.sku, item.styleid, item.styleId]
+      const rawIdStr = String(item.id || '').replace(/\D/g, '');
+      const numId = rawIdStr ? parseInt(rawIdStr, 10) : 1;
+      const formattedProductId = `NSY${String(numId).padStart(4, '0')}`;
+      const catalog = item.catalog_id || item.catalogId || '';
+
+      // 1. Resolve SKU cleanly with Product ID suffix for 100% exact lookup
+      let baseSku = [item.skuId, item.sku, item.styleid, item.styleId]
         .map(s => (typeof s === 'string' ? s.trim() : ''))
         .find(s => s.length > 0);
 
-      if (!resolvedSku) {
-        const numId = String(item.id || '').replace(/\D/g, '');
-        const padId = numId ? numId.padStart(4, '0') : '0001';
-        const catalog = item.catalog_id || item.catalogId;
-        resolvedSku = catalog 
-          ? `${catalog}||${item.color || 'DEFAULT'}`
-          : `NSY${padId}`;
+      if (!baseSku) {
+        baseSku = item.color ? `${catalog ? catalog + ' ' : ''}${item.color} Pai` : formattedProductId;
+      }
+
+      // Ensure Product ID is present in the SKU string if not already included
+      let resolvedSku = baseSku;
+      if (!resolvedSku.includes(formattedProductId) && !resolvedSku.startsWith('NSY')) {
+        resolvedSku = `${baseSku} - ${formattedProductId}`;
       }
 
       // 2. Resolve Image URL cleanly
@@ -57,7 +63,7 @@ export async function POST(request) {
       }
 
       const cleanTitle = item.name || 'Saree';
-      const cleanId = String(item.id || '1');
+      const cleanId = String(numId);
 
       return {
         id: cleanId,
@@ -71,6 +77,7 @@ export async function POST(request) {
         sku_id: resolvedSku,
         styleid: resolvedSku,
         style_id: resolvedSku,
+        catalog_id: catalog,
         image: imageUrl,
         image_url: imageUrl,
         product_image: imageUrl,
