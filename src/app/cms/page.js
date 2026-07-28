@@ -171,45 +171,36 @@ export default function CMSConsole() {
         }
 
         const mapped = data.map(order => {
-          // Enrich items with product data from loaded inventory (ID match or Title match)
+          // Map orders directly using exact Product ID matching only (NO title matching or catalog fuzzy matching)
           const enrichedItems = (order.items || []).map(rawItem => {
             const itemNumId = String(rawItem.id || '').replace(/\D/g, '');
-            let matchedProd = itemNumId ? prodLookupById[itemNumId] : null;
+            const matchedProd = itemNumId ? prodLookupById[itemNumId] : null;
 
-            if (!matchedProd && rawItem.name) {
-              const itemCleanKey = rawItem.name.toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
-              matchedProd = prodLookupByName[itemCleanKey];
-
-              if (!matchedProd && products && products.length > 0) {
-                const words = itemCleanKey.split(' ').filter(w => w.length > 2);
-                matchedProd = products.find(p => {
-                  const pKey = (p.name || '').toLowerCase();
-                  return words.length > 0 && words.every(w => pKey.includes(w));
-                }) || products.find(p => {
-                  const pKey = (p.name || '').toLowerCase();
-                  const matchCount = words.filter(w => pKey.includes(w)).length;
-                  return matchCount >= Math.min(2, words.length);
-                });
-              }
-            }
-
-            const resolvedId = (rawItem.id && String(rawItem.id).startsWith('NSY')) 
-              ? rawItem.id 
-              : (matchedProd ? matchedProd.id : rawItem.id);
+            const finalNumId = matchedProd ? matchedProd.id : itemNumId;
+            const formattedProdId = finalNumId ? `NSY${String(finalNumId).padStart(4, '0')}` : 'NSY0001';
 
             // ALWAYS prioritize rawItem data received directly from Fastrr order payload
             const image = (rawItem.image && typeof rawItem.image === 'string' && rawItem.image.startsWith('http')) 
               ? rawItem.image 
               : (matchedProd && matchedProd.image ? matchedProd.image : 'https://www.reenattrends.com/saree_kanjivaram.png');
             
-            const skuId = (rawItem.skuId && rawItem.skuId !== 'N/A' && rawItem.skuId.length > 0)
+            let rawSkuStr = (rawItem.skuId && rawItem.skuId !== 'N/A' && rawItem.skuId.length > 0)
               ? rawItem.skuId
-              : (matchedProd && matchedProd.styleid ? matchedProd.styleid : 'N/A');
+              : (matchedProd && matchedProd.styleid ? matchedProd.styleid : '');
+
+            // Strip catalog prefix like "M5||" or "M4||"
+            let cleanSku = rawSkuStr.replace(/^[A-Z0-9]+\|\|/i, '').trim();
+
+            // Ensure Product ID is present at the end
+            let skuId = cleanSku;
+            if (!skuId.includes(formattedProdId)) {
+              skuId = skuId ? `${skuId} - ${formattedProdId}` : formattedProdId;
+            }
 
             const name = rawItem.name || (matchedProd && matchedProd.name ? matchedProd.name : 'Saree');
             const color = rawItem.color || (matchedProd && matchedProd.color ? matchedProd.color : '');
 
-            return { ...rawItem, id: resolvedId, image, skuId, name, color };
+            return { ...rawItem, id: formattedProdId, image, skuId, name, color };
           });
 
           const firstItem = enrichedItems.length > 0 ? enrichedItems[0] : {};

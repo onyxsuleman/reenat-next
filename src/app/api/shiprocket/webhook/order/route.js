@@ -186,27 +186,8 @@ export async function POST(request) {
         }
       }
 
-      // 3. Fallback: Search by clean title substring if needed
-      if (!dbProduct && (item.title || item.name)) {
-        try {
-          const rawTitle = (item.title || item.name).trim();
-          const cleanSearch = rawTitle.split('(')[0].trim().substring(0, 30);
-          if (cleanSearch) {
-            const { data: titleProds } = await supabase
-              .from('products')
-              .select('id, name, image, color, styleid, catalog_id')
-              .ilike('name', `%${cleanSearch}%`)
-              .limit(5);
-
-            if (titleProds && titleProds.length > 0) {
-              const exact = titleProds.find(p => p.name.toLowerCase() === rawTitle.toLowerCase());
-              dbProduct = exact || titleProds[0];
-            }
-          }
-        } catch (titleErr) {
-          console.error('Title lookup error in webhook:', titleErr);
-        }
-      }
+      // Strip catalog prefix like "M5||" or "M4||" from rawSku
+      let cleanSku = rawSku.replace(/^[A-Z0-9]+\|\|/i, '').trim();
 
       let resolvedImage = dbProduct ? dbProduct.image : (
         item.image || item.image_url || item.product_image || item.src || item.image_front || item.image1 || item.thumbnail || ''
@@ -219,14 +200,21 @@ export async function POST(request) {
         resolvedImage = `https://www.reenattrends.com${resolvedImage}`;
       }
 
-      let resolvedSku = dbProduct ? (dbProduct.styleid || rawSku) : rawSku;
-      if (!resolvedSku || resolvedSku === 'N/A') {
-        const cleanId = String(localId || item.id || '').replace(/\D/g, '');
-        resolvedSku = cleanId ? `NSY${cleanId.padStart(4, '0')}` : 'NSY0001';
+      let resolvedSku = cleanSku;
+      const finalDbId = dbProduct ? dbProduct.id : targetDbId;
+      if (finalDbId) {
+        const formattedIdStr = `NSY${String(finalDbId).padStart(4, '0')}`;
+        if (!resolvedSku.includes(formattedIdStr)) {
+          resolvedSku = resolvedSku ? `${resolvedSku} - ${formattedIdStr}` : formattedIdStr;
+        }
+      }
+
+      if (!resolvedSku) {
+        resolvedSku = 'NSY0001';
       }
 
       return {
-        id: dbProduct ? dbProduct.id : localId,
+        id: dbProduct ? dbProduct.id : (targetDbId || localId),
         name: dbProduct ? dbProduct.name : (item.title || item.name || 'Saree'),
         qty: Number(item.quantity || item.qty || 1),
         price: Number(item.price || 0),

@@ -25,19 +25,22 @@ export async function POST(request) {
       const formattedProductId = `NSY${String(numId).padStart(4, '0')}`;
       const catalog = item.catalog_id || item.catalogId || '';
 
-      // 1. Resolve SKU cleanly with Product ID suffix for 100% exact lookup
-      let baseSku = [item.skuId, item.sku, item.styleid, item.styleId]
+      // 1. Resolve SKU cleanly: Strip any catalog prefix (e.g. M5||) and format strictly as "Seller SKU - NSY00xx"
+      let rawSellerSku = [item.skuId, item.sku, item.styleid, item.styleId]
         .map(s => (typeof s === 'string' ? s.trim() : ''))
-        .find(s => s.length > 0);
+        .find(s => s.length > 0) || '';
 
-      if (!baseSku) {
-        baseSku = item.color ? `${catalog ? catalog + ' ' : ''}${item.color} Pai` : formattedProductId;
+      // Strip catalog prefix like "M5||" or "M4||"
+      let cleanSellerSku = rawSellerSku.replace(/^[A-Z0-9]+\|\|/i, '').trim();
+
+      if (!cleanSellerSku) {
+        cleanSellerSku = item.color ? `${item.color} Pai` : 'Saree';
       }
 
-      // Ensure Product ID is present in the SKU string if not already included
-      let resolvedSku = baseSku;
-      if (!resolvedSku.includes(formattedProductId) && !resolvedSku.startsWith('NSY')) {
-        resolvedSku = `${baseSku} - ${formattedProductId}`;
+      // Ensure Product ID is present at the end
+      let resolvedSku = cleanSellerSku;
+      if (!resolvedSku.includes(formattedProductId)) {
+        resolvedSku = `${cleanSellerSku} - ${formattedProductId}`;
       }
 
       // 2. Resolve Image URL cleanly
