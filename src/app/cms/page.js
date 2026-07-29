@@ -1905,10 +1905,12 @@ export default function CMSConsole() {
                       </div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="text-sm font-bold text-slate-900 dark:text-white">{item.id}</div>
-                      {item.shiprocketOrderId && item.shiprocketOrderId !== item.id && (
-                        <div className="text-[11px] font-mono text-blue-600 dark:text-blue-400 font-semibold mt-0.5" title="Shiprocket Order ID">
-                          SR: {item.shiprocketOrderId}
+                      <div className="text-sm font-bold text-slate-900 dark:text-white">
+                        {item.shiprocketOrderId || item.id}
+                      </div>
+                      {item.fastrrOrderId && item.fastrrOrderId !== item.shiprocketOrderId && (
+                        <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500 mt-0.5" title="Fastrr Reference">
+                          {item.fastrrOrderId}
                         </div>
                       )}
                     </td>

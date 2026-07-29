@@ -352,7 +352,8 @@ function mapRawProduct(item) {
   } else if (!catalogId) {
     catalogId = rawStyleId;
   }
-  const productId = 'NSY' + String(item.id).padStart(4, '0');
+  const numId = Number(item.id || 0);
+  const productId = numId >= 1000000 ? (`NSY${numId}`) : (`NSY${String(1000000 + numId)}`);
   return {
     ...item,
     originalPrice: item.originalPrice || item.originalprice || 0,

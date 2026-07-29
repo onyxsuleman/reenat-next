@@ -126,33 +126,38 @@ export async function POST(request) {
 
     const supabase = getSupabaseServerClient();
 
-    // Parse Line Items with Self-Healing Product Lookup by Unique Product ID (NSY00xx)
+    // Parse Line Items with Self-Healing Product Lookup by Unique Product ID (NSY00xx) or SKU
     const rawItems = payload.items || payload.line_items || [];
     const orderItems = await Promise.all(rawItems.map(async item => {
-      let localId = item.id || item.product_id || item.variant_id || '';
       const rawSku = [item.sku, item.sku_id, item.styleid, item.styleId, item.style_id]
         .map(s => (typeof s === 'string' ? s.trim() : ''))
         .find(s => s.length > 0 && s !== 'N/A') || '';
       
-      // Extract NSY Product ID (e.g. NSY0069 -> 69) from SKU string or localId
+      // 1. Try extracting 8-digit or standard NSY Product ID from SKU string (e.g. "Grey Black - NSY10000090" -> 90)
       let targetDbId = null;
       if (rawSku && rawSku.includes('NSY')) {
         const match = rawSku.match(/NSY(\d+)/i);
         if (match && match[1]) {
-          targetDbId = parseInt(match[1], 10);
+          const parsedVal = parseInt(match[1], 10);
+          targetDbId = parsedVal >= 1000000 ? (parsedVal - 1000000) : parsedVal;
         }
       }
 
-      if (!targetDbId && localId) {
-        const cleanDigits = String(localId).replace(/\D/g, '');
-        if (cleanDigits) {
-          targetDbId = parseInt(cleanDigits, 10);
+      // 2. Try variant_id or product_id if provided explicitly
+      if (!targetDbId) {
+        const candidateId = item.variant_id || item.product_id || item.variantId || item.productId || '';
+        if (candidateId) {
+          const cleanDigits = String(candidateId).replace(/\D/g, '');
+          if (cleanDigits) {
+            const parsedVal = parseInt(cleanDigits, 10);
+            targetDbId = parsedVal >= 1000000 ? (parsedVal - 1000000) : parsedVal;
+          }
         }
       }
 
       let dbProduct = null;
 
-      // 1. Primary Lookup: Direct lookup by unique Product ID
+      // Primary Lookup: Direct lookup by candidate Product ID in products table
       if (targetDbId) {
         try {
           const { data: idProd } = await supabase
@@ -169,17 +174,22 @@ export async function POST(request) {
         }
       }
 
-      // 2. Secondary Lookup: Direct SKU lookup if Product ID missed
+      // Secondary Lookup: Direct SKU lookup if Product ID missed or candidate ID was invalid
       if (!dbProduct && rawSku && rawSku !== 'N/A') {
         try {
+          const cleanRawSku = rawSku.replace(/^[A-Z0-9]+\|\|/i, '').trim();
+          const sellerSkuOnly = cleanRawSku.replace(/\s*-\s*NSY\d+/i, '').trim();
+
           const { data: skuProd } = await supabase
             .from('products')
             .select('id, name, image, color, styleid, catalog_id')
-            .eq('styleid', rawSku)
+            .or(`styleid.eq.${rawSku},styleid.eq.${cleanRawSku},styleid.eq.${sellerSkuOnly},styleid.ilike.%${sellerSkuOnly}%`)
+            .limit(1)
             .maybeSingle();
 
           if (skuProd) {
             dbProduct = skuProd;
+            targetDbId = dbProduct.id;
           }
         } catch (skuErr) {
           console.error('SKU lookup error in webhook:', skuErr);
@@ -188,6 +198,21 @@ export async function POST(request) {
 
       // Strip catalog prefix like "M5||" or "M4||" from rawSku
       let cleanSku = rawSku.replace(/^[A-Z0-9]+\|\|/i, '').trim();
+
+      // IF dbProduct was found, ALWAYS use dbProduct's verified name, image, color & ID!
+      const finalDbId = dbProduct ? dbProduct.id : (rawSku.includes('NSY') ? targetDbId : null);
+      
+      let resolvedSku = cleanSku;
+      if (finalDbId) {
+        const formattedIdStr = `NSY${String(1000000 + finalDbId)}`;
+        if (!resolvedSku.includes(formattedIdStr)) {
+          // Remove old 4-digit NSY tag if present and replace with 8-digit NSY tag
+          const sellerPart = cleanSku.replace(/\s*-\s*NSY\d+/i, '').trim();
+          resolvedSku = `${sellerPart} - ${formattedIdStr}`;
+        }
+      } else if (!resolvedSku) {
+        resolvedSku = 'NSY10000001';
+      }
 
       let resolvedImage = dbProduct ? dbProduct.image : (
         item.image || item.image_url || item.product_image || item.src || item.image_front || item.image1 || item.thumbnail || ''
@@ -200,28 +225,15 @@ export async function POST(request) {
         resolvedImage = `https://www.reenattrends.com${resolvedImage}`;
       }
 
-      let resolvedSku = cleanSku;
-      const finalDbId = dbProduct ? dbProduct.id : targetDbId;
-      if (finalDbId) {
-        const formattedIdStr = `NSY${String(finalDbId).padStart(4, '0')}`;
-        if (!resolvedSku.includes(formattedIdStr)) {
-          resolvedSku = resolvedSku ? `${resolvedSku} - ${formattedIdStr}` : formattedIdStr;
-        }
-      }
-
-      if (!resolvedSku) {
-        resolvedSku = 'NSY0001';
-      }
-
       return {
-        id: dbProduct ? dbProduct.id : (targetDbId || localId),
+        id: dbProduct ? dbProduct.id : (finalDbId || item.id || 1),
         name: dbProduct ? dbProduct.name : (item.title || item.name || 'Saree'),
         qty: Number(item.quantity || item.qty || 1),
         price: Number(item.price || 0),
         image: resolvedImage,
         color: dbProduct ? dbProduct.color : (item.color || ''),
         skuId: resolvedSku,
-        variantId: item.variant_id || item.variantId || ''
+        variantId: dbProduct ? dbProduct.id : (item.variant_id || item.variantId || '')
       };
     }));
 

@@ -50,7 +50,7 @@ export async function GET(request) {
           const shipment = (o.shipments || [])[0] || {};
 
           return {
-            id: o.legacy_id || o.id,
+            id: o.shiprocket_order_id || o.legacy_id || o.fastrr_order_id || o.id,
             uuid: o.id,
             fastrr_order_id: o.fastrr_order_id,
             shiprocket_order_id: o.shiprocket_order_id,
@@ -75,15 +75,20 @@ export async function GET(request) {
             awb_code: shipment.awb_code || '',
             tracking_url: shipment.tracking_url || '',
             created_at: o.created_at,
-            items: (o.items || []).map(i => ({
-              id: i.product_id || i.id,
-              name: i.product_name,
-              qty: i.quantity,
-              price: Number(i.unit_price || 0),
-              image: i.image_url,
-              color: i.color || '',
-              skuId: i.sku || 'N/A'
-            }))
+            items: (o.items || []).map(i => {
+              const pIdNum = Number(i.product_id || i.id || 0);
+              const formattedPid = pIdNum > 0 ? (pIdNum >= 1000000 ? `NSY${pIdNum}` : `NSY${1000000 + pIdNum}`) : 'N/A';
+              return {
+                id: pIdNum || i.id,
+                productId: formattedPid,
+                name: i.product_name,
+                qty: i.quantity,
+                price: Number(i.unit_price || 0),
+                image: i.image_url,
+                color: i.color || '',
+                skuId: i.sku || 'N/A'
+              };
+            })
           };
         });
 
