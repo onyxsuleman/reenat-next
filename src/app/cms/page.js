@@ -173,10 +173,13 @@ export default function CMSConsole() {
         const mapped = data.map(order => {
           // Map orders directly using exact Product ID matching only (NO title matching or catalog fuzzy matching)
           const enrichedItems = (order.items || []).map(rawItem => {
-            const itemNumId = String(rawItem.id || '').replace(/\D/g, '');
-            const matchedProd = itemNumId ? prodLookupById[itemNumId] : null;
+            const actualProdId = rawItem.product_id || rawItem.product_id_str || rawItem.variantId || rawItem.variant_id || rawItem.id || '';
+            const itemNumId = String(actualProdId || '').replace(/\D/g, '');
+            const rawParsedNum = itemNumId ? parseInt(itemNumId, 10) : 0;
+            const lookupKey = rawParsedNum >= 1000000 ? (rawParsedNum - 1000000) : rawParsedNum;
+            const matchedProd = lookupKey ? prodLookupById[lookupKey] : null;
 
-            const finalNumId = Number((matchedProd && matchedProd.id) || rawItem.product_id || rawItem.id || rawItem.variantId || 0);
+            const finalNumId = Number((matchedProd && matchedProd.id) || lookupKey || 0);
             const rawNumOnly = finalNumId >= 1000000 ? (finalNumId - 1000000) : finalNumId;
             const formattedProdId = rawNumOnly > 0 ? `NSY${1000000 + rawNumOnly}` : 'NSY10000001';
 
