@@ -196,20 +196,20 @@ export async function POST(request) {
         }
       }
 
-      // Strip catalog prefix like "M5||" or "M4||" from rawSku
-      let cleanSku = rawSku.replace(/^[A-Z0-9]+\|\|/i, '').trim();
+      // Strip catalog prefix like "M5||", old NSY tags, and leading dashes from rawSku
+      let cleanSkuBase = rawSku
+        .replace(/^[A-Z0-9]+\|\|/i, '')
+        .replace(/\s*-\s*NSY\d+/ig, '')
+        .replace(/^[\s\-\|]+/, '')
+        .trim();
 
       // IF dbProduct was found, ALWAYS use dbProduct's verified name, image, color & ID!
       const finalDbId = dbProduct ? dbProduct.id : (rawSku.includes('NSY') ? targetDbId : null);
       
-      let resolvedSku = cleanSku;
+      let resolvedSku = cleanSkuBase;
       if (finalDbId) {
         const formattedIdStr = `NSY${String(1000000 + finalDbId)}`;
-        if (!resolvedSku.includes(formattedIdStr)) {
-          // Remove old 4-digit NSY tag if present and replace with 8-digit NSY tag
-          const sellerPart = cleanSku.replace(/\s*-\s*NSY\d+/i, '').trim();
-          resolvedSku = `${sellerPart} - ${formattedIdStr}`;
-        }
+        resolvedSku = cleanSkuBase ? `${cleanSkuBase} - ${formattedIdStr}` : formattedIdStr;
       } else if (!resolvedSku) {
         resolvedSku = 'NSY10000001';
       }

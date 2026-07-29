@@ -176,8 +176,9 @@ export default function CMSConsole() {
             const itemNumId = String(rawItem.id || '').replace(/\D/g, '');
             const matchedProd = itemNumId ? prodLookupById[itemNumId] : null;
 
-            const finalNumId = matchedProd ? matchedProd.id : itemNumId;
-            const formattedProdId = finalNumId ? `NSY${String(finalNumId).padStart(4, '0')}` : 'NSY0001';
+            const finalNumId = Number((matchedProd && matchedProd.id) || rawItem.product_id || rawItem.id || rawItem.variantId || 0);
+            const rawNumOnly = finalNumId >= 1000000 ? (finalNumId - 1000000) : finalNumId;
+            const formattedProdId = rawNumOnly > 0 ? `NSY${1000000 + rawNumOnly}` : 'NSY10000001';
 
             // ALWAYS prioritize rawItem data received directly from Fastrr order payload
             const image = (rawItem.image && typeof rawItem.image === 'string' && rawItem.image.startsWith('http')) 
@@ -188,14 +189,14 @@ export default function CMSConsole() {
               ? rawItem.skuId
               : (matchedProd && matchedProd.styleid ? matchedProd.styleid : '');
 
-            // Strip catalog prefix like "M5||" or "M4||"
-            let cleanSku = rawSkuStr.replace(/^[A-Z0-9]+\|\|/i, '').trim();
+            // Strip catalog prefix like "M5||", old NSY tags, and leading dashes
+            let cleanSkuBase = rawSkuStr
+              .replace(/^[A-Z0-9]+\|\|/i, '')
+              .replace(/\s*-\s*NSY\d+/ig, '')
+              .replace(/^[\s\-\|]+/, '')
+              .trim();
 
-            // Ensure Product ID is present at the end
-            let skuId = cleanSku;
-            if (!skuId.includes(formattedProdId)) {
-              skuId = skuId ? `${skuId} - ${formattedProdId}` : formattedProdId;
-            }
+            let skuId = cleanSkuBase ? `${cleanSkuBase} - ${formattedProdId}` : formattedProdId;
 
             const name = rawItem.name || (matchedProd && matchedProd.name ? matchedProd.name : 'Saree');
             const color = rawItem.color || (matchedProd && matchedProd.color ? matchedProd.color : '');
@@ -207,10 +208,10 @@ export default function CMSConsole() {
           const totalQty = enrichedItems.reduce((sum, i) => sum + (i.qty || 1), 0);
           const skuIds = enrichedItems.map(i => i.skuId || 'N/A').filter(Boolean).join(', ') || 'N/A';
           const productIds = enrichedItems.map(i => {
-            if (i.id && String(i.id).startsWith('NSY')) return i.id;
-            const numId = String(i.id || '').replace(/\D/g, '');
-            if (numId && !String(i.id).startsWith('temp-')) {
-              return `NSY${numId.padStart(4, '0')}`;
+            const digits = String(i.id || '').replace(/\D/g, '');
+            const num = Number(digits);
+            if (num > 0 && !String(i.id).startsWith('temp-')) {
+              return num >= 1000000 ? `NSY${num}` : `NSY${1000000 + num}`;
             }
             return 'N/A';
           }).filter(Boolean).join(', ') || 'N/A';

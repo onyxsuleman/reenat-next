@@ -30,18 +30,19 @@ export async function POST(request) {
         .map(s => (typeof s === 'string' ? s.trim() : ''))
         .find(s => s.length > 0) || '';
 
-      // Strip catalog prefix like "M5||" or "M4||"
-      let cleanSellerSku = rawSellerSku.replace(/^[A-Z0-9]+\|\|/i, '').trim();
+      // Strip catalog prefix like "M5||", old NSY tags, and leading dashes
+      let cleanSellerSku = rawSellerSku
+        .replace(/^[A-Z0-9]+\|\|/i, '')
+        .replace(/\s*-\s*NSY\d+/ig, '')
+        .replace(/^[\s\-\|]+/, '')
+        .trim();
 
       if (!cleanSellerSku) {
         cleanSellerSku = item.color ? `${item.color} Pai` : 'Saree';
       }
 
-      // Ensure Product ID is present at the end
-      let resolvedSku = cleanSellerSku;
-      if (!resolvedSku.includes(formattedProductId)) {
-        resolvedSku = `${cleanSellerSku} - ${formattedProductId}`;
-      }
+      // Ensure single clean Product ID is present at the end
+      let resolvedSku = `${cleanSellerSku} - ${formattedProductId}`;
 
       // 2. Resolve Image URL cleanly
       let rawImage = item.image || item.image_front || item.image_url || item.image1 || item.image2 || item.image3 || item.image4 || '';
