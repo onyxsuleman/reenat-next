@@ -489,10 +489,11 @@ export default function CMSConsole() {
       image5: '',
       image6: '',
       linkedTo: '',
-      name: baseProduct.name ? `${baseProduct.name} - New Variant` : ''
+      name: baseProduct.name ? `${baseProduct.name}` : ''
     };
     setBatchProducts(prev => [...prev, newVariant]);
     setActiveTabIndex(batchProducts.length);
+    showToast("New variation tab created! Fill in the new color, SKU ID, and image below.", "info");
   };
 
   const handleRemoveVariant = (indexToRemove) => {
@@ -2901,11 +2902,11 @@ export default function CMSConsole() {
               <button
                 type="button"
                 onClick={handleAddVariant}
-                className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-xl border border-dashed border-slate-700 hover:border-blue-500 text-[10px] font-bold transition-all cursor-pointer bg-[#1e293b]"
-                style={{ color: '#94a3b8' }}
+                className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-extrabold transition-all cursor-pointer shadow-sm border-0"
+                title="Click FIRST to create a new variation tab before typing new color & image"
               >
                 <span>➕</span>
-                <span>Add Product</span>
+                <span>+ Add Product</span>
               </button>
             </div>
 
