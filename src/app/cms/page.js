@@ -4,12 +4,13 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 
 export default function CMSConsole() {
-  const { products, setProducts, refreshDatabase, showToast, heroSlides, categoryCards, collectionCards, saveHomepageConfig } = useApp();
+  const { products, setProducts, refreshDatabase, showToast, heroSlides, categoryCards, collectionCards, catalogPositions, saveCatalogPositions, saveHomepageConfig } = useApp();
   
   // Homepage Dynamic Configurations State
   const [localHeroSlides, setLocalHeroSlides] = useState([]);
   const [localCategoryCards, setLocalCategoryCards] = useState([]);
   const [localCollectionCards, setLocalCollectionCards] = useState([]);
+  const [localPositions, setLocalPositions] = useState([]);
 
   useEffect(() => {
     if (heroSlides) setLocalHeroSlides(heroSlides);
@@ -22,6 +23,12 @@ export default function CMSConsole() {
   useEffect(() => {
     if (collectionCards) setLocalCollectionCards(collectionCards);
   }, [collectionCards]);
+
+  useEffect(() => {
+    if (catalogPositions && catalogPositions.length > 0) {
+      setLocalPositions(catalogPositions);
+    }
+  }, [catalogPositions]);
 
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [passcode, setPasscode] = useState('');
@@ -2375,9 +2382,97 @@ export default function CMSConsole() {
 
     const activeCatalogId = selectedCatalogId || (filteredGroups[0] ? filteredGroups[0].catalogId : null);
 
+    // List of unique live catalogs for selector
+    const uniqueCatalogs = (products || []).reduce((acc, p) => {
+      if (p.catalogId) {
+        const cid = p.catalogId.toUpperCase();
+        if (!acc.some(item => (item.catalogId || '').toUpperCase() === cid)) {
+          acc.push(p);
+        }
+      }
+      return acc;
+    }, []);
+
     return (
-      <div className="space-y-6 flex flex-col h-[calc(100vh-120px)] overflow-hidden">
+      <div className="space-y-6 flex flex-col h-[calc(100vh-120px)] overflow-y-auto">
         
+        {/* ⭐ CATALOG GRID POSITION MANAGER PANEL (Slots 1 to 12) */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-200 dark:border-slate-800">
+            <div>
+              <h2 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                <span>⭐</span> Homepage Catalog Grid Sequence Manager (Slots 1–12)
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Manually assign which Catalog ID appears in each slot on your homepage grid (Row 1 to Row 4).
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => saveCatalogPositions(localPositions)}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-2 px-4 rounded-xl text-xs shadow-md shadow-blue-600/20 transition-all cursor-pointer border-0 shrink-0 flex items-center gap-1.5"
+            >
+              <span>💾</span> Save Grid Sequence
+            </button>
+          </div>
+
+          {/* 3x4 GRID SLOTS */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((slotNum) => {
+              const currentPosObj = localPositions.find(p => Number(p.position) === slotNum) || { position: slotNum, catalogId: '' };
+              const currentCatalogId = (currentPosObj.catalogId || '').toUpperCase();
+              const matchingProd = uniqueCatalogs.find(c => (c.catalogId || '').toUpperCase() === currentCatalogId);
+
+              const rowNum = Math.ceil(slotNum / 3);
+              const colNum = ((slotNum - 1) % 3) + 1;
+
+              return (
+                <div key={slotNum} className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 flex items-center gap-2.5 shadow-sm">
+                  {/* Thumbnail */}
+                  <div className="size-10 rounded-lg overflow-hidden bg-slate-900 border border-slate-800 shrink-0 relative">
+                    {matchingProd && matchingProd.image ? (
+                      <img src={matchingProd.image} className="w-full h-full object-cover" alt="" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-[9px] text-slate-400 font-bold bg-slate-800">📷</div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between text-[10px] font-extrabold text-slate-500 dark:text-slate-400 mb-0.5">
+                      <span>Slot #{slotNum}</span>
+                      <span className="text-[9px] bg-slate-200 dark:bg-slate-800 px-1 py-0.5 rounded font-mono">R{rowNum} C{colNum}</span>
+                    </div>
+                    <select
+                      value={currentCatalogId}
+                      onChange={(e) => {
+                        const newCatId = e.target.value;
+                        setLocalPositions(prev => {
+                          const updated = [...prev];
+                          const idx = updated.findIndex(p => Number(p.position) === slotNum);
+                          if (idx >= 0) {
+                            updated[idx] = { position: slotNum, catalogId: newCatId };
+                          } else {
+                            updated.push({ position: slotNum, catalogId: newCatId });
+                          }
+                          return updated;
+                        });
+                      }}
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white rounded-lg px-2 py-1 text-[11px] font-bold focus:ring-1 focus:ring-blue-500 cursor-pointer truncate"
+                    >
+                      <option value="">-- Pick Catalog --</option>
+                      {uniqueCatalogs.map(cat => (
+                        <option key={cat.id} value={cat.catalogId}>
+                          Catalog {cat.catalogId} ({cat.color || cat.name?.substring(0, 12)})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         {/* TOP CONTROLS BAR */}
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm shrink-0">
           

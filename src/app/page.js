@@ -8,7 +8,7 @@ import ProductCard from '../components/ProductCard';
 import { ProductSkeletonGrid } from '../components/ProductSkeleton';
 
 export default function Home() {
-  const { products, heroSlides, categoryCards, collectionCards } = useApp();
+  const { products, heroSlides, categoryCards, collectionCards, catalogPositions } = useApp();
   const [slideIndex, setSlideIndex] = useState(0);
   const [fadeText, setFadeText] = useState(false);
   const [timeLeft, setTimeLeft] = useState('12H:12M:31S');
@@ -608,14 +608,33 @@ export default function Home() {
         {/* Product Grid */}
         <ul id="product-list" className="grid grid-cols-2 gap-2 md:gap-4 md:grid-cols-3 mt-8">
           {products && products.length > 0 ? (() => {
-            const seenCatalogs = new Set();
-            const uniqueProducts = products.filter(product => {
-              if (!product.catalogId) return true;
-              const cid = product.catalogId.toLowerCase();
-              if (seenCatalogs.has(cid)) return false;
-              seenCatalogs.add(cid);
-              return true;
+            const catalogMap = {};
+            products.forEach(p => {
+              const cid = (p.catalogId || `SINGLE-${p.id}`).toLowerCase();
+              if (!catalogMap[cid]) {
+                catalogMap[cid] = p;
+              }
             });
+
+            const positionOrderMap = {};
+            if (catalogPositions && catalogPositions.length > 0) {
+              catalogPositions.forEach(item => {
+                if (item.catalogId) {
+                  positionOrderMap[item.catalogId.toLowerCase()] = Number(item.position);
+                }
+              });
+            }
+
+            const uniqueProducts = Object.values(catalogMap);
+            uniqueProducts.sort((a, b) => {
+              const cIdA = (a.catalogId || '').toLowerCase();
+              const cIdB = (b.catalogId || '').toLowerCase();
+              const posA = positionOrderMap[cIdA] !== undefined ? positionOrderMap[cIdA] : 999;
+              const posB = positionOrderMap[cIdB] !== undefined ? positionOrderMap[cIdB] : 999;
+              if (posA !== posB) return posA - posB;
+              return Number(a.id || 0) - Number(b.id || 0);
+            });
+
             return uniqueProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ));

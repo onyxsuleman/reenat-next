@@ -431,12 +431,28 @@ const defaultCollectionCards = [
   { name: "TRENDING STYLES", image: "/saree_banarasi.png", link: "#product-list" }
 ];
 
+const defaultCatalogPositions = [
+  { position: 1, catalogId: 'M4' },
+  { position: 2, catalogId: 'M7' },
+  { position: 3, catalogId: 'M2' },
+  { position: 4, catalogId: 'M5' },
+  { position: 5, catalogId: 'M3' },
+  { position: 6, catalogId: 'M9' },
+  { position: 7, catalogId: 'M1' },
+  { position: 8, catalogId: 'M6' },
+  { position: 9, catalogId: 'M8' },
+  { position: 10, catalogId: 'M10' },
+  { position: 11, catalogId: 'M11' },
+  { position: 12, catalogId: 'M12' }
+];
+
 export function AppProvider({ children }) {
   const [products, setProducts] = useState(mappedDefaultProducts);
   const [cart, setCart] = useState([]);
   const [heroSlides, setHeroSlides] = useState(defaultHeroSlides);
   const [categoryCards, setCategoryCards] = useState(defaultCategoryCards);
   const [collectionCards, setCollectionCards] = useState(defaultCollectionCards);
+  const [catalogPositions, setCatalogPositions] = useState(defaultCatalogPositions);
   const [wishlist, setWishlist] = useState([]);
   const [theme, setTheme] = useState('light');
   const [toast, setToast] = useState(null);
@@ -453,6 +469,8 @@ export function AppProvider({ children }) {
       if (storedCategories) setCategoryCards(JSON.parse(storedCategories));
       const storedCollections = localStorage.getItem('homepage_collections');
       if (storedCollections) setCollectionCards(JSON.parse(storedCollections));
+      const storedPositions = localStorage.getItem('homepage_catalog_positions');
+      if (storedPositions) setCatalogPositions(JSON.parse(storedPositions));
     } catch (e) {
       console.warn("Failed to load stored homepage configs from localStorage:", e);
     }
@@ -464,6 +482,7 @@ export function AppProvider({ children }) {
         const heroRow = data.find(row => row.key === 'hero');
         const categoriesRow = data.find(row => row.key === 'categories');
         const collectionsRow = data.find(row => row.key === 'collections');
+        const positionsRow = data.find(row => row.key === 'catalog_positions');
 
         if (heroRow && Array.isArray(heroRow.value)) {
           setHeroSlides(heroRow.value);
@@ -476,6 +495,10 @@ export function AppProvider({ children }) {
         if (collectionsRow && Array.isArray(collectionsRow.value)) {
           setCollectionCards(collectionsRow.value);
           localStorage.setItem('homepage_collections', JSON.stringify(collectionsRow.value));
+        }
+        if (positionsRow && Array.isArray(positionsRow.value)) {
+          setCatalogPositions(positionsRow.value);
+          localStorage.setItem('homepage_catalog_positions', JSON.stringify(positionsRow.value));
         }
       } else if (error) {
         console.warn("Could not load homepage config from database (it might not exist yet):", error.message);
@@ -699,6 +722,27 @@ export function AppProvider({ children }) {
     showToast('Logged out successfully.', 'info');
   };
 
+  const saveCatalogPositions = async (positionsArray) => {
+    setCatalogPositions(positionsArray);
+    try {
+      localStorage.setItem('homepage_catalog_positions', JSON.stringify(positionsArray));
+    } catch (e) {
+      console.warn("Could not save catalog positions to localStorage:", e);
+    }
+
+    try {
+      await supabase.from('homepage_config').upsert({
+        key: 'catalog_positions',
+        value: positionsArray,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'key' });
+      showToast('Catalog grid sequence saved successfully!', 'success');
+    } catch (err) {
+      console.error("Save catalog positions failed:", err);
+      showToast("Saved locally.", "info");
+    }
+  };
+
   return (
     <AppContext.Provider value={{
       products,
@@ -722,6 +766,9 @@ export function AppProvider({ children }) {
       heroSlides,
       categoryCards,
       collectionCards,
+      catalogPositions,
+      setCatalogPositions,
+      saveCatalogPositions,
       saveHomepageConfig,
       refreshDatabase: loadDatabaseProducts
     }}>
