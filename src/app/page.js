@@ -610,7 +610,7 @@ export default function Home() {
           {products && products.length > 0 ? (() => {
             const catalogMap = {};
             products.forEach(p => {
-              const cid = (p.catalogId || `SINGLE-${p.id}`).toLowerCase();
+              const cid = (p.catalogId || p.catalog_id || `SINGLE-${p.id}`).trim().toUpperCase();
               if (!catalogMap[cid]) {
                 catalogMap[cid] = p;
               }
@@ -620,15 +620,15 @@ export default function Home() {
             if (catalogPositions && catalogPositions.length > 0) {
               catalogPositions.forEach(item => {
                 if (item.catalogId) {
-                  positionOrderMap[item.catalogId.toLowerCase()] = Number(item.position);
+                  positionOrderMap[String(item.catalogId).trim().toUpperCase()] = Number(item.position);
                 }
               });
             }
 
             const uniqueProducts = Object.values(catalogMap);
             uniqueProducts.sort((a, b) => {
-              const cIdA = (a.catalogId || '').toLowerCase();
-              const cIdB = (b.catalogId || '').toLowerCase();
+              const cIdA = (a.catalogId || a.catalog_id || '').trim().toUpperCase();
+              const cIdB = (b.catalogId || b.catalog_id || '').trim().toUpperCase();
               const posA = positionOrderMap[cIdA] !== undefined ? positionOrderMap[cIdA] : 999;
               const posB = positionOrderMap[cIdB] !== undefined ? positionOrderMap[cIdB] : 999;
               if (posA !== posB) return posA - posB;

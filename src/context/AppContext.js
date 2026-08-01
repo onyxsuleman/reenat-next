@@ -587,8 +587,31 @@ export function AppProvider({ children }) {
     loadDatabaseHomepageConfig();
     loadDatabaseProducts();
 
-    // 3. Load Products from Supabase / cache
-    
+    // 4. Real-time storage listener for cross-tab sync
+    const handleStorageChange = (e) => {
+      if (e.key === 'homepage_catalog_positions' && e.newValue) {
+        try {
+          setCatalogPositions(JSON.parse(e.newValue));
+        } catch (err) {
+          console.warn("Storage sync error:", err);
+        }
+      }
+    };
+    const handleCustomSync = () => {
+      try {
+        const storedPositions = localStorage.getItem('homepage_catalog_positions');
+        if (storedPositions) setCatalogPositions(JSON.parse(storedPositions));
+      } catch (err) {
+        console.warn("Custom position sync error:", err);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('catalogPositionsUpdated', handleCustomSync);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('catalogPositionsUpdated', handleCustomSync);
+    };
   }, []);
  
 
@@ -726,6 +749,7 @@ export function AppProvider({ children }) {
     setCatalogPositions(positionsArray);
     try {
       localStorage.setItem('homepage_catalog_positions', JSON.stringify(positionsArray));
+      window.dispatchEvent(new Event('catalogPositionsUpdated'));
     } catch (e) {
       console.warn("Could not save catalog positions to localStorage:", e);
     }
