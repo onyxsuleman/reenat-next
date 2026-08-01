@@ -475,24 +475,27 @@ export default function CMSConsole() {
   };
 
   const handleAddVariant = () => {
-    const baseProduct = batchProducts[activeTabIndex] || batchProducts[0];
-    const newVariant = {
-      ...baseProduct,
-      id: `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      color: '',
-      skuId: '',
-      productId: '',
-      image: '',
-      image2: '',
-      image3: '',
-      image4: '',
-      image5: '',
-      image6: '',
-      linkedTo: '',
-      name: baseProduct.name ? `${baseProduct.name}` : ''
-    };
-    setBatchProducts(prev => [...prev, newVariant]);
-    setActiveTabIndex(batchProducts.length);
+    setBatchProducts(prev => {
+      const baseProduct = prev[activeTabIndex] || prev[0] || {};
+      const newVariant = {
+        ...baseProduct,
+        id: `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        color: '',
+        skuId: '',
+        productId: '',
+        image: '',
+        image2: '',
+        image3: '',
+        image4: '',
+        image5: '',
+        image6: '',
+        linkedTo: '',
+        name: baseProduct.name ? `${baseProduct.name}` : ''
+      };
+      const nextBatch = [...prev, newVariant];
+      setActiveTabIndex(nextBatch.length - 1);
+      return nextBatch;
+    });
     showToast("New variation tab created! Fill in the new color, SKU ID, and image below.", "info");
   };
 
