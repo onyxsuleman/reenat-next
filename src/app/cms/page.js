@@ -2394,85 +2394,8 @@ export default function CMSConsole() {
     }, []);
 
     return (
-      <div className="space-y-6 flex flex-col h-[calc(100vh-120px)] overflow-y-auto">
+      <div className="space-y-6 flex flex-col h-[calc(100vh-120px)] overflow-hidden">
         
-        {/* ⭐ CATALOG GRID POSITION MANAGER PANEL (Slots 1 to 12) */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm shrink-0">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-200 dark:border-slate-800">
-            <div>
-              <h2 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                <span>⭐</span> Homepage Catalog Grid Sequence Manager (Slots 1–12)
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Manually assign which Catalog ID appears in each slot on your homepage grid (Row 1 to Row 4).
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => saveCatalogPositions(localPositions)}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-2 px-4 rounded-xl text-xs shadow-md shadow-blue-600/20 transition-all cursor-pointer border-0 shrink-0 flex items-center gap-1.5"
-            >
-              <span>💾</span> Save Grid Sequence
-            </button>
-          </div>
-
-          {/* 3x4 GRID SLOTS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {Array.from({ length: 12 }, (_, i) => i + 1).map((slotNum) => {
-              const currentPosObj = localPositions.find(p => Number(p.position) === slotNum) || { position: slotNum, catalogId: '' };
-              const currentCatalogId = (currentPosObj.catalogId || '').toUpperCase();
-              const matchingProd = uniqueCatalogs.find(c => (c.catalogId || '').toUpperCase() === currentCatalogId);
-
-              const rowNum = Math.ceil(slotNum / 3);
-              const colNum = ((slotNum - 1) % 3) + 1;
-
-              return (
-                <div key={slotNum} className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 flex items-center gap-2.5 shadow-sm">
-                  {/* Thumbnail */}
-                  <div className="size-10 rounded-lg overflow-hidden bg-slate-900 border border-slate-800 shrink-0 relative">
-                    {matchingProd && matchingProd.image ? (
-                      <img src={matchingProd.image} className="w-full h-full object-cover" alt="" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[9px] text-slate-400 font-bold bg-slate-800">📷</div>
-                    )}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between text-[10px] font-extrabold text-slate-500 dark:text-slate-400 mb-0.5">
-                      <span>Slot #{slotNum}</span>
-                      <span className="text-[9px] bg-slate-200 dark:bg-slate-800 px-1 py-0.5 rounded font-mono">R{rowNum} C{colNum}</span>
-                    </div>
-                    <select
-                      value={currentCatalogId}
-                      onChange={(e) => {
-                        const newCatId = e.target.value;
-                        setLocalPositions(prev => {
-                          const updated = [...prev];
-                          const idx = updated.findIndex(p => Number(p.position) === slotNum);
-                          if (idx >= 0) {
-                            updated[idx] = { position: slotNum, catalogId: newCatId };
-                          } else {
-                            updated.push({ position: slotNum, catalogId: newCatId });
-                          }
-                          return updated;
-                        });
-                      }}
-                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white rounded-lg px-2 py-1 text-[11px] font-bold focus:ring-1 focus:ring-blue-500 cursor-pointer truncate"
-                    >
-                      <option value="">-- Pick Catalog --</option>
-                      {uniqueCatalogs.map(cat => (
-                        <option key={cat.id} value={cat.catalogId}>
-                          Catalog {cat.catalogId} ({cat.color || cat.name?.substring(0, 12)})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
         {/* TOP CONTROLS BAR */}
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm shrink-0">
           
@@ -2810,7 +2733,97 @@ export default function CMSConsole() {
         </div>
       </div>
     );
-  };;
+  };
+
+  const renderCatalogSequenceView = () => {
+    const uniqueCatalogs = (products || []).reduce((acc, p) => {
+      if (p.catalogId) {
+        const cid = p.catalogId.toUpperCase();
+        if (!acc.some(item => (item.catalogId || '').toUpperCase() === cid)) {
+          acc.push(p);
+        }
+      }
+      return acc;
+    }, []);
+
+    return (
+      <div className="space-y-6 max-w-7xl mx-auto pb-12">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-200 dark:border-slate-800">
+            <div>
+              <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                <span>📌</span> Homepage Catalog Sequence Manager (Slots 1–12)
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Manually assign which Catalog ID appears in each slot on your storefront homepage grid (Row 1 to Row 4).
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => saveCatalogPositions(localPositions)}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-2.5 px-5 rounded-xl text-xs shadow-md shadow-blue-600/20 transition-all cursor-pointer border-0 shrink-0 flex items-center gap-2"
+            >
+              <span>💾</span> Save Grid Sequence
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((slotNum) => {
+              const currentPosObj = localPositions.find(p => Number(p.position) === slotNum) || { position: slotNum, catalogId: '' };
+              const currentCatalogId = (currentPosObj.catalogId || '').toUpperCase();
+              const matchingProd = uniqueCatalogs.find(c => (c.catalogId || '').toUpperCase() === currentCatalogId);
+
+              const rowNum = Math.ceil(slotNum / 3);
+              const colNum = ((slotNum - 1) % 3) + 1;
+
+              return (
+                <div key={slotNum} className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm hover:border-blue-500/50 transition-all">
+                  <div className="size-12 rounded-xl overflow-hidden bg-slate-900 border border-slate-800 shrink-0 relative">
+                    {matchingProd && matchingProd.image ? (
+                      <img src={matchingProd.image} className="w-full h-full object-cover" alt="" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-400 font-bold bg-slate-800">📷</div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between text-[11px] font-extrabold text-slate-500 dark:text-slate-400 mb-1">
+                      <span>Slot #{slotNum}</span>
+                      <span className="text-[9px] bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded font-mono">R{rowNum} C{colNum}</span>
+                    </div>
+                    <select
+                      value={currentCatalogId}
+                      onChange={(e) => {
+                        const newCatId = e.target.value;
+                        setLocalPositions(prev => {
+                          const updated = [...prev];
+                          const idx = updated.findIndex(p => Number(p.position) === slotNum);
+                          if (idx >= 0) {
+                            updated[idx] = { position: slotNum, catalogId: newCatId };
+                          } else {
+                            updated.push({ position: slotNum, catalogId: newCatId });
+                          }
+                          return updated;
+                        });
+                      }}
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl px-2.5 py-1.5 text-xs font-bold focus:ring-1 focus:ring-blue-500 cursor-pointer truncate"
+                    >
+                      <option value="">-- Pick Catalog --</option>
+                      {uniqueCatalogs.map(cat => (
+                        <option key={cat.id} value={cat.catalogId}>
+                          Catalog {cat.catalogId} ({cat.color || cat.name?.substring(0, 12)})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div id="cms-console-root" className="flex h-screen w-full overflow-hidden bg-[#f4f7fe] dark:bg-slate-950 text-slate-800 dark:text-white">
@@ -2906,6 +2919,18 @@ export default function CMSConsole() {
           </button>
 
           <button
+            onClick={() => setActiveView('sequence')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer border-0 text-left ${
+              activeView === 'sequence'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-650 text-white shadow-md shadow-blue-950/40 border-l-4 border-[#F1BF0A]'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 bg-transparent'
+            }`}
+          >
+            <span>📌</span>
+            <span>Catalog Sequence</span>
+          </button>
+
+          <button
             onClick={() => setActiveView('homepage_config')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer border-0 text-left ${
               activeView === 'homepage_config'
@@ -2930,6 +2955,7 @@ export default function CMSConsole() {
         {activeView === 'catalog' && renderCatalogView()}
         {activeView === 'orders' && renderOrdersView()}
         {activeView === 'returns' && renderReturnsView()}
+        {activeView === 'sequence' && renderCatalogSequenceView()}
         {activeView === 'homepage_config' && renderHomepageConfigView()}
       </main>
 
