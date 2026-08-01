@@ -82,7 +82,7 @@ export async function pushOrderToShiprocket(order) {
       };
     }
 
-    const orderIdStr = String(order.shiprocket_order_id || order.fastrr_order_id || order.id || Date.now());
+    const orderIdStr = String(order.fastrr_order_id || order.shiprocket_order_id || (order.id ? `RT-${order.id}` : Date.now()));
     const rawDate = order.created_at ? new Date(order.created_at) : new Date();
     const orderDateStr = rawDate.toISOString().slice(0, 19).replace('T', ' ');
 

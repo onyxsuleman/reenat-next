@@ -34,15 +34,22 @@ export async function POST(request) {
       let cleanSellerSku = rawSellerSku
         .replace(/^[A-Z0-9]+\|\|/i, '')
         .replace(/\s*-\s*NSY\d+/ig, '')
+        .replace(/^NSY\d+/ig, '')
         .replace(/^[\s\-\|]+/, '')
         .trim();
 
       if (!cleanSellerSku) {
-        cleanSellerSku = item.color ? `${item.color} Pai` : 'Saree';
+        if (item.color) {
+          cleanSellerSku = item.color.toLowerCase().includes('pai') ? item.color : `${item.color} Pai`;
+        } else if (item.name) {
+          cleanSellerSku = String(item.name).split(' ').slice(0, 3).join(' ');
+        }
       }
 
-      // Ensure single clean Product ID is present at the end
-      let resolvedSku = `${cleanSellerSku} - ${formattedProductId}`;
+      // Ensure single clean Product ID is present at the end without duplicating NSY tags
+      let resolvedSku = cleanSellerSku 
+        ? (cleanSellerSku.includes(formattedProductId) ? cleanSellerSku : `${cleanSellerSku} - ${formattedProductId}`) 
+        : formattedProductId;
 
       // 2. Resolve Image URL cleanly
       let rawImage = item.image || item.image_front || item.image_url || item.image1 || item.image2 || item.image3 || item.image4 || '';

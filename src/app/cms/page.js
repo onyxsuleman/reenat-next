@@ -196,10 +196,29 @@ export default function CMSConsole() {
             let cleanSkuBase = rawSkuStr
               .replace(/^[A-Z0-9]+\|\|/i, '')
               .replace(/\s*-\s*NSY\d+/ig, '')
+              .replace(/^NSY\d+/ig, '')
               .replace(/^[\s\-\|]+/, '')
               .trim();
 
-            let skuId = cleanSkuBase ? `${cleanSkuBase} - ${formattedProdId}` : formattedProdId;
+            if (!cleanSkuBase && matchedProd && matchedProd.styleid) {
+              cleanSkuBase = String(matchedProd.styleid)
+                .replace(/^[A-Z0-9]+\|\|/i, '')
+                .replace(/\s*-\s*NSY\d+/ig, '')
+                .replace(/^NSY\d+/ig, '')
+                .replace(/^[\s\-\|]+/, '')
+                .trim();
+            }
+
+            if (!cleanSkuBase) {
+              const prodColor = (matchedProd && matchedProd.color) || rawItem.color || '';
+              if (prodColor) {
+                cleanSkuBase = prodColor.toLowerCase().includes('pai') ? prodColor : `${prodColor} Pai`;
+              }
+            }
+
+            let skuId = cleanSkuBase 
+              ? (cleanSkuBase.includes(formattedProdId) ? cleanSkuBase : `${cleanSkuBase} - ${formattedProdId}`)
+              : formattedProdId;
 
             const name = rawItem.name || (matchedProd && matchedProd.name ? matchedProd.name : 'Saree');
             const color = rawItem.color || (matchedProd && matchedProd.color ? matchedProd.color : '');
@@ -229,12 +248,13 @@ export default function CMSConsole() {
           const formattedDate = rawDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
           const formattedTime = rawDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-          const displayOrderId = order.shiprocket_order_id || order.fastrr_order_id || (order.id ? String(order.id) : `SR-${Date.now()}`);
+          const displayOrderId = order.fastrr_order_id || order.fastrrOrderId || order.shiprocket_order_id || (order.id ? String(order.id) : `SR-${Date.now()}`);
 
           return {
             id: displayOrderId,
             dbId: order.dbId || order.id,
-            shiprocketOrderId: order.shiprocket_order_id || displayOrderId,
+            shiprocketOrderId: order.shiprocket_order_id || '',
+            fastrrOrderId: order.fastrr_order_id || order.fastrrOrderId || displayOrderId,
             date: `${formattedDate}, ${formattedTime}`,
             customer: order.customer_name || order.customer || 'Customer',
             phone: order.phone || '',
@@ -307,7 +327,7 @@ export default function CMSConsole() {
     const orderToUpdate = orders.find(o => o.id === orderId);
     const dbId = orderToUpdate?.dbId;
 
-    if (dbId) {
+    if (dbId || orderId) {
       try {
         const response = await fetch('/api/cms/db', {
           method: 'POST',
@@ -316,7 +336,9 @@ export default function CMSConsole() {
             action: 'update',
             table: 'orders',
             data: { order_status: newStatus },
-            id: dbId
+            id: dbId || orderId,
+            fastrrOrderId: orderToUpdate?.fastrrOrderId || orderId,
+            shiprocketOrderId: orderToUpdate?.shiprocketOrderId
           })
         });
         const resData = await response.json();
@@ -1755,8 +1777,15 @@ export default function CMSConsole() {
   };
 
   const renderOrdersView = () => {
+    const isCancelledStatus = (status) => {
+      if (!status) return false;
+      const s = String(status).trim().toLowerCase();
+      return s.includes('cancel');
+    };
+
     const isToAcceptStatus = (status) => {
       if (!status) return true;
+      if (isCancelledStatus(status)) return false;
       const s = String(status).trim().toLowerCase();
       return (
         s === 'pending' || 
@@ -1765,27 +1794,27 @@ export default function CMSConsole() {
         s === 'synced' || 
         s === 'new' || 
         s === 'order placed' ||
-        (!['to pack', 'to dispatch', 'shipped', 'delivered', 'completed', 'cancelled'].includes(s))
+        (!['to pack', 'to dispatch', 'shipped', 'delivered', 'completed'].includes(s))
       );
     };
 
     const tabs = [
       { name: 'To Accept', count: orders.filter(o => isToAcceptStatus(o.status)).length },
-      { name: 'To Pack', count: orders.filter(o => String(o.status || '').toLowerCase() === 'to pack').length },
-      { name: 'To Dispatch', count: orders.filter(o => String(o.status || '').toLowerCase() === 'to dispatch').length },
-      { name: 'Shipped', count: orders.filter(o => String(o.status || '').toLowerCase() === 'shipped').length },
-      { name: 'Completed Orders', count: orders.filter(o => String(o.status || '').toLowerCase() === 'delivered' || String(o.status || '').toLowerCase() === 'completed').length },
-      { name: 'Cancelled Orders', count: orders.filter(o => String(o.status || '').toLowerCase() === 'cancelled').length },
+      { name: 'To Pack', count: orders.filter(o => !isCancelledStatus(o.status) && String(o.status || '').toLowerCase() === 'to pack').length },
+      { name: 'To Dispatch', count: orders.filter(o => !isCancelledStatus(o.status) && String(o.status || '').toLowerCase() === 'to dispatch').length },
+      { name: 'Shipped', count: orders.filter(o => !isCancelledStatus(o.status) && String(o.status || '').toLowerCase() === 'shipped').length },
+      { name: 'Completed Orders', count: orders.filter(o => !isCancelledStatus(o.status) && (String(o.status || '').toLowerCase() === 'delivered' || String(o.status || '').toLowerCase() === 'completed')).length },
+      { name: 'Cancelled Orders', count: orders.filter(o => isCancelledStatus(o.status)).length },
     ];
 
     const filteredOrders = orders.filter(o => {
       const s = String(o.status || '').toLowerCase();
       if (activeOrderTab === 'To Accept') return isToAcceptStatus(o.status);
-      if (activeOrderTab === 'To Pack') return s === 'to pack';
-      if (activeOrderTab === 'To Dispatch') return s === 'to dispatch';
-      if (activeOrderTab === 'Shipped') return s === 'shipped';
-      if (activeOrderTab === 'Completed Orders') return s === 'delivered' || s === 'completed';
-      if (activeOrderTab === 'Cancelled Orders') return s === 'cancelled';
+      if (activeOrderTab === 'To Pack') return !isCancelledStatus(o.status) && s === 'to pack';
+      if (activeOrderTab === 'To Dispatch') return !isCancelledStatus(o.status) && s === 'to dispatch';
+      if (activeOrderTab === 'Shipped') return !isCancelledStatus(o.status) && s === 'shipped';
+      if (activeOrderTab === 'Completed Orders') return !isCancelledStatus(o.status) && (s === 'delivered' || s === 'completed');
+      if (activeOrderTab === 'Cancelled Orders') return isCancelledStatus(o.status);
       return true;
     });
 
@@ -1909,14 +1938,15 @@ export default function CMSConsole() {
                       </div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="text-sm font-bold text-slate-900 dark:text-white">
-                        {item.shiprocketOrderId || item.id}
+                      <div className="text-sm font-bold text-slate-900 dark:text-white" title="Primary Fastrr Order ID">
+                        {item.fastrrOrderId || item.id}
                       </div>
-                      {item.fastrrOrderId && item.fastrrOrderId !== item.shiprocketOrderId && (
-                        <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500 mt-0.5" title="Fastrr Reference">
-                          {item.fastrrOrderId}
-                        </div>
-                      )}
+                      <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500 mt-0.5" title="Order References">
+                        {item.shiprocketOrderId && item.shiprocketOrderId !== (item.fastrrOrderId || item.id) && (
+                          <span>SR: {item.shiprocketOrderId} </span>
+                        )}
+                        {item.dbId && <span className="opacity-75">DB: #{item.dbId}</span>}
+                      </div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
                       <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">{item.date}</div>

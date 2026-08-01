@@ -35,14 +35,14 @@ export async function POST(request) {
             const fullAddress = `${shipAddr.address_line1 || ''} ${shipAddr.address_line2 || ''}, ${shipAddr.city || ''}, ${shipAddr.state || ''} - ${shipAddr.pincode || ''}`.replace(/\s+/g, ' ').replace(/^[\s,]+|[\s,]+$/g, '').trim();
             const shipment = (o.shipments || [])[0] || {};
 
-            const rawOrderId = o.shiprocket_order_id || o.fastrr_order_id || (o.legacy_id ? String(o.legacy_id) : String(o.id));
+            const rawOrderId = o.fastrr_order_id || o.shiprocket_order_id || (o.legacy_id ? String(o.legacy_id) : String(o.id));
 
             return {
               id: rawOrderId,
               dbId: o.legacy_id || o.id,
               uuid: o.id,
-              shiprocket_order_id: o.shiprocket_order_id || rawOrderId,
-              fastrr_order_id: o.fastrr_order_id,
+              shiprocket_order_id: o.shiprocket_order_id || '',
+              fastrr_order_id: o.fastrr_order_id || rawOrderId,
               customer_name: o.customer_name,
               email: o.customer_email,
               phone: o.customer_phone,
@@ -139,14 +139,24 @@ export async function POST(request) {
     } else if (action === 'update') {
       result = await supabase.from(table).update(data).eq(eqCol, eqVal !== undefined ? eqVal : id);
 
-      // Also update checkout_orders if table is orders
-      if (table === 'orders' && id) {
+      // Also update checkout_orders / orders synchronously when order_status changes
+      if (data && data.order_status) {
         try {
-          if (data.order_status) {
-            await supabase.from('checkout_orders').update({ order_status: data.order_status }).or(`legacy_id.eq.${id},id.eq.${id}`);
+          const statusToSet = data.order_status;
+          const fId = body.fastrrOrderId || (typeof id === 'string' && id.startsWith('FAST') ? id : null);
+          const sId = body.shiprocketOrderId || null;
+
+          if (table === 'orders') {
+            if (fId) await supabase.from('checkout_orders').update({ order_status: statusToSet }).eq('fastrr_order_id', fId);
+            if (sId) await supabase.from('checkout_orders').update({ order_status: statusToSet }).eq('shiprocket_order_id', String(sId));
+            if (id && !isNaN(Number(id))) await supabase.from('checkout_orders').update({ order_status: statusToSet }).eq('legacy_id', Number(id));
+          } else if (table === 'checkout_orders') {
+            if (fId) await supabase.from('orders').update({ order_status: statusToSet }).eq('fastrr_order_id', fId);
+            if (sId) await supabase.from('orders').update({ order_status: statusToSet }).eq('shiprocket_order_id', String(sId));
+            if (id && !isNaN(Number(id))) await supabase.from('orders').update({ order_status: statusToSet }).eq('id', Number(id));
           }
         } catch (uErr) {
-          console.warn('Non-fatal checkout_orders sync update error:', uErr.message);
+          console.warn('Non-fatal order status cross-table sync error:', uErr.message);
         }
       }
     } else if (action === 'delete') {

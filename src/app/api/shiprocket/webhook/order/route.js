@@ -200,8 +200,25 @@ export async function POST(request) {
       let cleanSkuBase = rawSku
         .replace(/^[A-Z0-9]+\|\|/i, '')
         .replace(/\s*-\s*NSY\d+/ig, '')
+        .replace(/^NSY\d+/ig, '')
         .replace(/^[\s\-\|]+/, '')
         .trim();
+
+      if (!cleanSkuBase && dbProduct && dbProduct.styleid) {
+        cleanSkuBase = String(dbProduct.styleid)
+          .replace(/^[A-Z0-9]+\|\|/i, '')
+          .replace(/\s*-\s*NSY\d+/ig, '')
+          .replace(/^NSY\d+/ig, '')
+          .replace(/^[\s\-\|]+/, '')
+          .trim();
+      }
+
+      if (!cleanSkuBase && dbProduct) {
+        const prodColor = dbProduct.color || '';
+        if (prodColor) {
+          cleanSkuBase = prodColor.toLowerCase().includes('pai') ? prodColor : `${prodColor} Pai`;
+        }
+      }
 
       // IF dbProduct was found, ALWAYS use dbProduct's verified name, image, color & ID!
       const finalDbId = dbProduct ? dbProduct.id : (rawSku.includes('NSY') ? targetDbId : null);
@@ -209,7 +226,9 @@ export async function POST(request) {
       let resolvedSku = cleanSkuBase;
       if (finalDbId) {
         const formattedIdStr = `NSY${String(1000000 + finalDbId)}`;
-        resolvedSku = cleanSkuBase ? `${cleanSkuBase} - ${formattedIdStr}` : formattedIdStr;
+        resolvedSku = cleanSkuBase 
+          ? (cleanSkuBase.includes(formattedIdStr) ? cleanSkuBase : `${cleanSkuBase} - ${formattedIdStr}`) 
+          : formattedIdStr;
       } else if (!resolvedSku) {
         resolvedSku = 'NSY10000001';
       }
