@@ -755,12 +755,24 @@ export function AppProvider({ children }) {
     }
 
     try {
-      await supabase.from('homepage_config').upsert({
-        key: 'catalog_positions',
-        value: positionsArray,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'key' });
-      showToast('Catalog grid sequence saved successfully!', 'success');
+      const response = await fetch('/api/cms/db', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'upsert',
+          table: 'homepage_config',
+          data: { key: 'catalog_positions', value: positionsArray, updated_at: new Date().toISOString() }
+        })
+      });
+
+      const resData = await response.json();
+
+      if (!response.ok || resData.error) {
+        console.error("Save catalog positions error:", resData.error);
+        showToast(`Save error: ${resData.error || 'Database error'}`, 'error');
+      } else {
+        showToast('Catalog grid sequence saved successfully!', 'success');
+      }
     } catch (err) {
       console.error("Save catalog positions failed:", err);
       showToast("Saved locally.", "info");
