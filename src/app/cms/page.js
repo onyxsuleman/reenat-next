@@ -2210,15 +2210,27 @@ export default function CMSConsole() {
 
   
 
-  const getStockNumber = (qty) => {
-    if (!qty) return 150; // default stock
-    const num = parseInt(qty, 10);
+  const getStockNumber = (p) => {
+    if (!p) return 10;
+    if (typeof p === 'object') {
+      if (p.stock_qty !== undefined && p.stock_qty !== null && !isNaN(Number(p.stock_qty))) return Number(p.stock_qty);
+      if (p.stockQty !== undefined && p.stockQty !== null && !isNaN(Number(p.stockQty))) return Number(p.stockQty);
+      if (p.stock !== undefined && p.stock !== null && !isNaN(Number(p.stock))) return Number(p.stock);
+      const qtyStr = p.qty;
+      if (!qtyStr) return 10;
+      const num = parseInt(qtyStr, 10);
+      if (!isNaN(num)) return num;
+      const lower = String(qtyStr).toLowerCase();
+      if (lower.includes('out') || lower.includes('zero') || lower === '0') return 0;
+      if (lower.includes('low')) return 5;
+      return 10;
+    }
+    const num = parseInt(p, 10);
     if (!isNaN(num)) return num;
-    const lower = qty.toLowerCase();
+    const lower = String(p).toLowerCase();
     if (lower.includes('out') || lower.includes('zero') || lower === '0') return 0;
     if (lower.includes('low')) return 5;
-    if (lower.includes('single')) return 1;
-    return 100; // default fallback
+    return 10;
   };
 
   const handleEditStockClick = (variant) => {
@@ -2237,7 +2249,7 @@ export default function CMSConsole() {
     // Update local state
     const updatedProducts = products.map((p, idx) => {
       if (idx === variant.globalIndex) {
-        return { ...p, qty: String(newStockVal) };
+        return { ...p, qty: String(newStockVal), stock_qty: newStockVal, stockQty: newStockVal, stock: newStockVal };
       }
       return p;
     });
@@ -2283,7 +2295,7 @@ export default function CMSConsole() {
     const catalogGroupsMap = {};
     products.forEach((p, idx) => {
       const cid = p.catalogId || 'UNCATALOGED';
-      const stockVal = getStockNumber(p.qty);
+      const stockVal = getStockNumber(p);
       
       if (!catalogGroupsMap[cid]) {
         catalogGroupsMap[cid] = {
@@ -2402,12 +2414,12 @@ export default function CMSConsole() {
           {/* Sort, Search, Upload Actions */}
           <div className="flex flex-wrap items-center gap-3">
             {/* Sort catalogs by Dropdown */}
-            <div className="flex items-center gap-2 text-xs text-slate-500 font-bold">
+            <div className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300 font-extrabold">
               <span>Sort catalogs by:</span>
               <select 
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="bg-slate-50 dark:bg-slate-950 border border-slate-255 dark:border-slate-800 rounded-xl px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold text-slate-700 dark:text-slate-355 cursor-pointer"
+                className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 font-bold text-slate-900 dark:text-white cursor-pointer shadow-sm"
               >
                 <option value="estimated_orders">Highest Estimated Orders</option>
                 <option value="newest">Newest Arrivals</option>
@@ -2418,20 +2430,20 @@ export default function CMSConsole() {
 
             {/* Search Input */}
             <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none text-xs">🔍</span>
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 dark:text-slate-400 pointer-events-none text-xs">🔍</span>
               <input 
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by Catalog ID/Style ID/SKU ID"
-                className="bg-slate-50 dark:bg-slate-955 border border-slate-250 dark:border-slate-800 rounded-xl pl-8 pr-4 py-1.5 text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 w-64"
+                className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl pl-8 pr-4 py-1.5 text-xs text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500 w-64 shadow-sm font-medium"
               />
             </div>
 
             {/* Catalog Upload Purple Button */}
             <button 
               onClick={() => handleOpenDrawer(null)}
-              className="bg-indigo-650 hover:bg-indigo-750 text-white font-extrabold py-2.5 px-4 rounded-xl text-xs transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-indigo-950/20 cursor-pointer flex items-center gap-1.5 border-0"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold py-2.5 px-4 rounded-xl text-xs transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-indigo-600/20 cursor-pointer flex items-center gap-1.5 border-0"
             >
               <span>⬆</span> Catalog Upload
             </button>
@@ -2529,13 +2541,13 @@ export default function CMSConsole() {
                       <div className="flex gap-2 shrink-0">
                         <button 
                           onClick={() => handleOpenDrawer(selectedCatalog.firstVariantGlobalIndex)}
-                          className="bg-indigo-650 hover:bg-indigo-750 text-white font-extrabold py-2 px-4 rounded-xl text-xs transition-transform active:scale-95 shadow cursor-pointer flex items-center gap-1.5 border-0"
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold py-2 px-4 rounded-xl text-xs transition-transform active:scale-95 shadow-sm cursor-pointer flex items-center gap-1.5 border-0"
                         >
                           <span>⚙️</span> Configure (Batch)
                         </button>
                         <button 
                           onClick={() => deleteCatalog(selectedCatalog.catalogId)}
-                          className="bg-rose-50 hover:bg-rose-100 dark:bg-rose-955/20 dark:hover:bg-rose-900/40 text-rose-500 font-bold py-2 px-4 rounded-xl text-xs border border-rose-200/50 dark:border-rose-900/30 transition-transform active:scale-95 cursor-pointer"
+                          className="bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 font-extrabold py-2 px-4 rounded-xl text-xs border border-rose-200 dark:border-rose-900/40 transition-transform active:scale-95 cursor-pointer"
                         >
                           Delete Catalog
                         </button>
@@ -2546,7 +2558,7 @@ export default function CMSConsole() {
                     <div className="flex-1 overflow-y-auto custom-scrollbar">
                       <table className="w-full text-xs text-left border-collapse text-slate-800 dark:text-slate-100">
                         <thead>
-                          <tr className="bg-slate-50 dark:bg-black/20 border-b border-slate-150 dark:border-slate-800/80 font-bold text-[9.5px] uppercase tracking-wider text-slate-400 dark:text-slate-555 shrink-0">
+                          <tr className="bg-slate-100/70 dark:bg-black/40 border-b border-slate-200 dark:border-slate-800 font-extrabold text-[9.5px] uppercase tracking-wider text-slate-700 dark:text-slate-300 shrink-0">
                             <th className="p-4 w-10 text-center select-all"><input type="checkbox" className="rounded text-blue-600 focus:ring-blue-500" /></th>
                             <th className="p-4 w-20">SKU Image</th>
                             <th className="p-4">SKU Info</th>
