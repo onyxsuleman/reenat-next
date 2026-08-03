@@ -1,3 +1,4 @@
+import Script from "next/script";
 import { AppProvider } from "../context/AppContext";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -13,6 +14,9 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className="h-full" suppressHydrationWarning>
+      <head>
+        <link rel="stylesheet" href="https://checkout-ui.shiprocket.com/assets/styles/shopify.css" />
+      </head>
       <body className="min-h-dvh text-base font-normal text-slate-900 dark:text-slate-100 px-3.5 pt-[calc(6px+env(safe-area-inset-top,0px))] flex flex-col justify-between" suppressHydrationWarning>
         <AppProvider>
           <Navbar />
@@ -23,7 +27,12 @@ export default function RootLayout({ children }) {
           <FloatingNav />
           <QuickViewModal />
         </AppProvider>
+        <Script 
+          src="https://checkout-ui.shiprocket.com/assets/js/channels/login.js" 
+          strategy="lazyOnload" 
+        />
       </body>
     </html>
   );
 }
+

@@ -24,39 +24,33 @@ This document serves as a complete record of the Shiprocket Catalog Sync and Fas
   * Created `return_orders` table with a standard status state-machine ('Requested', 'Approved', 'Rejected', 'Picked Up', 'Completed').
   * Enhanced `orders` table with separate address columns (`shipping_line1`, `shipping_line2`, `shipping_city`, `shipping_state`, `shipping_pincode`, `shipping_country`) and Shiprocket logistics tracking columns (`shiprocket_order_id`, `tracking_number`, `carrier_name`, `tracking_url`).
 
+### Milestone 3: Fastrr Headless 1-Click Login & Customer Data Sync (Completed)
+* **Goal**: Enable 1-Click Phone OTP Login on `/login` and auto-sync customer profiles to Supabase.
+* **Credentials Verified**:
+  * `SHIPROCKET_MERCHANT_API_KEY`: `ID12gSEcGkJ5t77y`
+  * `SHIPROCKET_MERCHANT_SECRET_KEY`: `IH1WLhuUkNaLrUBuOns4JJe53tdsGCMr`
+* **Endpoints Developed**:
+  * **Login Token Generator**: `/api/auth/fastrr/token` (Generates HMAC SHA256 signature in Base64 and requests token from `https://checkout-api.shiprocket.com/api/v1/access-token/login`).
+  * **Customer Data Sync**: `/api/auth/fastrr/customer` (Fetches customer data from `https://checkout-api.shiprocket.com/api/v1/customer-data/`, upserts user to Supabase `customers` table, and logs user into `AppContext`).
+* **UI Integration**: Added **"⚡ Fastrr 1-Click Phone Login"** button on `/login` and preloaded Fastrr SDK scripts in `RootLayout`.
+
 ---
 
 ## 🔑 Mappings & Key Shared Secrets
 
 | Variable / Header | Config Name | Local / Production Value | Role |
 | :--- | :--- | :--- | :--- |
-| **X-Api-Key** | `SHIPROCKET_API_KEY` | `src_reenat_prod_key_9f8d7c6b5a` | The shared secret you will provide to Shiprocket so they can fetch your catalog. |
+| **X-Api-Key** | `SHIPROCKET_API_KEY` | `src_reenat_prod_key_9f8d7c6b5a` | Shared secret for Shiprocket to fetch catalog endpoints. |
+| **Merchant API Key** | `SHIPROCKET_MERCHANT_API_KEY` | `ID12gSEcGkJ5t77y` | Merchant API key provided by Shiprocket Support. |
+| **Merchant Secret Key** | `SHIPROCKET_MERCHANT_SECRET_KEY` | `IH1WLhuUkNaLrUBuOns4JJe53tdsGCMr` | HMAC SHA256 secret key for signing token requests and webhooks. |
 
 ---
 
-## ⚡ Next Steps - Finalizing Fastrr Checkout Integration
+## ⚡ Production Verification & Next Steps
 
-Once the Shiprocket team responds and provides your **API Key** and **Secret Key**, we will complete the following tasks:
+1. **Coolify Environment Variables**:
+   Ensure `SHIPROCKET_MERCHANT_API_KEY` and `SHIPROCKET_MERCHANT_SECRET_KEY` are saved in your Coolify dashboard production environment settings.
 
-### Task 1: Add Credentials to Coolify
-Save the two credentials from Shiprocket in your `reenat-next` Coolify Environment Variables:
-1. `SHIPROCKET_MERCHANT_API_KEY` (Used to authenticate our calls to Shiprocket)
-2. `SHIPROCKET_MERCHANT_SECRET_KEY` (Used to sign request payloads with HMAC SHA256)
+2. **Webhooks**:
+   Verify `/api/shiprocket/webhook/order` endpoint URL is registered in your Shiprocket Fastrr Dashboard (`https://shiprocket.in`) under Developer Settings -> Webhooks.
 
-### Task 2: Create Webhook Endpoint (`/api/shiprocket/webhook/order`)
-Create a Next.js API route that:
-1. Receives order details from Shiprocket upon successful payment.
-2. Cryptographically verifies the request source using the `SHIPROCKET_MERCHANT_SECRET_KEY` via HMAC.
-3. Saves the completed customer profile in the `customers` table.
-4. Records the completed order inside the `orders` table (populating the structured shipping address and the `shiprocket_order_id`).
-
-### Task 3: Implement Checkout Token Generator & Script Injection
-1. Create a server-side route `/api/checkout/token` that calls Shiprocket's token api (`https://checkout-api.shiprocket.com/api/v1/access-token/checkout`) using your seller credentials to get a checkout transaction token.
-2. Modify your `/cart` page to load the Shiprocket Fastrr JavaScript SDK:
-   ```html
-    <script src="https://checkout-ui.shiprocket.com/assets/js/channels/custom.js"></script>
-   ```
-3. Connect the cart checkout button to retrieve the transaction token and launch the Fastrr overlay iframe:
-   ```javascript
-   HeadlessCheckout.addToCart(event, token, { fallbackUrl: "https://reenattrends.com/cart" });
-   ```

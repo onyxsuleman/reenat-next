@@ -14,6 +14,7 @@ export default function Login() {
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFastrrLoading, setIsFastrrLoading] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState(null);
 
   useEffect(() => {
@@ -21,6 +22,73 @@ export default function Login() {
       router.push('/account');
     }
   }, [userSession, router]);
+
+  const handleFastrrLogin = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    setIsFastrrLoading(true);
+    showToast('Initializing Shiprocket Fastrr 1-Click Login...', 'info');
+
+    try {
+      // 1. Fetch token from server API
+      const res = await fetch('/api/auth/fastrr/token', { method: 'POST' });
+      const data = await res.json();
+
+      if (!res.ok || !data.ok || !data.result?.token) {
+        throw new Error(data.error || 'Could not generate Fastrr login token.');
+      }
+
+      const token = data.result.token;
+
+      // 2. Ensure HeadlessCheckout SDK is initialized
+      if (typeof window === 'undefined' || !window.HeadlessCheckout) {
+        throw new Error('Shiprocket Fastrr SDK is loading. Please try again in a few seconds.');
+      }
+
+      const config = {
+        amount: 0,
+        themecolor: '183fad',
+        image: 'https://www.reenattrends.com/saree_kanjivaram.png'
+      };
+
+      // 3. Launch Fastrr Login Dialog
+      window.HeadlessCheckout.buyNow(e, token, config, async (response) => {
+        try {
+          setIsFastrrLoading(true);
+          showToast('Authenticating user profile...', 'info');
+
+          const authToken = response?.result?.authorised_customer_token || response?.token;
+          const payload = authToken ? { token: authToken } : { customerData: response?.data || response };
+
+          const verifyRes = await fetch('/api/auth/fastrr/customer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          const verifyData = await verifyRes.json();
+
+          if (verifyRes.ok && verifyData.success && verifyData.userSession) {
+            handleLogin(verifyData.userSession);
+            showToast(`Welcome back! Signed in via Fastrr as ${verifyData.userSession.username}.`, 'success');
+            router.push('/account');
+          } else {
+            throw new Error(verifyData.error || 'Failed to authenticate Fastrr user.');
+          }
+        } catch (verifyErr) {
+          console.error('Fastrr authentication callback error:', verifyErr);
+          showToast(`Fastrr Authentication Failed: ${verifyErr.message}`, 'error');
+        } finally {
+          setIsFastrrLoading(false);
+        }
+      });
+    } catch (err) {
+      console.error('Fastrr login initiation error:', err);
+      showToast(`Fastrr Login Error: ${err.message}`, 'error');
+    } finally {
+      setIsFastrrLoading(false);
+    }
+  };
+
 
   useEffect(() => {
     if (typeof window !== 'undefined' && !window.recaptchaVerifier) {
@@ -245,13 +313,48 @@ export default function Login() {
             </button>
           </form>
 
+          {/* Fastrr 1-Click Phone Login Button */}
+          <div className="space-y-2">
+            <button
+              onClick={handleFastrrLogin}
+              disabled={isFastrrLoading || isSubmitting}
+              type="button"
+              className="w-full flex items-center justify-center gap-2.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-700 hover:from-emerald-700 hover:to-blue-800 disabled:opacity-50 text-white py-3 px-6 rounded-2xl font-bold transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg cursor-pointer text-sm tracking-wide"
+            >
+              {isFastrrLoading ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Connecting Fastrr...</span>
+                </span>
+              ) : (
+                <>
+                  <span className="bg-white/20 p-1 rounded-full">
+                    <svg className="w-4 h-4 text-amber-300 fill-amber-300" viewBox="0 0 24 24">
+                      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                    </svg>
+                  </span>
+                  <span>1-Click Phone Login (Fastrr)</span>
+                  <span className="ml-auto text-[10px] font-extrabold uppercase bg-white/20 px-2 py-0.5 rounded-md tracking-wider">
+                    Shiprocket
+                  </span>
+                </>
+              )}
+            </button>
+            <p className="text-[11px] text-center text-slate-400 dark:text-slate-500 font-medium">
+              Instant OTP verification & saved delivery addresses powered by Shiprocket Fastrr.
+            </p>
+          </div>
+
           {/* Social Sign In Divider */}
           <div className="relative flex items-center justify-center my-1">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-black/5 dark:border-white/10"></div>
             </div>
             <span className="relative px-3 text-[10px] text-slate-400 dark:text-slate-500 bg-white/90 dark:bg-[#0c1e44] rounded-full font-semibold uppercase tracking-wider select-none">
-              Or
+              Or Sign In Manually
             </span>
           </div>
 
