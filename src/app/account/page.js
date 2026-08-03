@@ -334,8 +334,19 @@ export default function Account() {
     }
   };
 
-  const initial = userSession.username ? userSession.username.charAt(0).toUpperCase() : 'U';
+  // Compute display name and initial cleanly
+  const rawName = (userSession.username && !userSession.username.startsWith('Customer ') && !userSession.username.startsWith('FASTRR-')) 
+    ? userSession.username 
+    : (userSession.address?.name || (userSession.email ? userSession.email.split('@')[0] : 'Store Customer'));
+  const displayName = rawName.toUpperCase();
+  const initial = rawName ? rawName.charAt(0).toUpperCase() : 'U';
+
   const defaultAddressObj = addresses.find(addr => addr.isDefault) || addresses[0];
+  const fastrrAddr = userSession.address || {};
+
+  const displayPrimaryAddress = defaultAddressObj
+    ? [defaultAddressObj.line1, defaultAddressObj.city].filter(Boolean).join(', ')
+    : (fastrrAddr.line1 ? [fastrrAddr.line1, fastrrAddr.city].filter(Boolean).join(', ') : 'None Saved');
 
   return (
     <main className="max-w-5xl mx-auto w-full flex-1 py-8 px-4">
@@ -349,7 +360,7 @@ export default function Account() {
             </div>
             <div>
               <h2 className="text-xl font-bold text-slate-900 dark:text-white uppercase tracking-wide">
-                {userSession.username}
+                {displayName}
               </h2>
               {userSession.email && !userSession.email.includes('@reenattrends.com') && (
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{userSession.email}</p>
@@ -370,17 +381,13 @@ export default function Account() {
             <div className="flex justify-between">
               <span className="font-medium">Member Since</span>
               <span className="font-semibold text-slate-900 dark:text-white">
-                {userSession.joinedDate || 'July 2026'}
+                {userSession.joinedDate || 'August 2026'}
               </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="font-medium">Tier</span>
-              <span className="font-semibold text-[#F1BF0A] flex items-center gap-1">★ Gold Member</span>
             </div>
             <div className="flex justify-between pb-3">
               <span className="font-medium">Primary Address</span>
-              <span className="font-semibold text-slate-900 dark:text-white truncate max-w-[120px]" title={defaultAddressObj ? `${defaultAddressObj.line1}, ${defaultAddressObj.city}` : ''}>
-                {defaultAddressObj ? `${defaultAddressObj.city} (${defaultAddressObj.type})` : 'None Saved'}
+              <span className="font-semibold text-slate-900 dark:text-white truncate max-w-[140px]" title={displayPrimaryAddress}>
+                {displayPrimaryAddress}
               </span>
             </div>
             <button 
@@ -398,24 +405,7 @@ export default function Account() {
         {/* Right Side: Action Dashboard Grid */}
         <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
           
-          {/* Card 1: Edit Profile */}
-          <div className="bg-white/70 dark:bg-[#0f1f41]/60 border border-black/5 dark:border-white/10 p-6 rounded-3xl glass shadow-md flex flex-col justify-between space-y-4">
-            <div className="space-y-2">
-              <div className="size-10 rounded-xl bg-blue-100 dark:bg-blue-950/40 text-[#183fad] dark:text-[#F1BF0A] flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="size-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>
-              </div>
-              <h3 className="text-lg font-bold text-slate-800 dark:text-white uppercase tracking-wider font-anton">My Profile</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Update your name, contact phone number, and account preferences.</p>
-            </div>
-            <button 
-              onClick={() => setActivePopup('profile')}
-              className="w-full bg-[#183fad] text-white hover:bg-blue-800 dark:bg-slate-800 dark:hover:bg-slate-700 font-semibold py-2 px-4 rounded-xl transition-all text-xs cursor-pointer text-center"
-            >
-              Edit Profile details
-            </button>
-          </div>
-
-          {/* Card 2: Orders */}
+          {/* Card 1: Orders */}
           <div className="bg-white/70 dark:bg-[#0f1f41]/60 border border-black/5 dark:border-white/10 p-6 rounded-3xl glass shadow-md flex flex-col justify-between space-y-4">
             <div className="space-y-2">
               <div className="size-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
@@ -426,30 +416,13 @@ export default function Account() {
             </div>
             <button 
               onClick={() => setActivePopup('orders')}
-              className="w-full bg-[#183fad] text-white hover:bg-blue-800 dark:bg-slate-800 dark:hover:bg-slate-700 font-semibold py-2 px-4 rounded-xl transition-all text-xs cursor-pointer text-center"
+              className="w-full bg-[#183fad] text-white hover:bg-blue-800 dark:bg-slate-800 dark:hover:bg-slate-700 font-semibold py-2 px-4 rounded-xl transition-all text-xs cursor-pointer text-center font-bold"
             >
               View Purchases ({orders.length})
             </button>
           </div>
 
-          {/* Card 3: Wishlist */}
-          <div className="bg-white/70 dark:bg-[#0f1f41]/60 border border-black/5 dark:border-white/10 p-6 rounded-3xl glass shadow-md flex flex-col justify-between space-y-4">
-            <div className="space-y-2">
-              <div className="size-10 rounded-xl bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="size-5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" /></svg>
-              </div>
-              <h3 className="text-lg font-bold text-slate-800 dark:text-white uppercase tracking-wider font-anton">My Wishlist</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Access saved sarees, verify pricing drops, and quickly add them to your cart.</p>
-            </div>
-            <button 
-              onClick={() => setActivePopup('wishlist')}
-              className="w-full bg-[#183fad] text-white hover:bg-blue-800 dark:bg-slate-800 dark:hover:bg-slate-700 font-semibold py-2 px-4 rounded-xl transition-all text-xs cursor-pointer text-center"
-            >
-              Browse Wishlist ({wishlist.length})
-            </button>
-          </div>
-
-          {/* Card 4: Address Book */}
+          {/* Card 2: Address Book */}
           <div className="bg-white/70 dark:bg-[#0f1f41]/60 border border-black/5 dark:border-white/10 p-6 rounded-3xl glass shadow-md flex flex-col justify-between space-y-4">
             <div className="space-y-2">
               <div className="size-10 rounded-xl bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center">
@@ -460,11 +433,13 @@ export default function Account() {
             </div>
             <button 
               onClick={() => setActivePopup('addresses')}
-              className="w-full bg-[#183fad] text-white hover:bg-blue-800 dark:bg-slate-800 dark:hover:bg-slate-700 font-semibold py-2 px-4 rounded-xl transition-all text-xs cursor-pointer text-center"
+              className="w-full bg-[#183fad] text-white hover:bg-blue-800 dark:bg-slate-800 dark:hover:bg-slate-700 font-semibold py-2 px-4 rounded-xl transition-all text-xs cursor-pointer text-center font-bold"
             >
               Address Book ({addresses.length})
             </button>
           </div>
+
+        </div>
 
 
 
