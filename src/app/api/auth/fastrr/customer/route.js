@@ -47,7 +47,9 @@ export async function POST(request) {
     const lastName = addr.last_name || addr.lastName || '';
     const fullName = [firstName, lastName].filter(Boolean).join(' ') || `Customer ${cleanPhoneDigits.slice(-4)}`;
     
-    const email = addr.email || finalData.email || (cleanPhoneDigits ? `${cleanPhoneDigits}@reenattrends.com` : 'customer@reenattrends.com');
+    const rawEmail = (addr.email || finalData.email || '').trim();
+    const isSynthetic = !rawEmail || rawEmail.includes('@reenattrends.com') || rawEmail.includes('pickrr.com');
+    const email = isSynthetic ? '' : rawEmail;
 
     // 3. Upsert customer record into Supabase
     try {

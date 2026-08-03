@@ -14,7 +14,7 @@ export async function POST(request) {
     }
 
     const payload = {
-      address: true,
+      address: false,
       timestamp: new Date().toISOString()
     };
 

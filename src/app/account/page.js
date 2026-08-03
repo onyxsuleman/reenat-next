@@ -350,7 +350,7 @@ export default function Account() {
               <h2 className="text-xl font-bold text-slate-900 dark:text-white uppercase tracking-wide">
                 {userSession.username}
               </h2>
-              {userSession.email && (
+              {userSession.email && !userSession.email.includes('@reenattrends.com') && (
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{userSession.email}</p>
               )}
               {userSession.phone && (
