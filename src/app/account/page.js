@@ -438,11 +438,6 @@ export default function Account() {
               Address Book ({addresses.length})
             </button>
           </div>
-
-        </div>
-
-
-
         </div>
       </div>
 
