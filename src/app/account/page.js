@@ -81,26 +81,27 @@ export default function Account() {
     }
   }, [userSession, activePopup]);
 
-  // Address book management: Load addresses from localStorage
+  // Address book management: Load addresses from localStorage or Fastrr user session
   useEffect(() => {
     if (!userSession) return;
-    const cacheKey = `addresses_${userSession.uid || userSession.email}`;
+    const cacheKey = `addresses_${userSession.uid || userSession.phone || userSession.email}`;
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
       setAddresses(JSON.parse(cached));
     } else {
-      // Default address setup
+      // Setup initial address from Fastrr profile if available
+      const fastrrAddr = userSession.address || {};
       const defaultAddr = [
         {
           id: 'def-1',
           type: 'Home',
           name: userSession.username || 'Recipient Name',
-          phone: userSession.phone || '9876543210',
-          line1: '12, Weaver Street',
-          line2: 'Silk Nagar',
-          city: 'Kanchipuram',
-          state: 'Tamil Nadu',
-          pincode: '631501',
+          phone: userSession.phone || '',
+          line1: fastrrAddr.line1 || 'Main Street',
+          line2: fastrrAddr.line2 || '',
+          city: fastrrAddr.city || 'Mumbai',
+          state: fastrrAddr.state || 'Maharashtra',
+          pincode: fastrrAddr.pincode || '400001',
           isDefault: true
         }
       ];
@@ -356,6 +357,12 @@ export default function Account() {
               {userSession.phone && (
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">Phone: +91 {userSession.phone.replace('+91', '')}</p>
               )}
+              <div className="mt-2 flex items-center justify-center">
+                <span className="inline-flex items-center gap-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-2.5 py-0.5 rounded-full select-none">
+                  <svg className="w-3 h-3 fill-emerald-500" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                  <span>Fastrr Verified Mobile</span>
+                </span>
+              </div>
             </div>
           </div>
           
