@@ -257,38 +257,55 @@ export default function Login() {
 
           {/* Primary Fastrr 1-Click Phone Login Button */}
           <div className="w-full max-w-sm space-y-3 pt-2">
-            <button
+            <div
               onClick={handleFastrrLogin}
-              disabled={isFastrrLoading}
-              type="button"
-              style={{ color: '#ffffff', backgroundColor: '#0f172a' }}
-              className="w-full flex items-center justify-between gap-3 bg-slate-900 hover:bg-slate-800 dark:bg-gradient-to-r dark:from-[#0c1e44] dark:to-[#183fad] dark:hover:from-[#0c1e44]/90 dark:hover:to-[#183fad]/90 text-white font-bold py-3.5 px-6 rounded-full border border-amber-400/50 shadow-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer text-sm select-none"
+              role="button"
+              tabIndex={0}
+              style={{
+                backgroundColor: '#0c1e44',
+                color: '#ffffff',
+                borderColor: '#f59e0b',
+                borderWidth: '1px',
+                borderStyle: 'solid',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '14px 22px',
+                borderRadius: '9999px',
+                width: '100%',
+                cursor: isFastrrLoading ? 'wait' : 'pointer',
+                boxShadow: '0 10px 25px -5px rgba(0,0,0,0.3)',
+                userSelect: 'none'
+              }}
+              className="hover:bg-[#183fad] transition-all transform hover:scale-[1.02] active:scale-[0.98]"
             >
               {isFastrrLoading ? (
-                <span className="w-full flex items-center justify-center gap-2 text-white font-bold" style={{ color: '#ffffff' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', gap: '8px', color: '#ffffff', fontWeight: 'bold' }}>
                   <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24" fill="none">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  <span>Connecting Fastrr...</span>
-                </span>
+                  <span style={{ color: '#ffffff', fontWeight: 'bold', fontSize: '14px', display: 'inline-block' }}>Connecting Fastrr...</span>
+                </div>
               ) : (
                 <>
-                  <span className="flex items-center gap-2.5 text-white font-bold" style={{ color: '#ffffff' }}>
-                    <span className="bg-amber-400/20 p-1.5 rounded-full flex items-center justify-center">
-                      <svg className="w-4 h-4 text-amber-400 fill-amber-400" viewBox="0 0 24 24">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ backgroundColor: 'rgba(245, 158, 11, 0.25)', padding: '6px', borderRadius: '9999px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <svg style={{ width: '16px', height: '16px', color: '#fbbf24', fill: '#fbbf24' }} viewBox="0 0 24 24">
                         <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
                       </svg>
+                    </div>
+                    <span style={{ color: '#ffffff', fontWeight: '700', fontSize: '14px', letterSpacing: '-0.01em', opacity: 1, visibility: 'visible', display: 'inline-block' }}>
+                      1-Click Phone Login (Fastrr)
                     </span>
-                    <span className="tracking-tight text-white font-bold" style={{ color: '#ffffff' }}>1-Click Phone Login (Fastrr)</span>
-                  </span>
+                  </div>
 
-                  <span className="text-[10px] font-extrabold uppercase bg-white/20 text-white px-2.5 py-1 rounded-full tracking-wider border border-white/20 select-none" style={{ color: '#ffffff' }}>
+                  <span style={{ color: '#ffffff', backgroundColor: 'rgba(255, 255, 255, 0.18)', padding: '4px 10px', borderRadius: '9999px', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', border: '1px solid rgba(255, 255, 255, 0.2)', whiteSpace: 'nowrap' }}>
                     SHIPROCKET
                   </span>
                 </>
               )}
-            </button>
+            </div>
 
             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed px-2">
               Instant OTP verification & saved delivery addresses powered by Shiprocket Fastrr.
