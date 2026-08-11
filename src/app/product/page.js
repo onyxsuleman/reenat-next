@@ -123,6 +123,21 @@ function ProductDetailsContent() {
 
       addToCart(product);
 
+      if (typeof window !== 'undefined' && window.fbq) {
+        try {
+          window.fbq('track', 'InitiateCheckout', {
+            content_name: product.name || product.title,
+            content_ids: [String(product.id)],
+            content_type: 'product',
+            value: Number(product.price || 0),
+            currency: 'INR',
+            num_items: 1
+          });
+        } catch (fbErr) {
+          console.error('Meta Pixel InitiateCheckout error:', fbErr);
+        }
+      }
+
       const response = await fetch('/api/checkout/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

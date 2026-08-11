@@ -85,6 +85,20 @@ export default function Cart() {
       return;
     }
 
+    if (typeof window !== 'undefined' && window.fbq) {
+      try {
+        window.fbq('track', 'InitiateCheckout', {
+          content_ids: cart.map(item => String(item.id)),
+          content_type: 'product',
+          value: Number(cartSubtotal || 0),
+          currency: 'INR',
+          num_items: cart.reduce((acc, item) => acc + (item.qty || 1), 0)
+        });
+      } catch (fbErr) {
+        console.error('Meta Pixel InitiateCheckout error:', fbErr);
+      }
+    }
+
     try {
       showToast('Connecting to secure checkout...', 'info');
       
@@ -162,6 +176,20 @@ export default function Cart() {
       if (!response.ok) {
         showToast(resData.error || 'Checkout failed. Please try again.', 'error');
       } else {
+        if (typeof window !== 'undefined' && window.fbq) {
+          try {
+            window.fbq('track', 'Purchase', {
+              content_ids: cart.map(item => String(item.id)),
+              content_type: 'product',
+              value: Number(cartSubtotal || 0),
+              currency: 'INR',
+              num_items: cart.reduce((acc, item) => acc + (item.qty || 1), 0)
+            });
+          } catch (fbErr) {
+            console.error('Meta Pixel Purchase error:', fbErr);
+          }
+        }
+
         // Clear cart
         localStorage.setItem('cart', JSON.stringify([]));
         showToast('Order placed successfully!', 'success');
