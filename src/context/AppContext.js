@@ -446,6 +446,13 @@ const defaultCatalogPositions = [
   { position: 12, catalogId: '' }
 ];
 
+const defaultBestSellers = [
+  { slot: 1, catalogId: 'M1' },
+  { slot: 2, catalogId: 'M2' },
+  { slot: 3, catalogId: 'M3' },
+  { slot: 4, catalogId: 'M4' }
+];
+
 export function AppProvider({ children }) {
   const [products, setProducts] = useState(mappedDefaultProducts);
   const [cart, setCart] = useState([]);
@@ -453,7 +460,7 @@ export function AppProvider({ children }) {
   const [categoryCards, setCategoryCards] = useState(defaultCategoryCards);
   const [collectionCards, setCollectionCards] = useState(defaultCollectionCards);
   const [catalogPositions, setCatalogPositions] = useState(defaultCatalogPositions);
-  const [salesCountMap, setSalesCountMap] = useState({});
+  const [bestSellers, setBestSellers] = useState(defaultBestSellers);
   const [wishlist, setWishlist] = useState([]);
   const [theme, setTheme] = useState('light');
   const [toast, setToast] = useState(null);
@@ -472,6 +479,8 @@ export function AppProvider({ children }) {
       if (storedCollections) setCollectionCards(JSON.parse(storedCollections));
       const storedPositions = localStorage.getItem('homepage_catalog_positions');
       if (storedPositions) setCatalogPositions(JSON.parse(storedPositions));
+      const storedBestSellers = localStorage.getItem('homepage_bestsellers');
+      if (storedBestSellers) setBestSellers(JSON.parse(storedBestSellers));
     } catch (e) {
       console.warn("Failed to load stored homepage configs from localStorage:", e);
     }
@@ -484,6 +493,7 @@ export function AppProvider({ children }) {
         const categoriesRow = data.find(row => row.key === 'categories');
         const collectionsRow = data.find(row => row.key === 'collections');
         const positionsRow = data.find(row => row.key === 'catalog_positions');
+        const bestsellersRow = data.find(row => row.key === 'bestsellers');
 
         if (heroRow && Array.isArray(heroRow.value)) {
           setHeroSlides(heroRow.value);
@@ -500,6 +510,10 @@ export function AppProvider({ children }) {
         if (positionsRow && Array.isArray(positionsRow.value)) {
           setCatalogPositions(positionsRow.value);
           localStorage.setItem('homepage_catalog_positions', JSON.stringify(positionsRow.value));
+        }
+        if (bestsellersRow && Array.isArray(bestsellersRow.value)) {
+          setBestSellers(bestsellersRow.value);
+          localStorage.setItem('homepage_bestsellers', JSON.stringify(bestsellersRow.value));
         }
       } else if (error) {
         console.warn("Could not load homepage config from database (it might not exist yet):", error.message);
@@ -551,38 +565,6 @@ export function AppProvider({ children }) {
     }
   };
 
-  const loadSalesData = async () => {
-    try {
-      const { data: ordersData, error } = await supabase.from('orders').select('items');
-      if (!error && ordersData) {
-        const counts = {};
-        ordersData.forEach(order => {
-          if (Array.isArray(order.items)) {
-            order.items.forEach(item => {
-              const qty = Number(item.qty || item.quantity || 1);
-              const cid = (item.catalogId || item.catalog_id || item.catalog || '').trim().toUpperCase();
-              if (cid) {
-                counts[cid] = (counts[cid] || 0) + qty;
-              }
-              const pid = item.product_id || item.product_id_str || item.variantId || item.id;
-              if (pid) {
-                const normPid = String(pid).trim().toUpperCase();
-                counts[normPid] = (counts[normPid] || 0) + qty;
-                const digits = normPid.replace(/\D/g, '');
-                if (digits) {
-                  counts[`NSY${digits}`] = (counts[`NSY${digits}`] || 0) + qty;
-                }
-              }
-            });
-          }
-        });
-        setSalesCountMap(counts);
-      }
-    } catch (err) {
-      console.warn("Failed to load sales data from orders:", err);
-    }
-  };
-
   // Initialize from LocalStorage (Client Side only)
   useEffect(() => {
     // 1. Theme Setup
@@ -619,7 +601,6 @@ export function AppProvider({ children }) {
     // 3. Load Homepage Config & Products from Supabase / cache
     loadDatabaseHomepageConfig();
     loadDatabaseProducts();
-    loadSalesData();
 
     // 4. Real-time storage listener for cross-tab sync
     const handleStorageChange = (e) => {
@@ -666,6 +647,9 @@ export function AppProvider({ children }) {
     } else if (type === 'collections') {
       setCollectionCards(data);
       localStorage.setItem('homepage_collections', JSON.stringify(data));
+    } else if (type === 'bestsellers') {
+      setBestSellers(data);
+      localStorage.setItem('homepage_bestsellers', JSON.stringify(data));
     }
 
     try {
@@ -894,9 +878,9 @@ export function AppProvider({ children }) {
       catalogPositions,
       setCatalogPositions,
       saveCatalogPositions,
+      bestSellers,
+      setBestSellers,
       saveHomepageConfig,
-      salesCountMap,
-      refreshSalesData: loadSalesData,
       refreshDatabase: loadDatabaseProducts
     }}>
       {children}

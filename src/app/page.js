@@ -8,11 +8,11 @@ import ProductCard from '../components/ProductCard';
 import { ProductSkeletonGrid } from '../components/ProductSkeleton';
 
 export default function Home() {
-  const { products, heroSlides, categoryCards, collectionCards, catalogPositions } = useApp();
+  const { products, heroSlides, categoryCards, collectionCards, catalogPositions, bestSellers } = useApp();
   const [slideIndex, setSlideIndex] = useState(0);
   const [fadeText, setFadeText] = useState(false);
   const [timeLeft, setTimeLeft] = useState('12H:12M:31S');
-  const collectionsRef = useRef(null);
+  const bestsellersRef = useRef(null);
   const categorySectionRef = useRef(null);
 
   // Intersection Observer for category scroll transitions
@@ -86,10 +86,10 @@ export default function Home() {
     }, 455);
   };
 
-  const scrollCollections = (direction) => {
-    if (collectionsRef.current) {
+  const scrollBestsellers = (direction) => {
+    if (bestsellersRef.current) {
       const scrollAmount = direction === 'left' ? -340 : 340;
-      collectionsRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      bestsellersRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
 
@@ -543,30 +543,30 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Collection Section */}
-      <section className="w-full max-w-5xl mx-auto py-4 relative">
-        <div className="flex items-center justify-between mb-8 px-4">
-          <h2 className="font-anton text-2xl tracking-widest text-slate-800 dark:text-slate-100 flex items-center gap-2">
-            <span className="text-amber-500">🔥</span> BEST SELLING COLLECTION
+      {/* BESTSELLER SAREES Section (Increased Height Cards, 4 Slots controlled by CMS) */}
+      <section className="w-full max-w-5xl mx-auto py-6 relative">
+        <div className="flex items-center justify-between mb-6 px-4">
+          <h2 className="font-anton text-3xl sm:text-4xl tracking-wider text-slate-900 dark:text-white uppercase drop-shadow-sm">
+            BESTSELLER SAREES
           </h2>
           <div className="flex items-center gap-2">
             <button 
               type="button" 
-              onClick={() => scrollCollections('left')} 
+              onClick={() => scrollBestsellers('left')} 
               aria-label="Scroll left"
-              className="flex items-center justify-center bg-[#F1BF0A] hover:bg-yellow-500 rounded-full p-2 text-slate-900 shadow-sm cursor-pointer hover:scale-105 transition-transform"
+              className="flex items-center justify-center bg-[#F1BF0A] hover:bg-yellow-500 rounded-full p-2.5 text-slate-900 shadow-md cursor-pointer hover:scale-105 transition-transform active:scale-95"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-4">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-4 sm:size-5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
               </svg>
             </button>
             <button 
               type="button" 
-              onClick={() => scrollCollections('right')} 
+              onClick={() => scrollBestsellers('right')} 
               aria-label="Scroll right"
-              className="flex items-center justify-center bg-[#F1BF0A] hover:bg-yellow-500 rounded-full p-2 text-slate-900 shadow-sm cursor-pointer hover:scale-105 transition-transform"
+              className="flex items-center justify-center bg-[#F1BF0A] hover:bg-yellow-500 rounded-full p-2.5 text-slate-900 shadow-md cursor-pointer hover:scale-105 transition-transform active:scale-95"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-4">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-4 sm:size-5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
               </svg>
             </button>
@@ -574,17 +574,73 @@ export default function Home() {
         </div>
 
         <div 
-          ref={collectionsRef}
-          className="flex gap-4 overflow-x-auto px-4 pb-4 snap-x scrollbar-none scroll-smooth"
+          ref={bestsellersRef}
+          className="flex gap-4 sm:gap-6 overflow-x-auto px-4 pb-6 snap-x scrollbar-none scroll-smooth"
         >
-          {collectionCards?.map((card, idx) => (
-            <div key={idx} className="w-72 sm:w-80 shrink-0 snap-center relative rounded-2xl overflow-hidden aspect-[4/3] group shadow-lg border border-slate-200 dark:border-white/5">
-              <img src={card.image || "/saree_kanjivaram.png"} alt={card.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-transparent flex flex-col justify-end p-5">
-                <a href={card.link || "#product-list"} className="font-anton text-lg tracking-wider text-[#F1BF0A] hover:text-white uppercase transition-colors hover:no-underline">{card.name}</a>
-              </div>
-            </div>
-          ))}
+          {(() => {
+            const activeSlots = (bestSellers && bestSellers.length > 0) ? bestSellers.slice(0, 4) : [
+              { slot: 1, catalogId: 'M1' },
+              { slot: 2, catalogId: 'M2' },
+              { slot: 3, catalogId: 'M3' },
+              { slot: 4, catalogId: 'M4' }
+            ];
+
+            return activeSlots.map((slotItem, idx) => {
+              const cid = String(slotItem.catalogId || '').trim().toUpperCase();
+              const catalogProds = (products || []).filter(p => {
+                const pCid = (p.catalogId || p.catalog_id || `SINGLE-${p.id}`).trim().toUpperCase();
+                return pCid === cid;
+              });
+
+              const coverProd = catalogProds[0] || (products && products[idx % products.length]) || null;
+              if (!coverProd) return null;
+
+              const variantCount = catalogProds.length || 1;
+
+              return (
+                <div 
+                  key={idx} 
+                  className="w-[270px] sm:w-[330px] shrink-0 snap-center relative rounded-3xl overflow-hidden h-[460px] sm:h-[540px] group shadow-xl border border-slate-200 dark:border-white/10 bg-slate-900 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1"
+                >
+                  <img 
+                    src={coverProd.image || "/saree_kanjivaram.png"} 
+                    alt={coverProd.name || `Catalog ${cid}`} 
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent flex flex-col justify-end p-5 text-white">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="bg-[#F1BF0A] text-slate-950 font-black text-[10px] sm:text-xs px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm">
+                        BESTSELLER #{idx + 1}
+                      </span>
+                      <span className="text-slate-200 text-xs font-semibold bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/15">
+                        Catalog {cid} {variantCount > 1 ? `(${variantCount} Colors)` : ''}
+                      </span>
+                    </div>
+                    
+                    <h3 className="font-anton text-xl sm:text-2xl tracking-wider text-white line-clamp-1 mb-1 drop-shadow-md">
+                      {coverProd.name || `Catalog ${cid}`}
+                    </h3>
+
+                    <div className="flex items-center justify-between mt-2 pt-2.5 border-t border-white/20">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] text-slate-300 uppercase font-medium">Price</span>
+                        <span className="text-lg sm:text-xl font-bold text-[#F1BF0A]">₹{coverProd.price || 1499}</span>
+                      </div>
+                      <Link 
+                        href={`/product?id=${coverProd.id}`} 
+                        className="bg-white/20 hover:bg-[#F1BF0A] text-white hover:text-slate-950 px-4 py-2 rounded-full text-xs font-extrabold transition-all duration-200 backdrop-blur-md border border-white/30 hover:border-[#F1BF0A] flex items-center gap-1.5 shadow-md hover:no-underline"
+                      >
+                        <span>View Catalog</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-3.5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                        </svg>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              );
+            });
+          })()}
         </div>
       </section>
 
@@ -592,14 +648,14 @@ export default function Home() {
       <main className="max-w-5xl mx-auto overflow-hidden px-2 mt-8">
         <div className="flex flex-col md:flex-row md:items-end gap-4 md:gap-10">
           <h1 className="font-anton text-5xl/14 md:text-6xl/18 flex-1">
-            EXPLORE OUR BEST SELLING <br className="hidden md:inline" /> SAREE COLLECTION
+            EXPLORE THE <br className="hidden md:inline" /> SAREE COLLECTION
           </h1>
           <div className="flex-1 space-y-4">
             <p className="text-slate-705 dark:text-slate-300">
-              Discover top-rated, best selling handloom sarees ordered by saree lovers across India. Limited pieces available.
+              Discover curated handloom sarees — from classic silks to contemporary weaves. Limited pieces available.
             </p>
             <a href="#product-list" className="inline-flex items-center gap-2 bg-[#F1BF0A] hover:bg-yellow-500 rounded-full py-2 px-5 text-slate-900 font-semibold transition-transform duration-300 hover:scale-105 active:scale-95 shadow-md">
-              <span>Explore Best Sellers</span>
+              <span>Explore Collection</span>
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 8.25 21 12m0 0-3.75 3.75M21 12H3" />
               </svg>
@@ -637,12 +693,8 @@ export default function Home() {
               return Number(a.id || 0) - Number(b.id || 0);
             });
 
-            return uniqueProducts.map((product, idx) => (
-              <ProductCard 
-                key={product.id} 
-                product={product} 
-                bestSellerRank={idx < 5 ? idx + 1 : undefined}
-              />
+            return uniqueProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
             ));
           })() : (
             <ProductSkeletonGrid count={6} />

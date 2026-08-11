@@ -4,15 +4,15 @@ import { getSupabaseServerClient } from '../../../../utils/supabaseServer';
 
 export async function POST(request) {
   try {
-    const body = await request.json();
-    const { action, table, data, id, ids, eqCol = 'id', eqVal } = body;
-
     const cookieStore = await cookies();
     const session = cookieStore.get('cms_session')?.value;
     
     if (session !== 'unlocked_session_active' && table !== 'homepage_config') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    const body = await request.json();
+    const { action, table, data, id, ids, eqCol = 'id', eqVal } = body;
     
     const supabase = getSupabaseServerClient();
 

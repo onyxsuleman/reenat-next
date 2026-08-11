@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useApp } from '../context/AppContext';
 
-export default function ProductCard({ product, bestSellerRank }) {
+export default function ProductCard({ product }) {
   const { addToCart, toggleWishlist, setQuickViewProduct, isInWishlist } = useApp();
 
   const formattedPrice = Math.round(product.price || 0).toLocaleString('en-IN');
@@ -33,16 +33,9 @@ export default function ProductCard({ product, bestSellerRank }) {
           />
         </Link>
         {/* Badge */}
-        {bestSellerRank ? (
-          <span className="absolute top-4 left-4 bg-gradient-to-r from-amber-500 to-rose-600 text-white text-[9px] sm:text-[10px] uppercase font-black tracking-wider px-2.5 py-1 rounded-full shadow-md flex items-center gap-1 z-20">
-            <span>🔥</span>
-            <span>#{bestSellerRank} BEST SELLER</span>
-          </span>
-        ) : (
-          <span className="absolute top-4 left-4 bg-slate-800/80 text-white text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full">
-            {product.type}
-          </span>
-        )}
+        <span className="absolute top-4 left-4 bg-slate-800/80 text-white text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full">
+          {product.type}
+        </span>
         
         {/* Rating Badge */}
         <div className="absolute bottom-4 left-4 bg-white dark:bg-slate-900 text-slate-850 dark:text-slate-100 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-0.5 shadow-md z-20">

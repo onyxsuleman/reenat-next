@@ -4,13 +4,19 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 
 export default function CMSConsole() {
-  const { products, setProducts, refreshDatabase, showToast, heroSlides, categoryCards, collectionCards, catalogPositions, saveCatalogPositions, saveHomepageConfig, salesCountMap } = useApp();
+  const { products, setProducts, refreshDatabase, showToast, heroSlides, categoryCards, collectionCards, catalogPositions, bestSellers, saveCatalogPositions, saveHomepageConfig } = useApp();
   
   // Homepage Dynamic Configurations State
   const [localHeroSlides, setLocalHeroSlides] = useState([]);
   const [localCategoryCards, setLocalCategoryCards] = useState([]);
   const [localCollectionCards, setLocalCollectionCards] = useState([]);
   const [localPositions, setLocalPositions] = useState([]);
+  const [localBestSellers, setLocalBestSellers] = useState([
+    { slot: 1, catalogId: 'M1' },
+    { slot: 2, catalogId: 'M2' },
+    { slot: 3, catalogId: 'M3' },
+    { slot: 4, catalogId: 'M4' }
+  ]);
 
   useEffect(() => {
     if (heroSlides) setLocalHeroSlides(heroSlides);
@@ -29,6 +35,37 @@ export default function CMSConsole() {
       setLocalPositions(catalogPositions);
     }
   }, [catalogPositions]);
+
+  useEffect(() => {
+    if (bestSellers && bestSellers.length > 0) {
+      setLocalBestSellers(bestSellers);
+    }
+  }, [bestSellers]);
+
+  const catalogOptions = React.useMemo(() => {
+    const map = {};
+    (products || []).forEach(p => {
+      const cid = (p.catalogId || p.catalog_id || `SINGLE-${p.id}`).trim().toUpperCase();
+      if (!map[cid]) {
+        map[cid] = {
+          catalogId: cid,
+          name: p.name || `Catalog ${cid}`,
+          color: p.color || '',
+          image: p.image || '/saree_kanjivaram.png'
+        };
+      }
+    });
+    const list = Object.values(map);
+    if (list.length === 0) {
+      return [
+        { catalogId: 'M1', name: 'Mango Yellow', image: '/saree_kanjivaram.png' },
+        { catalogId: 'M2', name: 'Tussar', image: '/saree_kanjivaram.png' },
+        { catalogId: 'M3', name: 'black', image: '/saree_kanjivaram.png' },
+        { catalogId: 'M4', name: 'Deep Green', image: '/saree_kanjivaram.png' },
+      ];
+    }
+    return list;
+  }, [products]);
 
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [passcode, setPasscode] = useState('');
@@ -1347,288 +1384,81 @@ export default function CMSConsole() {
           </div>
         </div>
 
-        {/* SECTION 3: COLLECTION CARDS */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-6">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-            <div>
-              <h2 className="text-md font-extrabold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                <span>🧥</span> Featured Collection Cards
-              </h2>
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Customize large banner cards displayed under the Collection horizontal scroll list.</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setLocalCollectionCards(prev => [
-                  ...prev,
-                  { name: "NEW ARRIVALS", image: "/saree_kanjivaram.png", link: "#product-list" }
-                ]);
-              }}
-              className="bg-indigo-650 hover:bg-indigo-750 text-white font-extrabold py-2 px-4 rounded-xl text-xs cursor-pointer border-0 shadow-sm transition-transform hover:scale-[1.02]"
-            >
-              ➕ Add Collection Card
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {localCollectionCards.map((card, index) => (
-              <div key={index} className="bg-slate-50/50 dark:bg-slate-950/30 border border-slate-100 dark:border-slate-850 p-4 rounded-2xl space-y-4 shadow-sm relative group">
-                <div className="absolute top-4 right-4 flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
-                  <button
-                    type="button"
-                    disabled={index === 0}
-                    onClick={() => {
-                      const updated = [...localCollectionCards];
-                      const temp = updated[index];
-                      updated[index] = updated[index - 1];
-                      updated[index - 1] = temp;
-                      setLocalCollectionCards(updated);
-                    }}
-                    className="p-1 text-xs bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded disabled:opacity-40"
-                  >
-                    ◀
-                  </button>
-                  <button
-                    type="button"
-                    disabled={index === localCollectionCards.length - 1}
-                    onClick={() => {
-                      const updated = [...localCollectionCards];
-                      const temp = updated[index];
-                      updated[index] = updated[index + 1];
-                      updated[index + 1] = temp;
-                      setLocalCollectionCards(updated);
-                    }}
-                    className="p-1 text-xs bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded disabled:opacity-40"
-                  >
-                    ▶
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (confirm("Are you sure you want to delete this collection card?")) {
-                        setLocalCollectionCards(prev => prev.filter((_, i) => i !== index));
-                      }
-                    }}
-                    className="p-1 text-xs bg-rose-500 hover:bg-rose-600 text-white rounded"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                {/* Card Banner Image */}
-                <div className="w-full aspect-[4/3] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden relative group/img bg-slate-150 dark:bg-slate-900 flex items-center justify-center">
-                  <img src={card.image || "/saree_kanjivaram.png"} className="w-full h-full object-cover" />
-                  <label className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 flex items-center justify-center text-white text-[9px] font-black cursor-pointer uppercase transition-opacity">
-                    Upload
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => handleHomepageConfigImageUpload(e, 'collections', index, 'image')}
-                    />
-                  </label>
-                </div>
-
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">Card Name</label>
-                    <input
-                      type="text"
-                      value={card.name}
-                      onChange={(e) => {
-                        const updated = [...localCollectionCards];
-                        updated[index].name = e.target.value;
-                        setLocalCollectionCards(updated);
-                      }}
-                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 dark:text-white font-bold"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">Link URL</label>
-                    <input
-                      type="text"
-                      value={card.link || ''}
-                      onChange={(e) => {
-                        const updated = [...localCollectionCards];
-                        updated[index].link = e.target.value;
-                        setLocalCollectionCards(updated);
-                      }}
-                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-855 dark:text-slate-350"
-                      placeholder="e.g. #product-list"
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex justify-end pt-3">
-            <button
-              type="button"
-              onClick={() => saveHomepageConfig('collections', localCollectionCards)}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-2.5 px-6 rounded-xl text-xs transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md cursor-pointer border-0"
-            >
-              💾 Save Collections Configuration
-            </button>
-          </div>
-        </div>
-
-        {/* SECTION 4: BEST SELLING COLLECTION & SEQUENCE MANAGER */}
+        {/* SECTION 3: BEST SELLERS SEQUENCE MANAGER (SLOTS 1-4) */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
             <div>
-              <h2 className="text-md font-extrabold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                <span>🔥</span> Best Selling Collection & Grid Sequence
+              <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <span className="font-extrabold text-slate-900 dark:text-white">best sellers</span>
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Sequence Manager (Slots 1–4)</span>
               </h2>
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
-                Number each saree catalog (1, 2, 3...) to order the Best Selling grid on the homepage. Live sales volume is calculated from store orders.
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Manually assign which Catalog ID appears in each slot on your storefront
               </p>
             </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  // Auto-sort localPositions by sales count from salesCountMap
-                  const catalogSales = {};
-                  products.forEach(p => {
-                    const cid = (p.catalogId || p.catalog_id || `SINGLE-${p.id}`).trim().toUpperCase();
-                    const pSales = Number(salesCountMap[String(p.id).toUpperCase()] || salesCountMap[`NSY${String(p.id).replace(/\D/g, '')}`] || 0);
-                    const cSales = Number(salesCountMap[cid] || 0);
-                    catalogSales[cid] = (catalogSales[cid] || 0) + Math.max(pSales, cSales);
-                  });
-
-                  // Build unique list of catalogs
-                  const uniqueCids = Array.from(new Set(products.map(p => (p.catalogId || p.catalog_id || `SINGLE-${p.id}`).trim().toUpperCase())));
-                  uniqueCids.sort((a, b) => (catalogSales[b] || 0) - (catalogSales[a] || 0));
-
-                  const newPos = uniqueCids.map((cid, idx) => ({
-                    position: idx + 1,
-                    catalogId: cid
-                  }));
-
-                  setLocalPositions(newPos);
-                  showToast("Catalogs auto-sorted by live sales volume! Click Save to apply.", "info");
-                }}
-                className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-extrabold py-2 px-3.5 rounded-xl text-xs shadow-sm cursor-pointer border-0 flex items-center gap-1.5 transition-transform hover:scale-[1.02]"
-              >
-                <span>⚡ Auto-Sort by Sales Volume</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  saveCatalogPositions(localPositions);
-                }}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-2 px-4 rounded-xl text-xs shadow-sm cursor-pointer border-0 flex items-center gap-1.5 transition-transform hover:scale-[1.02]"
-              >
-                <span>💾 Save Best Selling Sequence</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Catalog sequence table/grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {(() => {
-              // Group unique products by catalog ID
-              const catalogMap = {};
-              products.forEach(p => {
-                const cid = (p.catalogId || p.catalog_id || `SINGLE-${p.id}`).trim().toUpperCase();
-                if (!catalogMap[cid]) catalogMap[cid] = p;
-              });
-
-              const uniqueCids = Object.keys(catalogMap);
-              
-              // Position lookup map
-              const posMap = {};
-              (localPositions || []).forEach(item => {
-                if (item.catalogId) {
-                  posMap[String(item.catalogId).trim().toUpperCase()] = Number(item.position);
-                }
-              });
-
-              // Sort catalogs by their position number
-              uniqueCids.sort((a, b) => {
-                const pA = posMap[a] !== undefined ? posMap[a] : 999;
-                const pB = posMap[b] !== undefined ? posMap[b] : 999;
-                return pA - pB;
-              });
-
-              return uniqueCids.map((cid) => {
-                const sampleProd = catalogMap[cid];
-                const currentPos = posMap[cid] !== undefined ? posMap[cid] : '';
-                
-                // Calculate sales for this catalog
-                const pSales = Number(salesCountMap[String(sampleProd.id).toUpperCase()] || salesCountMap[`NSY${String(sampleProd.id).replace(/\D/g, '')}`] || 0);
-                const cSales = Number(salesCountMap[cid] || 0);
-                const totalSales = Math.max(pSales, cSales);
-
-                return (
-                  <div key={cid} className="bg-slate-50/70 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex items-center gap-3 shadow-sm hover:border-blue-400 transition-all">
-                    {/* Position Number Input */}
-                    <div className="flex flex-col items-center shrink-0 space-y-1">
-                      <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase">POS #</span>
-                      <input
-                        type="number"
-                        min={1}
-                        max={99}
-                        value={currentPos}
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value) || '';
-                          const updated = [...localPositions];
-                          const idx = updated.findIndex(item => String(item.catalogId).trim().toUpperCase() === cid);
-                          if (idx >= 0) {
-                            updated[idx].position = val;
-                          } else {
-                            updated.push({ position: val, catalogId: cid });
-                          }
-                          setLocalPositions(updated);
-                        }}
-                        className="w-12 text-center bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl py-1.5 text-xs font-black text-blue-600 dark:text-blue-400 shadow-inner"
-                      />
-                    </div>
-
-                    {/* Catalog Image */}
-                    <div className="size-16 rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-900 shrink-0 border border-slate-200 dark:border-slate-800">
-                      <img src={sampleProd.image || "/saree_kanjivaram.png"} className="w-full h-full object-cover" />
-                    </div>
-
-                    {/* Catalog Info & Sales Stats */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] font-extrabold bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
-                          {cid}
-                        </span>
-                        <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                          {sampleProd.name}
-                        </h4>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">
-                          ₹{sampleProd.price}
-                        </span>
-                        <span className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md flex items-center gap-1">
-                          🔥 {totalSales > 0 ? `${totalSales} Sold` : 'Best Seller'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              });
-            })()}
-          </div>
-
-          <div className="flex justify-end pt-2">
             <button
               type="button"
-              onClick={() => {
-                saveCatalogPositions(localPositions);
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-2.5 px-6 rounded-xl text-xs shadow-md cursor-pointer border-0 transition-transform hover:scale-[1.02]"
+              onClick={() => saveHomepageConfig('bestsellers', localBestSellers)}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-2.5 px-6 rounded-xl text-xs transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md cursor-pointer border-0 flex items-center gap-2 self-start sm:self-auto"
             >
-              💾 Save Best Selling Sequence
+              <span>💾</span> Save Grid Sequence
             </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[0, 1, 2, 3].map((slotIdx) => {
+              const slotNum = slotIdx + 1;
+              const currentSlotData = localBestSellers[slotIdx] || { slot: slotNum, catalogId: `M${slotNum}` };
+              const currentCid = String(currentSlotData.catalogId || '').trim().toUpperCase();
+
+              // Find matching catalog preview cover image
+              const matchedOption = catalogOptions.find(opt => opt.catalogId === currentCid);
+              const thumbnailImg = matchedOption?.image || '/saree_kanjivaram.png';
+
+              return (
+                <div 
+                  key={slotIdx} 
+                  className="bg-slate-50/70 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 p-3.5 rounded-2xl flex items-center gap-3.5 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
+                >
+                  {/* Thumbnail preview image box */}
+                  <div className="w-14 h-14 shrink-0 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 relative shadow-inner">
+                    <img 
+                      src={thumbnailImg} 
+                      alt={`Slot #${slotNum} Preview`} 
+                      className="w-full h-full object-cover" 
+                    />
+                  </div>
+
+                  {/* Slot dropdown info */}
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 block">
+                      Slot #{slotNum}
+                    </span>
+                    <select
+                      value={currentCid}
+                      onChange={(e) => {
+                        const newCid = e.target.value;
+                        setLocalBestSellers(prev => {
+                          const updated = [...prev];
+                          updated[slotIdx] = { slot: slotNum, catalogId: newCid };
+                          return updated;
+                        });
+                      }}
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none truncate"
+                    >
+                      {catalogOptions.map(opt => (
+                        <option key={opt.catalogId} value={opt.catalogId}>
+                          Catalog {opt.catalogId} ({opt.name || opt.color})
+                        </option>
+                      ))}
+                      {!catalogOptions.some(opt => opt.catalogId === currentCid) && (
+                        <option value={currentCid}>Catalog {currentCid}</option>
+                      )}
+                    </select>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

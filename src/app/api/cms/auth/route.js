@@ -3,18 +3,14 @@ import { cookies } from 'next/headers';
 
 export async function POST(request) {
   try {
-    const body = await request.json().catch(() => ({}));
-    const passcode = body?.passcode;
-    const inputPasscode = String(passcode || '').trim();
-    const envPasscode = process.env.CMS_PASSCODE ? String(process.env.CMS_PASSCODE).trim() : '';
-
-    const validPasscodes = Array.from(new Set([
-      envPasscode,
-      'naseebayusuf',
-      'admin123'
-    ].filter(Boolean)));
+    const { passcode } = await request.json();
+    const actualPasscode = process.env.CMS_PASSCODE;
     
-    if (validPasscodes.includes(inputPasscode)) {
+    if (!actualPasscode) {
+      return NextResponse.json({ error: 'CMS passcode is not configured on the server.' }, { status: 500 });
+    }
+    
+    if (passcode === actualPasscode) {
       const cookieStore = await cookies();
       cookieStore.set('cms_session', 'unlocked_session_active', {
         httpOnly: true,
