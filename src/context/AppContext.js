@@ -453,6 +453,7 @@ export function AppProvider({ children }) {
   const [categoryCards, setCategoryCards] = useState(defaultCategoryCards);
   const [collectionCards, setCollectionCards] = useState(defaultCollectionCards);
   const [catalogPositions, setCatalogPositions] = useState(defaultCatalogPositions);
+  const [salesCountMap, setSalesCountMap] = useState({});
   const [wishlist, setWishlist] = useState([]);
   const [theme, setTheme] = useState('light');
   const [toast, setToast] = useState(null);
@@ -550,6 +551,38 @@ export function AppProvider({ children }) {
     }
   };
 
+  const loadSalesData = async () => {
+    try {
+      const { data: ordersData, error } = await supabase.from('orders').select('items');
+      if (!error && ordersData) {
+        const counts = {};
+        ordersData.forEach(order => {
+          if (Array.isArray(order.items)) {
+            order.items.forEach(item => {
+              const qty = Number(item.qty || item.quantity || 1);
+              const cid = (item.catalogId || item.catalog_id || item.catalog || '').trim().toUpperCase();
+              if (cid) {
+                counts[cid] = (counts[cid] || 0) + qty;
+              }
+              const pid = item.product_id || item.product_id_str || item.variantId || item.id;
+              if (pid) {
+                const normPid = String(pid).trim().toUpperCase();
+                counts[normPid] = (counts[normPid] || 0) + qty;
+                const digits = normPid.replace(/\D/g, '');
+                if (digits) {
+                  counts[`NSY${digits}`] = (counts[`NSY${digits}`] || 0) + qty;
+                }
+              }
+            });
+          }
+        });
+        setSalesCountMap(counts);
+      }
+    } catch (err) {
+      console.warn("Failed to load sales data from orders:", err);
+    }
+  };
+
   // Initialize from LocalStorage (Client Side only)
   useEffect(() => {
     // 1. Theme Setup
@@ -586,6 +619,7 @@ export function AppProvider({ children }) {
     // 3. Load Homepage Config & Products from Supabase / cache
     loadDatabaseHomepageConfig();
     loadDatabaseProducts();
+    loadSalesData();
 
     // 4. Real-time storage listener for cross-tab sync
     const handleStorageChange = (e) => {
@@ -861,6 +895,8 @@ export function AppProvider({ children }) {
       setCatalogPositions,
       saveCatalogPositions,
       saveHomepageConfig,
+      salesCountMap,
+      refreshSalesData: loadSalesData,
       refreshDatabase: loadDatabaseProducts
     }}>
       {children}

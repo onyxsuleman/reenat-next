@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 
 export default function CMSConsole() {
-  const { products, setProducts, refreshDatabase, showToast, heroSlides, categoryCards, collectionCards, catalogPositions, saveCatalogPositions, saveHomepageConfig } = useApp();
+  const { products, setProducts, refreshDatabase, showToast, heroSlides, categoryCards, collectionCards, catalogPositions, saveCatalogPositions, saveHomepageConfig, salesCountMap } = useApp();
   
   // Homepage Dynamic Configurations State
   const [localHeroSlides, setLocalHeroSlides] = useState([]);
@@ -1470,6 +1470,164 @@ export default function CMSConsole() {
               className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-2.5 px-6 rounded-xl text-xs transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md cursor-pointer border-0"
             >
               💾 Save Collections Configuration
+            </button>
+          </div>
+        </div>
+
+        {/* SECTION 4: BEST SELLING COLLECTION & SEQUENCE MANAGER */}
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+            <div>
+              <h2 className="text-md font-extrabold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                <span>🔥</span> Best Selling Collection & Grid Sequence
+              </h2>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                Number each saree catalog (1, 2, 3...) to order the Best Selling grid on the homepage. Live sales volume is calculated from store orders.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  // Auto-sort localPositions by sales count from salesCountMap
+                  const catalogSales = {};
+                  products.forEach(p => {
+                    const cid = (p.catalogId || p.catalog_id || `SINGLE-${p.id}`).trim().toUpperCase();
+                    const pSales = Number(salesCountMap[String(p.id).toUpperCase()] || salesCountMap[`NSY${String(p.id).replace(/\D/g, '')}`] || 0);
+                    const cSales = Number(salesCountMap[cid] || 0);
+                    catalogSales[cid] = (catalogSales[cid] || 0) + Math.max(pSales, cSales);
+                  });
+
+                  // Build unique list of catalogs
+                  const uniqueCids = Array.from(new Set(products.map(p => (p.catalogId || p.catalog_id || `SINGLE-${p.id}`).trim().toUpperCase())));
+                  uniqueCids.sort((a, b) => (catalogSales[b] || 0) - (catalogSales[a] || 0));
+
+                  const newPos = uniqueCids.map((cid, idx) => ({
+                    position: idx + 1,
+                    catalogId: cid
+                  }));
+
+                  setLocalPositions(newPos);
+                  showToast("Catalogs auto-sorted by live sales volume! Click Save to apply.", "info");
+                }}
+                className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-extrabold py-2 px-3.5 rounded-xl text-xs shadow-sm cursor-pointer border-0 flex items-center gap-1.5 transition-transform hover:scale-[1.02]"
+              >
+                <span>⚡ Auto-Sort by Sales Volume</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  saveCatalogPositions(localPositions);
+                }}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-2 px-4 rounded-xl text-xs shadow-sm cursor-pointer border-0 flex items-center gap-1.5 transition-transform hover:scale-[1.02]"
+              >
+                <span>💾 Save Best Selling Sequence</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Catalog sequence table/grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {(() => {
+              // Group unique products by catalog ID
+              const catalogMap = {};
+              products.forEach(p => {
+                const cid = (p.catalogId || p.catalog_id || `SINGLE-${p.id}`).trim().toUpperCase();
+                if (!catalogMap[cid]) catalogMap[cid] = p;
+              });
+
+              const uniqueCids = Object.keys(catalogMap);
+              
+              // Position lookup map
+              const posMap = {};
+              (localPositions || []).forEach(item => {
+                if (item.catalogId) {
+                  posMap[String(item.catalogId).trim().toUpperCase()] = Number(item.position);
+                }
+              });
+
+              // Sort catalogs by their position number
+              uniqueCids.sort((a, b) => {
+                const pA = posMap[a] !== undefined ? posMap[a] : 999;
+                const pB = posMap[b] !== undefined ? posMap[b] : 999;
+                return pA - pB;
+              });
+
+              return uniqueCids.map((cid) => {
+                const sampleProd = catalogMap[cid];
+                const currentPos = posMap[cid] !== undefined ? posMap[cid] : '';
+                
+                // Calculate sales for this catalog
+                const pSales = Number(salesCountMap[String(sampleProd.id).toUpperCase()] || salesCountMap[`NSY${String(sampleProd.id).replace(/\D/g, '')}`] || 0);
+                const cSales = Number(salesCountMap[cid] || 0);
+                const totalSales = Math.max(pSales, cSales);
+
+                return (
+                  <div key={cid} className="bg-slate-50/70 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex items-center gap-3 shadow-sm hover:border-blue-400 transition-all">
+                    {/* Position Number Input */}
+                    <div className="flex flex-col items-center shrink-0 space-y-1">
+                      <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase">POS #</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={99}
+                        value={currentPos}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value) || '';
+                          const updated = [...localPositions];
+                          const idx = updated.findIndex(item => String(item.catalogId).trim().toUpperCase() === cid);
+                          if (idx >= 0) {
+                            updated[idx].position = val;
+                          } else {
+                            updated.push({ position: val, catalogId: cid });
+                          }
+                          setLocalPositions(updated);
+                        }}
+                        className="w-12 text-center bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl py-1.5 text-xs font-black text-blue-600 dark:text-blue-400 shadow-inner"
+                      />
+                    </div>
+
+                    {/* Catalog Image */}
+                    <div className="size-16 rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-900 shrink-0 border border-slate-200 dark:border-slate-800">
+                      <img src={sampleProd.image || "/saree_kanjivaram.png"} className="w-full h-full object-cover" />
+                    </div>
+
+                    {/* Catalog Info & Sales Stats */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-extrabold bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                          {cid}
+                        </span>
+                        <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                          {sampleProd.name}
+                        </h4>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">
+                          ₹{sampleProd.price}
+                        </span>
+                        <span className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md flex items-center gap-1">
+                          🔥 {totalSales > 0 ? `${totalSales} Sold` : 'Best Seller'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                saveCatalogPositions(localPositions);
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-2.5 px-6 rounded-xl text-xs shadow-md cursor-pointer border-0 transition-transform hover:scale-[1.02]"
+            >
+              💾 Save Best Selling Sequence
             </button>
           </div>
         </div>

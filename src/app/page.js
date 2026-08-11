@@ -546,7 +546,9 @@ export default function Home() {
       {/* Collection Section */}
       <section className="w-full max-w-5xl mx-auto py-4 relative">
         <div className="flex items-center justify-between mb-8 px-4">
-          <h2 className="font-anton text-2xl tracking-widest text-slate-800 dark:text-slate-100">COLLECTION</h2>
+          <h2 className="font-anton text-2xl tracking-widest text-slate-800 dark:text-slate-100 flex items-center gap-2">
+            <span className="text-amber-500">🔥</span> BEST SELLING COLLECTION
+          </h2>
           <div className="flex items-center gap-2">
             <button 
               type="button" 
@@ -590,14 +592,14 @@ export default function Home() {
       <main className="max-w-5xl mx-auto overflow-hidden px-2 mt-8">
         <div className="flex flex-col md:flex-row md:items-end gap-4 md:gap-10">
           <h1 className="font-anton text-5xl/14 md:text-6xl/18 flex-1">
-            EXPLORE THE <br className="hidden md:inline" /> SAREE COLLECTION
+            EXPLORE OUR BEST SELLING <br className="hidden md:inline" /> SAREE COLLECTION
           </h1>
           <div className="flex-1 space-y-4">
             <p className="text-slate-705 dark:text-slate-300">
-              Discover curated handloom sarees — from classic silks to contemporary weaves. Limited pieces available.
+              Discover top-rated, best selling handloom sarees ordered by saree lovers across India. Limited pieces available.
             </p>
             <a href="#product-list" className="inline-flex items-center gap-2 bg-[#F1BF0A] hover:bg-yellow-500 rounded-full py-2 px-5 text-slate-900 font-semibold transition-transform duration-300 hover:scale-105 active:scale-95 shadow-md">
-              <span>Explore Collection</span>
+              <span>Explore Best Sellers</span>
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 8.25 21 12m0 0-3.75 3.75M21 12H3" />
               </svg>
@@ -635,8 +637,12 @@ export default function Home() {
               return Number(a.id || 0) - Number(b.id || 0);
             });
 
-            return uniqueProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
+            return uniqueProducts.map((product, idx) => (
+              <ProductCard 
+                key={product.id} 
+                product={product} 
+                bestSellerRank={idx < 5 ? idx + 1 : undefined}
+              />
             ));
           })() : (
             <ProductSkeletonGrid count={6} />
