@@ -607,28 +607,19 @@ export default function Home() {
                     alt={coverProd.name || `Catalog ${cid}`} 
                     className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent flex flex-col justify-end p-5 text-white">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="bg-[#F1BF0A] text-slate-950 font-black text-[10px] sm:text-xs px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm">
-                        BESTSELLER #{idx + 1}
-                      </span>
-                      <span className="text-slate-200 text-xs font-semibold bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/15">
-                        Catalog {cid} {variantCount > 1 ? `(${variantCount} Colors)` : ''}
-                      </span>
-                    </div>
-                    
-                    <h3 className="font-anton text-xl sm:text-2xl tracking-wider text-white line-clamp-1 mb-1 drop-shadow-md">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-transparent flex flex-col justify-end p-5 text-white">
+                    <h3 className="font-anton text-2xl sm:text-3xl tracking-wider text-[#F1BF0A] drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)] line-clamp-1 mb-2">
                       {coverProd.name || `Catalog ${cid}`}
                     </h3>
 
-                    <div className="flex items-center justify-between mt-2 pt-2.5 border-t border-white/20">
+                    <div className="flex items-center justify-between mt-1 pt-2.5 border-t border-white/20">
                       <div className="flex flex-col">
                         <span className="text-[10px] text-slate-300 uppercase font-medium">Price</span>
-                        <span className="text-lg sm:text-xl font-bold text-[#F1BF0A]">₹{coverProd.price || 1499}</span>
+                        <span className="text-lg sm:text-xl font-bold text-white drop-shadow-md">₹{coverProd.price || 1499}</span>
                       </div>
                       <Link 
                         href={`/product?id=${coverProd.id}`} 
-                        className="bg-white/20 hover:bg-[#F1BF0A] text-white hover:text-slate-950 px-4 py-2 rounded-full text-xs font-extrabold transition-all duration-200 backdrop-blur-md border border-white/30 hover:border-[#F1BF0A] flex items-center gap-1.5 shadow-md hover:no-underline"
+                        className="bg-[#F1BF0A] hover:bg-yellow-400 text-slate-950 px-4 py-2 rounded-full text-xs font-black transition-all duration-200 shadow-lg flex items-center gap-1.5 hover:no-underline hover:scale-105 active:scale-95"
                       >
                         <span>View Catalog</span>
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-3.5">
@@ -644,27 +635,25 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Main Catalog Area */}
-      <main className="max-w-5xl mx-auto overflow-hidden px-2 mt-8">
-        <div className="flex flex-col md:flex-row md:items-end gap-4 md:gap-10">
-          <h1 className="font-anton text-5xl/14 md:text-6xl/18 flex-1">
-            EXPLORE THE <br className="hidden md:inline" /> SAREE COLLECTION
-          </h1>
-          <div className="flex-1 space-y-4">
-            <p className="text-slate-705 dark:text-slate-300">
-              Discover curated handloom sarees — from classic silks to contemporary weaves. Limited pieces available.
-            </p>
-            <a href="#product-list" className="inline-flex items-center gap-2 bg-[#F1BF0A] hover:bg-yellow-500 rounded-full py-2 px-5 text-slate-900 font-semibold transition-transform duration-300 hover:scale-105 active:scale-95 shadow-md">
-              <span>Explore Collection</span>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-4">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 8.25 21 12m0 0-3.75 3.75M21 12H3" />
-              </svg>
-            </a>
-          </div>
+      {/* Main Catalog Area — Compact Streamlined Header */}
+      <main className="max-w-5xl mx-auto overflow-hidden px-3 mt-6 sm:mt-10">
+        <div className="flex items-center justify-between gap-4 pb-3 border-b border-slate-200 dark:border-slate-800">
+          <h2 className="font-anton text-2xl sm:text-4xl tracking-wider text-slate-900 dark:text-white uppercase">
+            EXPLORE THE COLLECTION
+          </h2>
+          <a 
+            href="#product-list" 
+            className="inline-flex items-center gap-2 bg-[#F1BF0A] hover:bg-yellow-500 text-slate-950 font-bold text-xs sm:text-sm py-2 px-4 rounded-full transition-transform hover:scale-105 active:scale-95 shadow-md shrink-0 hover:no-underline"
+          >
+            <span>Explore Collection</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 8.25 21 12m0 0-3.75 3.75M21 12H3" />
+            </svg>
+          </a>
         </div>
 
         {/* Product Grid */}
-        <ul id="product-list" className="grid grid-cols-2 gap-2 md:gap-4 md:grid-cols-3 mt-8">
+        <ul id="product-list" className="grid grid-cols-2 gap-2.5 sm:gap-4 md:grid-cols-3 mt-6">
           {products && products.length > 0 ? (() => {
             const catalogMap = {};
             products.forEach(p => {
