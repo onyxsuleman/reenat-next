@@ -3,6 +3,8 @@ import { cookies } from 'next/headers';
 
 export async function POST(request) {
   try {
+    const body = await request.json().catch(() => ({}));
+    const passcode = body?.passcode;
     const inputPasscode = String(passcode || '').trim();
     const envPasscode = process.env.CMS_PASSCODE ? String(process.env.CMS_PASSCODE).trim() : '';
 
