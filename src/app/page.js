@@ -614,12 +614,15 @@ export default function Home() {
 
                     <div className="flex items-center justify-between mt-1 pt-2.5 border-t border-white/20">
                       <div className="flex flex-col">
-                        <span className="text-[10px] text-slate-300 uppercase font-medium">Price</span>
-                        <span className="text-lg sm:text-xl font-bold text-white drop-shadow-md">₹{coverProd.price || 1499}</span>
+                        <span className="text-[10px] uppercase font-bold tracking-wider" style={{ color: '#cbd5e1' }}>Price</span>
+                        <span className="text-xl sm:text-2xl font-black tracking-tight" style={{ color: '#ffffff', textShadow: '0 2px 6px rgba(0,0,0,0.95)' }}>
+                          ₹{coverProd.price || 1499}
+                        </span>
                       </div>
                       <Link 
                         href={`/product?id=${coverProd.id}`} 
-                        className="bg-[#F1BF0A] hover:bg-yellow-400 text-slate-950 px-4 py-2 rounded-full text-xs font-black transition-all duration-200 shadow-lg flex items-center gap-1.5 hover:no-underline hover:scale-105 active:scale-95"
+                        className="bg-[#F1BF0A] hover:bg-yellow-400 font-black px-4 py-2 rounded-full text-xs transition-all duration-200 shadow-lg flex items-center gap-1.5 hover:no-underline hover:scale-105 active:scale-95"
+                        style={{ color: '#0f172a' }}
                       >
                         <span>View Catalog</span>
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-3.5">

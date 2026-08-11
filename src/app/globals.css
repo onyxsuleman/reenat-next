@@ -99,8 +99,18 @@ html:not(.dark) .text-slate-400 {
 html:not(.dark) .bg-black\/60 span,
 html:not(.dark) .bg-black\/60 button,
 html:not(.dark) .bg-black\/60 .text-white,
+html:not(.dark) .bg-gradient-to-t span,
+html:not(.dark) .bg-gradient-to-t h3,
+html:not(.dark) .bg-gradient-to-t div,
+html:not(.dark) .bg-gradient-to-t .text-white,
 html:not(.dark) .bg-\[\#3a3fbe\] {
+	color: inherit;
+}
+html:not(.dark) .bg-gradient-to-t .text-white {
 	color: #ffffff !important;
+}
+html:not(.dark) .bg-gradient-to-t .text-slate-300 {
+	color: #cbd5e1 !important;
 }
 body::before {
 	content: "";
