@@ -134,9 +134,8 @@ export default function Home() {
               </p>
             </div>
 
-            <Link 
-              href="/reviews"
-              className="hidden sm:block bg-white/10 dark:bg-white/5 rounded-2xl p-4 text-white sm:max-w-[185px] glass border border-white/10 shadow-inner hover:scale-[1.03] transition-transform duration-200 hover:no-underline select-none cursor-pointer block"
+            <div 
+              className="hidden sm:block bg-white/10 dark:bg-white/5 rounded-2xl p-4 text-white sm:max-w-[185px] glass border border-white/10 shadow-inner select-none"
             >
               <div className="flex items-center gap-4 sm:gap-0 sm:flex-col sm:items-start">
                 <span className="text-4xl font-bold">98%</span>
@@ -147,7 +146,7 @@ export default function Home() {
                 </div>
               </div>
               <p className="text-sm text-slate-200">Customer satisfaction rating across all orders</p>
-            </Link>
+            </div>
           </div>
 
           <div className="flex items-stretch justify-between relative z-5">
@@ -600,36 +599,34 @@ export default function Home() {
               return (
                 <div 
                   key={idx} 
-                  className="w-[270px] sm:w-[330px] shrink-0 snap-center relative rounded-3xl overflow-hidden h-[460px] sm:h-[540px] group shadow-xl border border-slate-200 dark:border-white/10 bg-slate-900 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1"
+                  className="w-[315px] sm:w-[340px] shrink-0 snap-center relative rounded-3xl overflow-hidden h-[495px] sm:h-[540px] group shadow-xl border border-slate-200/50 dark:border-white/10 bg-slate-900 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1"
                 >
+                  {/* Pure Unshadowed Saree Image */}
                   <img 
                     src={coverProd.image || "/saree_kanjivaram.png"} 
                     alt={coverProd.name || `Catalog ${cid}`} 
                     className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-transparent flex flex-col justify-end p-5 text-white">
-                    <h3 className="font-anton text-2xl sm:text-3xl tracking-wider text-[#F1BF0A] drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)] line-clamp-1 mb-2">
-                      {coverProd.name || `Catalog ${cid}`}
-                    </h3>
 
-                    <div className="flex items-center justify-between mt-1 pt-2.5 border-t border-white/20">
-                      <div className="flex flex-col">
-                        <span className="text-[10px] uppercase font-bold tracking-wider" style={{ color: '#cbd5e1' }}>Price</span>
-                        <span className="text-xl sm:text-2xl font-black tracking-tight" style={{ color: '#ffffff', textShadow: '0 2px 6px rgba(0,0,0,0.95)' }}>
-                          ₹{coverProd.price || 1499}
-                        </span>
-                      </div>
-                      <Link 
-                        href={`/product?id=${coverProd.id}`} 
-                        className="bg-[#F1BF0A] hover:bg-yellow-400 font-black px-4 py-2 rounded-full text-xs transition-all duration-200 shadow-lg flex items-center gap-1.5 hover:no-underline hover:scale-105 active:scale-95"
-                        style={{ color: '#0f172a' }}
-                      >
-                        <span>View Catalog</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-3.5">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                        </svg>
-                      </Link>
-                    </div>
+                  {/* Top Right 🔥 Trending Badge */}
+                  <div className="absolute top-4 right-4 z-10">
+                    <span className="inline-flex items-center gap-1 bg-slate-950/80 backdrop-blur-md text-[#F1BF0A] border border-[#F1BF0A]/40 text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full shadow-lg">
+                      <span>🔥</span>
+                      <span>Trending</span>
+                    </span>
+                  </div>
+
+                  {/* Bottom Right "View Catalog" Button (Zero dark overlay) */}
+                  <div className="absolute bottom-5 right-5 z-10">
+                    <Link 
+                      href={`/product?id=${coverProd.id}`} 
+                      className="bg-[#F1BF0A] hover:bg-yellow-400 font-black px-4 py-2.5 rounded-full text-xs transition-all duration-200 shadow-xl flex items-center gap-1.5 text-slate-950 hover:no-underline hover:scale-105 active:scale-95 border border-yellow-300/30"
+                    >
+                      <span>View Catalog</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-3.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                      </svg>
+                    </Link>
                   </div>
                 </div>
               );

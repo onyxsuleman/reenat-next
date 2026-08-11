@@ -88,29 +88,9 @@ html:not(.dark) .bg-white {
 html:not(.dark) .bg-slate-50 {
 	background-color: #f8fafc !important;
 }
-html:not(.dark) .text-white {
-	color: #0f172a !important;
-}
 html:not(.dark) .text-slate-300,
 html:not(.dark) .text-slate-400 {
 	color: #475569 !important;
-}
-/* Except badge or header text colors inside dark overlays */
-html:not(.dark) .bg-black\/60 span,
-html:not(.dark) .bg-black\/60 button,
-html:not(.dark) .bg-black\/60 .text-white,
-html:not(.dark) .bg-gradient-to-t span,
-html:not(.dark) .bg-gradient-to-t h3,
-html:not(.dark) .bg-gradient-to-t div,
-html:not(.dark) .bg-gradient-to-t .text-white,
-html:not(.dark) .bg-\[\#3a3fbe\] {
-	color: inherit;
-}
-html:not(.dark) .bg-gradient-to-t .text-white {
-	color: #ffffff !important;
-}
-html:not(.dark) .bg-gradient-to-t .text-slate-300 {
-	color: #cbd5e1 !important;
 }
 body::before {
 	content: "";
@@ -751,20 +731,21 @@ body:has(#cms-console-root) main {
 }
 
 .floating-button-primary {
-  background: rgba(241, 191, 10, 0.95) !important;
-  backdrop-filter: blur(10px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(10px) saturate(180%) !important;
+  background-color: #F1BF0A !important;
+  background: #F1BF0A !important;
   border: none !important;
   outline: none !important;
   border-radius: 14px !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
-  color: #0f172a !important;
+  box-shadow: 0 4px 14px rgba(241, 191, 10, 0.35) !important;
+  color: #000000 !important;
   appearance: none;
+  font-weight: 700 !important;
 }
 .dark .floating-button-primary {
-  background: rgba(241, 191, 10, 0.9) !important;
+  background-color: #F1BF0A !important;
+  background: #F1BF0A !important;
   border: none !important;
-  color: #0f172a !important;
+  color: #000000 !important;
 }
 
 .floating-button-secondary {

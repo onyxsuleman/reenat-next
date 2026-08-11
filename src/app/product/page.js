@@ -4,14 +4,16 @@ import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import Script from 'next/script';
 import { useApp } from '../../context/AppContext';
 import ProductCard from '../../components/ProductCard';
 
 function ProductDetailsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { products, addToCart, toggleWishlist, isInWishlist } = useApp();
+  const { products, addToCart, toggleWishlist, isInWishlist, showToast, userSession } = useApp();
   const [product, setProduct] = useState(null);
+  const [isBuyNowLoading, setIsBuyNowLoading] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [showExtendedInfo, setShowExtendedInfo] = useState(false);
   const [titleExpanded, setTitleExpanded] = useState(false);
@@ -109,6 +111,57 @@ function ProductDetailsContent() {
   const handleShare = () => {
     const shareText = `Hey! What do you think of this gorgeous "${product.name}" saree on Reenat Trends? Woven details: ${product.craft} from ${product.origin}. See details: ${window.location.origin}/product?id=${product.id}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
+  };
+
+  const handleBuyNow = async (e) => {
+    if (e) e.preventDefault();
+    if (isBuyNowLoading) return;
+
+    try {
+      setIsBuyNowLoading(true);
+      if (showToast) showToast('Connecting to Shiprocket Fastrr Checkout...', 'info');
+
+      addToCart(product);
+
+      const response = await fetch('/api/checkout/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          cart: [{ ...product, qty: 1 }],
+          customer: userSession ? {
+            email: userSession.email || '',
+            phone: userSession.phone || '',
+            name: userSession.username || ''
+          } : null
+        })
+      });
+
+      const resData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to initialize checkout session.');
+      }
+
+      const token = resData.result?.token || resData.token || resData.access_token || resData.data?.token;
+
+      if (!token) {
+        throw new Error('Invalid token response from server.');
+      }
+
+      if (typeof window !== 'undefined' && window.HeadlessCheckout) {
+        window.HeadlessCheckout.addToCart(e, token, {
+          fallbackUrl: `${window.location.origin}/cart`
+        });
+      } else {
+        router.push('/cart');
+      }
+    } catch (err) {
+      console.error('Shiprocket Buy Now error:', err);
+      if (showToast) showToast('Redirecting to checkout...', 'info');
+      router.push('/cart');
+    } finally {
+      setIsBuyNowLoading(false);
+    }
   };
 
   // Get active image src / media gallery
@@ -394,12 +447,9 @@ function ProductDetailsContent() {
                   <span>{product.rating || 4.8}</span>
                   <span className="text-[9px]">★</span>
                 </span>
-                <Link 
-                  href={`/reviews?product_id=NSY${String(product.id).padStart(4, '0')}`}
-                  className="text-xs text-[#183fad] dark:text-[#F1BF0A] font-semibold hover:underline"
-                >
-                  💬 Community Reviews & Q&A Hub
-                </Link>
+                <span className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+                  Handloom Verified Rating
+                </span>
               </div>
               <div className="flex items-center gap-3.5 mt-1 shrink-0">
                 <button 
@@ -584,22 +634,47 @@ function ProductDetailsContent() {
           </div>
 
           {/* Action Buttons */}
-          <div className="hidden md:flex gap-3 pt-2">
+          <div className="flex flex-col sm:flex-row gap-3 pt-3">
             <button 
+              type="button"
+              onClick={handleBuyNow}
+              disabled={isBuyNowLoading}
+              className="flex-1 sm:flex-[1.5] py-3.5 px-6 rounded-2xl bg-[#F1BF0A] hover:bg-yellow-400 text-slate-950 font-bold text-base transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex items-center justify-center select-none shadow-md border-none outline-none"
+              style={{ backgroundColor: '#F1BF0A !important', color: '#000000 !important' }}
+            >
+              {isBuyNowLoading ? (
+                <span className="flex items-center gap-2 text-black font-bold" style={{ color: '#000000 !important' }}>
+                  <svg className="animate-spin size-4 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Connecting...</span>
+                </span>
+              ) : (
+                <span className="text-slate-950 font-bold text-base" style={{ color: '#000000 !important' }}>
+                  Buy Now
+                </span>
+              )}
+            </button>
+
+            <button 
+              type="button"
               onClick={() => addToCart(product)}
-              className="flex-1 bg-[#183fad] hover:bg-blue-800 text-white font-semibold py-3 px-6 rounded-full border border-[#183fad] transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-md cursor-pointer text-center text-sm"
+              className="flex-1 py-3.5 px-5 rounded-2xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white font-bold text-sm border border-slate-700 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer shadow-md"
             >
               Add to Cart
             </button>
+
             <button 
+              type="button"
               onClick={() => toggleWishlist(product)}
-              className={`font-semibold py-3 px-6 rounded-full border transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-sm cursor-pointer text-center text-sm ${
+              className={`font-semibold py-3.5 px-5 rounded-2xl border transition-all hover:scale-[1.02] active:scale-[0.98] shadow-sm cursor-pointer text-center text-sm ${
                 inWishlist 
                   ? 'bg-rose-500 border-rose-500 text-white' 
                   : 'bg-white dark:bg-slate-800 text-rose-550 border-slate-200 dark:border-slate-700 hover:bg-rose-500 hover:text-white'
               }`}
             >
-              {inWishlist ? 'Wishlisted' : 'Add to Wishlist'}
+              {inWishlist ? 'Wishlisted' : 'Wishlist'}
             </button>
           </div>
         </div>
@@ -626,26 +701,45 @@ function ProductDetailsContent() {
       )}
     </div>
 
-    {/* Sticky Mobile Actions */}
-    <div className={`mobile-sticky-bar fixed bottom-[5px] left-0 right-0 h-16 flex items-center justify-between px-4 z-20 md:hidden bg-transparent border-none mb-0 pb-0 transition-all duration-300 ${
+    {/* Sticky Mobile Actions — Borderless and Paddingless Floating Buttons */}
+    <div className={`fixed bottom-2 left-2 right-2 flex items-center justify-between gap-2 z-30 md:hidden transition-all duration-300 ${
       showStickyBar ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-10 pointer-events-none'
     }`}>
       <button 
+        type="button"
         onClick={() => addToCart(product)}
-        className="floating-button-secondary w-[48%] h-11 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer border-none"
+        className="w-[40%] h-12 font-bold rounded-2xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-800 shadow-lg active:scale-95"
       >
         <span>Add to Cart</span>
       </button>
       <button 
-        onClick={() => {
-          addToCart(product);
-          router.push('/cart');
-        }}
-        className="floating-button-primary w-[48%] h-11 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer border-none text-slate-900"
+        type="button"
+        onClick={handleBuyNow}
+        disabled={isBuyNowLoading}
+        className="w-[58%] h-12 font-bold rounded-2xl text-sm flex items-center justify-center transition-all cursor-pointer bg-[#F1BF0A] text-slate-950 shadow-lg active:scale-95 select-none border-none outline-none"
+        style={{ backgroundColor: '#F1BF0A !important', color: '#000000 !important' }}
       >
-        <span>Buy Now</span>
+        {isBuyNowLoading ? (
+          <span className="flex items-center gap-1.5 text-black font-bold text-xs" style={{ color: '#000000 !important' }}>
+            <svg className="animate-spin size-4 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Connecting...</span>
+          </span>
+        ) : (
+          <span className="text-slate-950 font-bold text-sm" style={{ color: '#000000 !important' }}>
+            Buy Now
+          </span>
+        )}
       </button>
     </div>
+
+    {/* Fastrr Headless Checkout SDK Script */}
+    <Script 
+      src="https://checkout-ui.shiprocket.com/assets/js/channels/custom.js" 
+      strategy="lazyOnload" 
+    />
   </>
   );
 }
