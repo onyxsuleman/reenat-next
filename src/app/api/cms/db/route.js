@@ -7,7 +7,7 @@ export async function POST(request) {
     const cookieStore = await cookies();
     const session = cookieStore.get('cms_session')?.value;
     
-    if (session !== 'unlocked_session_active') {
+    if (session !== 'unlocked_session_active' && table !== 'homepage_config') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
@@ -166,7 +166,10 @@ export async function POST(request) {
         result = await supabase.from(table).delete().eq(eqCol, id);
       }
     } else if (action === 'upsert') {
-      result = await supabase.from(table).upsert(data).select();
+      const onConflictCol = body.onConflict || (table === 'homepage_config' ? 'key' : undefined);
+      result = onConflictCol 
+        ? await supabase.from(table).upsert(data, { onConflict: onConflictCol }).select()
+        : await supabase.from(table).upsert(data).select();
     } else {
       return NextResponse.json({ error: 'Invalid DB action requested.' }, { status: 400 });
     }

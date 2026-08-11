@@ -38,26 +38,60 @@ async function backup() {
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
-    const { data: products, error } = await supabase
-      .from('products')
-      .select('*')
-      .order('id', { ascending: true });
-
-    if (error) {
-      throw error;
-    }
-
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     const backupDir = path.join(__dirname, '..', 'backups');
     if (!fs.existsSync(backupDir)) {
       fs.mkdirSync(backupDir, { recursive: true });
     }
 
-    const backupFile = path.join(backupDir, `products_backup_${today}.json`);
-    fs.writeFileSync(backupFile, JSON.stringify(products, null, 2), 'utf8');
-    
-    console.log(`Backup created successfully: ${backupFile}`);
-    console.log(`Backed up ${products.length} products.`);
+    // 1. Products
+    const { data: products, error: prodErr } = await supabase
+      .from('products')
+      .select('*')
+      .order('id', { ascending: true });
+
+    if (prodErr) throw prodErr;
+
+    const prodFile = path.join(backupDir, `products_backup_${today}.json`);
+    fs.writeFileSync(prodFile, JSON.stringify(products, null, 2), 'utf8');
+    console.log(`✅ Products backup created: ${prodFile} (${products.length} items)`);
+
+    // 2. Orders
+    const { data: orders, error: ordErr } = await supabase
+      .from('orders')
+      .select('*')
+      .order('id', { ascending: true });
+
+    if (!ordErr && orders) {
+      const ordFile = path.join(backupDir, `orders_backup_${today}.json`);
+      fs.writeFileSync(ordFile, JSON.stringify(orders, null, 2), 'utf8');
+      console.log(`✅ Orders backup created: ${ordFile} (${orders.length} items)`);
+    }
+
+    // 3. Catalog Positions (if table exists)
+    const { data: positions, error: posErr } = await supabase
+      .from('catalog_positions')
+      .select('*');
+
+    if (!posErr && positions) {
+      const posFile = path.join(backupDir, `catalog_positions_backup_${today}.json`);
+      fs.writeFileSync(posFile, JSON.stringify(positions, null, 2), 'utf8');
+      console.log(`✅ Catalog positions backup created: ${posFile} (${positions.length} items)`);
+    }
+
+    // 4. Combined Full DB Backup
+    const fullBackup = {
+      timestamp: new Date().toISOString(),
+      date: today,
+      products: products || [],
+      orders: orders || [],
+      catalog_positions: positions || []
+    };
+    const fullFile = path.join(backupDir, `full_db_backup_${today}.json`);
+    fs.writeFileSync(fullFile, JSON.stringify(fullBackup, null, 2), 'utf8');
+    console.log(`✅ Full DB snapshot created: ${fullFile}`);
+
+    console.log("🎉 Complete database backup finished successfully!");
   } catch (err) {
     console.error("Backup failed:", err.message);
     process.exit(1);

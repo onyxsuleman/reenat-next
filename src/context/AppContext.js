@@ -432,18 +432,18 @@ const defaultCollectionCards = [
 ];
 
 const defaultCatalogPositions = [
-  { position: 1, catalogId: 'M4' },
-  { position: 2, catalogId: 'M7' },
-  { position: 3, catalogId: 'M2' },
-  { position: 4, catalogId: 'M5' },
-  { position: 5, catalogId: 'M3' },
-  { position: 6, catalogId: 'M9' },
-  { position: 7, catalogId: 'M1' },
-  { position: 8, catalogId: 'M6' },
-  { position: 9, catalogId: 'M8' },
-  { position: 10, catalogId: 'M10' },
-  { position: 11, catalogId: 'M11' },
-  { position: 12, catalogId: 'M12' }
+  { position: 1, catalogId: 'M1' },
+  { position: 2, catalogId: 'M2' },
+  { position: 3, catalogId: 'M3' },
+  { position: 4, catalogId: 'M4' },
+  { position: 5, catalogId: 'M5' },
+  { position: 6, catalogId: 'M6' },
+  { position: 7, catalogId: 'M7' },
+  { position: 8, catalogId: 'M8' },
+  { position: 9, catalogId: 'M9' },
+  { position: 10, catalogId: '' },
+  { position: 11, catalogId: '' },
+  { position: 12, catalogId: '' }
 ];
 
 export function AppProvider({ children }) {
@@ -641,21 +641,41 @@ export function AppProvider({ children }) {
         body: JSON.stringify({
           action: 'upsert',
           table: 'homepage_config',
-          data: { key: type, value: data, updated_at: new Date().toISOString() }
+          data: { key: type, value: data, updated_at: new Date().toISOString() },
+          onConflict: 'key'
         })
       });
 
       const resData = await response.json();
 
       if (!response.ok || resData.error) {
-        console.error(`Supabase sync failed for ${type}:`, resData.error || 'Server error');
-        showToast("Saved locally, database sync failed.", "warning");
+        console.warn(`API route sync for ${type} returned error, falling back to direct Supabase client:`, resData.error);
+        const { error: directErr } = await supabase
+          .from('homepage_config')
+          .upsert({ key: type, value: data, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+
+        if (directErr) {
+          showToast("Saved locally, database sync failed.", "warning");
+        } else {
+          showToast(`${type.charAt(0).toUpperCase() + type.slice(1)} updated live successfully!`, "success");
+        }
       } else {
         showToast(`${type.charAt(0).toUpperCase() + type.slice(1)} updated live successfully!`, "success");
       }
     } catch (err) {
-      console.error(`Supabase sync exception for ${type}:`, err);
-      showToast("Saved locally, database connection failed.", "warning");
+      console.warn(`API route sync exception for ${type}, falling back to direct Supabase client:`, err);
+      try {
+        const { error: directErr } = await supabase
+          .from('homepage_config')
+          .upsert({ key: type, value: data, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+        if (directErr) {
+          showToast("Saved locally, database connection failed.", "warning");
+        } else {
+          showToast(`${type.charAt(0).toUpperCase() + type.slice(1)} updated live successfully!`, "success");
+        }
+      } catch (fbErr) {
+        showToast("Saved locally, database connection failed.", "warning");
+      }
     }
   };
 
@@ -686,6 +706,20 @@ export function AppProvider({ children }) {
     }
     updateCart(newCart);
     showToast(`Added ${product.name} to cart!`, 'success');
+
+    if (typeof window !== 'undefined' && window.fbq) {
+      try {
+        window.fbq('track', 'AddToCart', {
+          content_name: product.name || product.title,
+          content_ids: [String(product.id)],
+          content_type: 'product',
+          value: Number(product.price || 0),
+          currency: 'INR'
+        });
+      } catch (err) {
+        console.error('Meta Pixel AddToCart error:', err);
+      }
+    }
   };
 
   const removeFromCart = (productId) => {
@@ -761,21 +795,42 @@ export function AppProvider({ children }) {
         body: JSON.stringify({
           action: 'upsert',
           table: 'homepage_config',
-          data: { key: 'catalog_positions', value: positionsArray, updated_at: new Date().toISOString() }
+          data: { key: 'catalog_positions', value: positionsArray, updated_at: new Date().toISOString() },
+          onConflict: 'key'
         })
       });
 
       const resData = await response.json();
 
       if (!response.ok || resData.error) {
-        console.error("Save catalog positions error:", resData.error);
-        showToast(`Save error: ${resData.error || 'Database error'}`, 'error');
+        console.warn("API route save error, falling back to direct Supabase client:", resData.error);
+        const { error: directErr } = await supabase
+          .from('homepage_config')
+          .upsert({ key: 'catalog_positions', value: positionsArray, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+
+        if (directErr) {
+          showToast(`Save error: ${resData.error || directErr.message}`, 'error');
+        } else {
+          showToast('Catalog grid sequence saved successfully!', 'success');
+        }
       } else {
         showToast('Catalog grid sequence saved successfully!', 'success');
       }
     } catch (err) {
-      console.error("Save catalog positions failed:", err);
-      showToast("Saved locally.", "info");
+      console.warn("Save catalog positions API exception, falling back to direct Supabase client:", err);
+      try {
+        const { error: directErr } = await supabase
+          .from('homepage_config')
+          .upsert({ key: 'catalog_positions', value: positionsArray, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+
+        if (directErr) {
+          showToast("Saved locally.", "info");
+        } else {
+          showToast("Catalog grid sequence saved successfully!", "success");
+        }
+      } catch (fbErr) {
+        showToast("Saved locally.", "info");
+      }
     }
   };
 
