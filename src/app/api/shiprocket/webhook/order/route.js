@@ -434,6 +434,55 @@ export async function POST(request) {
       }
     }
 
+    // Send Meta Conversions API (CAPI) Server-Side Purchase Event
+    try {
+      const pixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID || '1600677861596675';
+      const accessToken = process.env.META_CONVERSIONS_API_ACCESS_TOKEN;
+
+      if (pixelId && accessToken) {
+        const hashData = (str) => str ? crypto.createHash('sha256').update(str.trim().toLowerCase()).digest('hex') : null;
+        
+        const capiPayload = {
+          data: [
+            {
+              event_name: 'Purchase',
+              event_time: Math.floor(Date.now() / 1000),
+              event_id: `purchase_${shiprocketOrderId || fastrrOrderId}`,
+              action_source: 'website',
+              event_source_url: 'https://www.reenattrends.com/cart',
+              user_data: {
+                em: email ? [hashData(email)] : [],
+                ph: phone ? [hashData(phone.replace(/\D/g, ''))] : [],
+                fn: customerName ? [hashData(customerName.split(' ')[0])] : []
+              },
+              custom_data: {
+                currency: 'INR',
+                value: Number(total || 0),
+                content_type: 'product',
+                contents: (orderItems || []).map(item => ({
+                  id: String(item.id || item.variantId || 'NSY10000001'),
+                  quantity: Number(item.qty || 1),
+                  item_price: Number(item.price || 0)
+                }))
+              }
+            }
+          ]
+        };
+
+        fetch(`https://graph.facebook.com/v19.0/${pixelId}/events?access_token=${accessToken}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(capiPayload)
+        }).then(res => res.json()).then(data => {
+          console.log('✅ Server-side Meta Conversions API (CAPI) Purchase event recorded:', data);
+        }).catch(capiErr => {
+          console.error('Meta CAPI send error:', capiErr);
+        });
+      }
+    } catch (capiOutErr) {
+      console.warn('Meta CAPI trigger warning:', capiOutErr.message);
+    }
+
     console.log(`✅ Order synced successfully to CMS Database! (Fastrr Order ID: ${fastrrOrderId}, Shiprocket Order ID: ${shiprocketOrderId})`);
 
     return NextResponse.json({ success: true, shiprocket_order_id: shiprocketOrderId, fastrr_order_id: fastrrOrderId });
