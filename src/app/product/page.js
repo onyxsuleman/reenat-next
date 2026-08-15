@@ -19,6 +19,10 @@ function ProductDetailsContent() {
   const [showExtendedInfo, setShowExtendedInfo] = useState(false);
   const [titleExpanded, setTitleExpanded] = useState(false);
   const [showStickyBar, setShowStickyBar] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  // Tracks the last productId for which ViewContent was fired — prevents duplicate
+  // fires when AppContext re-fetches (cache → DB) and the products array updates
+  const lastTrackedProductId = useRef(null);
   const mobileCarouselRef = useRef(null);
   const desktopCarouselRef = useRef(null);
   const variationSectionRef = useRef(null);
@@ -36,12 +40,44 @@ function ProductDetailsContent() {
       );
       if (found) {
         setProduct(found);
+        setLoadError(false);
         setActiveImageIndex(0);
         if (mobileCarouselRef.current) {
           mobileCarouselRef.current.scrollLeft = 0;
         }
         if (desktopCarouselRef.current) {
           desktopCarouselRef.current.scrollLeft = 0;
+        }
+
+        // --- 1.1 ViewContent Meta Pixel + CAPI ---
+        // Guard: only fire once per unique product page visit.
+        // lastTrackedProductId ref survives re-renders when products[] updates
+        // (e.g. localStorage cache → Supabase DB swap) so the event doesn't double-fire.
+        const trackedId = String(found.id);
+        if (lastTrackedProductId.current !== trackedId) {
+          lastTrackedProductId.current = trackedId;
+          const eventId = `view_content_${trackedId}_${Date.now()}`;
+
+          // Client-side browser pixel
+          trackMetaPixel('ViewContent', {
+            content_ids: [trackedId],
+            content_name: found.name,
+            content_type: 'product',
+            value: Number(found.price || 0),
+            currency: 'INR'
+          }, eventId);
+
+          // Server-side CAPI (deduplicated via matching eventId)
+          fetch('/api/pixel/view-content', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              eventId,
+              productId: trackedId,
+              productName: found.name,
+              price: Number(found.price || 0)
+            })
+          }).catch(err => console.warn('ViewContent CAPI fire error:', err));
         }
       }
     }
@@ -92,7 +128,40 @@ function ProductDetailsContent() {
     };
   }, []);
 
+  // --- 1.2 Timeout + error state ---
+  // If the product hasn't loaded within 5 seconds (Supabase slow / product ID doesn't exist),
+  // replace the infinite spinner with an actionable error UI.
+  // Resets on every new productId so variant navigation gets a fresh countdown.
+  useEffect(() => {
+    lastTrackedProductId.current = null; // reset ViewContent guard on URL change
+    setLoadError(false);
+    const timer = setTimeout(() => setLoadError(true), 5000);
+    return () => clearTimeout(timer);
+  }, [productId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!product) {
+    if (loadError) {
+      return (
+        <div className="py-16 max-w-sm mx-auto text-center px-4 space-y-5">
+          <div className="size-16 rounded-2xl bg-rose-500/10 text-rose-500 mx-auto flex items-center justify-center text-3xl border border-rose-500/20">⚠️</div>
+          <div className="space-y-2">
+            <h2 className="text-lg font-bold text-slate-800 dark:text-white">Couldn't Load This Product</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">The saree details took too long to load. Please try again or browse our full collection.</p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <button
+              onClick={() => { setLoadError(false); window.location.reload(); }}
+              className="px-5 py-2.5 bg-[#183fad] hover:bg-blue-700 text-white font-bold text-sm rounded-full transition-colors cursor-pointer"
+            >
+              Try Again
+            </button>
+            <Link href="/new-arrivals" className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold text-sm rounded-full transition-colors">
+              Browse All Sarees
+            </Link>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="py-12 text-center text-slate-500 dark:text-slate-400">
         <p className="font-medium animate-pulse text-lg">Gathering master weave details…</p>
@@ -171,7 +240,22 @@ function ProductDetailsContent() {
         throw new Error('Invalid token response from server.');
       }
 
-      if (typeof window !== 'undefined' && window.HeadlessCheckout) {
+      // --- 1.3 SDK readiness guard ---
+      // Polls every 100ms for up to 3 seconds for the Fastrr SDK to be available.
+      // Prevents silent failures when the user taps Buy Now faster than lazyOnload fires.
+      const waitForFastrr = () => new Promise((resolve) => {
+        if (typeof window !== 'undefined' && window.HeadlessCheckout) { resolve(true); return; }
+        let attempts = 0;
+        const poll = setInterval(() => {
+          attempts++;
+          if ((typeof window !== 'undefined' && window.HeadlessCheckout) || attempts >= 30) {
+            clearInterval(poll);
+            resolve(typeof window !== 'undefined' && !!window.HeadlessCheckout);
+          }
+        }, 100);
+      });
+      const sdkReady = await waitForFastrr();
+      if (sdkReady && window.HeadlessCheckout) {
         window.HeadlessCheckout.addToCart(e, token, {
           fallbackUrl: `${window.location.origin}/cart`
         });
@@ -856,7 +940,7 @@ function ProductDetailsContent() {
     {/* Fastrr Headless Checkout SDK Script */}
     <Script 
       src="https://checkout-ui.shiprocket.com/assets/js/channels/custom.js" 
-      strategy="lazyOnload" 
+      strategy="afterInteractive" 
     />
   </>
   );

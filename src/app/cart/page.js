@@ -133,16 +133,33 @@ export default function Cart() {
         throw new Error('Invalid token response from server.');
       }
 
-      if (window.HeadlessCheckout) {
+      // --- 1.3 SDK readiness guard (cart page) ---
+      const waitForFastrr = () => new Promise((resolve) => {
+        if (window.HeadlessCheckout) { resolve(true); return; }
+        let attempts = 0;
+        const poll = setInterval(() => {
+          attempts++;
+          if (window.HeadlessCheckout || attempts >= 30) {
+            clearInterval(poll);
+            resolve(!!window.HeadlessCheckout);
+          }
+        }, 100);
+      });
+      const sdkReady = await waitForFastrr();
+      if (sdkReady && window.HeadlessCheckout) {
         window.HeadlessCheckout.addToCart(e, token, {
           fallbackUrl: window.location.href
         });
       } else {
-        throw new Error('Fastrr Headless SDK not loaded on this page.');
+        throw new Error('Fastrr Headless SDK not available — opening manual checkout instead.');
       }
     } catch (err) {
       console.error('Fastrr initialization error:', err);
-      showToast(`Fastrr Checkout Error: ${err.message}`, 'error');
+      // --- 1.4 Cart page fallback ---
+      // Never leave the user stuck. Auto-open the built-in manual checkout form
+      // so they can complete their order even if Fastrr fails to load.
+      showToast('Opening checkout form…', 'info');
+      setTimeout(() => setShowCheckoutForm(true), 800);
     }
   };
 
@@ -514,7 +531,7 @@ export default function Cart() {
 
       <Script 
         src="https://checkout-ui.shiprocket.com/assets/js/channels/custom.js" 
-        strategy="lazyOnload" 
+        strategy="afterInteractive" 
       />
     </div>
   );

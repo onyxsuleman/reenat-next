@@ -40,7 +40,7 @@ export default function RootLayout({ children }) {
         </Script>
         <Script 
           src="https://checkout-ui.shiprocket.com/assets/js/channels/login.js" 
-          strategy="lazyOnload" 
+          strategy="afterInteractive" 
         />
       </body>
     </html>
