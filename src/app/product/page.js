@@ -7,11 +7,12 @@ import Image from 'next/image';
 import Script from 'next/script';
 import { useApp } from '../../context/AppContext';
 import ProductCard from '../../components/ProductCard';
+import { trackMetaPixel } from '../../utils/metaPixel';
 
 function ProductDetailsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { products, addToCart, toggleWishlist, isInWishlist, showToast, userSession } = useApp();
+  const { products, addToCart, toggleWishlist, isInWishlist, showToast, userSession, isProductPaused, isCatalogPaused, getCatalogVariantOrder } = useApp();
   const [product, setProduct] = useState(null);
   const [isBuyNowLoading, setIsBuyNowLoading] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -23,6 +24,7 @@ function ProductDetailsContent() {
   const variationSectionRef = useRef(null);
 
   const productId = searchParams.get('id');
+  const isCurrentProductPaused = product ? (isProductPaused(product) || isCatalogPaused(product.catalogId)) : false;
 
   useEffect(() => {
     if (products.length > 0 && productId) {
@@ -47,13 +49,11 @@ function ProductDetailsContent() {
 
   const handleCarouselScroll = (e) => {
     const container = e.currentTarget;
-    const scrollLeft = container.scrollLeft;
-    const width = container.clientWidth;
-    if (width > 0) {
-      const index = Math.round(scrollLeft / width);
-      if (index >= 0 && index < galleryImages.length && index !== activeImageIndex) {
-        setActiveImageIndex(index);
-      }
+    const scrollPosition = container.scrollLeft;
+    const width = container.offsetWidth;
+    const newIndex = Math.round(scrollPosition / width);
+    if (newIndex !== activeImageIndex && newIndex >= 0 && newIndex < galleryImages.length) {
+      setActiveImageIndex(newIndex);
     }
   };
 
@@ -113,8 +113,21 @@ function ProductDetailsContent() {
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
   };
 
+  const handleAddToCartClick = (e) => {
+    if (e) e.preventDefault();
+    if (isCurrentProductPaused) {
+      if (showToast) showToast("This saree variation is temporarily paused / out of inventory.", "warning");
+      return;
+    }
+    addToCart(product);
+  };
+
   const handleBuyNow = async (e) => {
     if (e) e.preventDefault();
+    if (isCurrentProductPaused) {
+      if (showToast) showToast("This saree variation is temporarily paused / out of inventory.", "warning");
+      return;
+    }
     if (isBuyNowLoading) return;
 
     try {
@@ -122,21 +135,6 @@ function ProductDetailsContent() {
       if (showToast) showToast('Connecting to Shiprocket Fastrr Checkout...', 'info');
 
       addToCart(product);
-
-      if (typeof window !== 'undefined' && window.fbq) {
-        try {
-          window.fbq('track', 'InitiateCheckout', {
-            content_name: product.name || product.title,
-            content_ids: [String(product.id)],
-            content_type: 'product',
-            value: Number(product.price || 0),
-            currency: 'INR',
-            num_items: 1
-          });
-        } catch (fbErr) {
-          console.error('Meta Pixel InitiateCheckout error:', fbErr);
-        }
-      }
 
       const response = await fetch('/api/checkout/token', {
         method: 'POST',
@@ -156,6 +154,16 @@ function ProductDetailsContent() {
       if (!response.ok) {
         throw new Error(resData.error || 'Failed to initialize checkout session.');
       }
+
+      // Track Meta Pixel InitiateCheckout with server-matched eventID
+      trackMetaPixel('InitiateCheckout', {
+        content_name: product.name || product.title,
+        content_ids: [String(product.id)],
+        content_type: 'product',
+        value: Number(product.price || 0),
+        currency: 'INR',
+        num_items: 1
+      }, resData.initCheckoutEventId || `init_checkout_${Date.now()}`);
 
       const token = resData.result?.token || resData.token || resData.access_token || resData.data?.token;
 
@@ -196,10 +204,11 @@ function ProductDetailsContent() {
   const currentCatalogId = product.catalogId ? product.catalogId.toLowerCase() : '';
   const seenRecommendedCatalogs = new Set();
   if (currentCatalogId) seenRecommendedCatalogs.add(currentCatalogId);
-
   const recommended = products
     .filter(p => {
       if (String(p.id) === String(product.id)) return false;
+      const isPaused = isProductPaused ? (isProductPaused(p) || isCatalogPaused(p.catalogId)) : false;
+      if (isPaused) return false;
       const cid = p.catalogId ? p.catalogId.toLowerCase() : '';
       if (cid && seenRecommendedCatalogs.has(cid)) return false;
       if (cid) seenRecommendedCatalogs.add(cid);
@@ -211,16 +220,20 @@ function ProductDetailsContent() {
   const colorVariants = (() => {
     if (!product || !products || products.length === 0) return [];
     
+    // Build set of all connected catalog and product IDs
     const connectedCatalogs = new Set();
-    if (product.catalogId) connectedCatalogs.add(product.catalogId.toLowerCase());
-    
     const connectedProductIds = new Set();
+    
+    if (product.catalogId) connectedCatalogs.add(product.catalogId.toLowerCase());
     if (product.productId) connectedProductIds.add(product.productId.toLowerCase());
     if (product.id) connectedProductIds.add(String(product.id).toLowerCase());
+    if (product.linkedTo) {
+      connectedProductIds.add(product.linkedTo.toLowerCase());
+      connectedCatalogs.add(product.linkedTo.toLowerCase());
+    }
     
-    let lastSize = 0;
-    while (connectedCatalogs.size + connectedProductIds.size > lastSize) {
-      lastSize = connectedCatalogs.size + connectedProductIds.size;
+    // Multi-pass expansion to catch indirect links
+    for (let pass = 0; pass < 2; pass++) {
       for (const p of products) {
         const pid = p.productId ? p.productId.toLowerCase() : '';
         const cid = p.catalogId ? p.catalogId.toLowerCase() : '';
@@ -244,6 +257,9 @@ function ProductDetailsContent() {
     }
     
     const result = products.filter(p => {
+      const isPaused = isProductPaused ? (isProductPaused(p) || isCatalogPaused(p.catalogId)) : false;
+      if (isPaused) return false;
+
       const pid = p.productId ? p.productId.toLowerCase() : '';
       const cid = p.catalogId ? p.catalogId.toLowerCase() : '';
       const lid = p.linkedTo ? p.linkedTo.toLowerCase() : '';
@@ -260,10 +276,60 @@ function ProductDetailsContent() {
     for (const p of result) {
       uniqueMap.set(p.id, p);
     }
-    return Array.from(uniqueMap.values());
+    const unsortedVariants = Array.from(uniqueMap.values());
+
+    // Sort by admin-defined variant display order for this catalog
+    const catalogId = product.catalogId || '';
+    const orderedIds = getCatalogVariantOrder ? getCatalogVariantOrder(catalogId) : [];
+    if (orderedIds && orderedIds.length > 0) {
+      const orderMap = {};
+      orderedIds.forEach((pid, idx) => { orderMap[String(pid)] = idx; });
+      unsortedVariants.sort((a, b) => {
+        const ai = orderMap[String(a.id)];
+        const bi = orderMap[String(b.id)];
+        // Items in the order list come first; unlisted items go to the end sorted by id
+        if (ai !== undefined && bi !== undefined) return ai - bi;
+        if (ai !== undefined) return -1;
+        if (bi !== undefined) return 1;
+        return Number(a.id) - Number(b.id);
+      });
+    } else {
+      // Default: sort by id ascending (oldest = first)
+      unsortedVariants.sort((a, b) => Number(a.id) - Number(b.id));
+    }
+    return unsortedVariants;
   })();
 
   const displayVariants = colorVariants.length > 1 ? colorVariants : [];
+
+  if (isCurrentProductPaused) {
+    return (
+      <div className="py-20 max-w-lg mx-auto text-center px-4 space-y-6">
+        <div className="size-20 rounded-3xl bg-amber-500/10 text-amber-500 mx-auto flex items-center justify-center text-4xl shadow-inner border border-amber-500/20">
+          ⏸️
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-anton tracking-wide text-slate-900 dark:text-white uppercase">
+            Saree Currently Unavailable
+          </h1>
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            This saree or color variation is temporarily unavailable / out of inventory.
+          </p>
+        </div>
+        <div className="pt-2">
+          <Link 
+            href="/new-arrivals" 
+            className="inline-flex items-center gap-2 bg-[#F1BF0A] hover:bg-yellow-400 text-slate-950 font-bold px-6 py-3 rounded-full text-sm shadow-md transition-transform hover:scale-105 active:scale-95"
+          >
+            <span>Explore Available Sarees</span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+            </svg>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -399,6 +465,7 @@ function ProductDetailsContent() {
                 <div className="variation-slider-container pb-1">
                   {displayVariants.map((variant) => {
                     const isSelected = String(variant.id) === String(product.id);
+                    const isVarPaused = isProductPaused(variant) || isCatalogPaused(variant.catalogId);
                     return (
                       <Link
                         key={variant.id}
@@ -407,15 +474,22 @@ function ProductDetailsContent() {
                           isSelected 
                             ? 'border-slate-900 dark:border-[#F1BF0A] scale-102 shadow-sm' 
                             : 'border-slate-200 dark:border-slate-850 opacity-85 hover:opacity-100'
-                        }`}
+                        } ${isVarPaused ? 'opacity-60' : ''}`}
                       >
                         <Image 
                           src={variant.image} 
                           alt={variant.name} 
                           fill
                           sizes="128px"
-                          className="object-cover"
+                          className={`object-cover ${isVarPaused ? 'grayscale-[40%]' : ''}`}
                         />
+                        {isVarPaused && (
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
+                            <span className="bg-amber-500 text-slate-950 text-[8px] font-black uppercase px-1 py-0.5 rounded shadow">
+                              Paused
+                            </span>
+                          </div>
+                        )}
                         {isSelected && (
                           <div className="absolute inset-0 bg-slate-900/10 dark:bg-amber-500/5 pointer-events-none" />
                         )}
@@ -503,6 +577,17 @@ function ProductDetailsContent() {
                 )}
               </div>
             </div>
+
+            {/* Paused Notice Banner */}
+            {isCurrentProductPaused && (
+              <div className="bg-amber-500/15 border border-amber-500/30 text-amber-900 dark:text-amber-300 px-4 py-3 rounded-2xl flex items-center gap-2.5 text-xs font-bold mt-3 shadow-sm">
+                <span className="text-lg">⏸️</span>
+                <div>
+                  <div className="font-extrabold uppercase tracking-wide text-[10px] text-amber-700 dark:text-amber-400">Temporarily Unavailable</div>
+                  <div className="text-slate-700 dark:text-slate-200 text-xs font-medium mt-0.5">This saree variation is currently paused / out of inventory. Please check other color options or check back soon!</div>
+                </div>
+              </div>
+            )}
 
             {/* Special Online Pay discount Banner */}
             <div className="relative overflow-hidden bg-white/85 dark:bg-[#0c1e44]/40 backdrop-blur-xl border border-[#d9a05b]/30 dark:border-[#F1BF0A]/20 rounded-2xl p-4 shadow-[0_8px_30px_rgb(0,0,0,0.02)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] mt-3.5 group transition-all duration-300 hover:border-[#d9a05b]/50 dark:hover:border-[#F1BF0A]/40">
@@ -653,9 +738,13 @@ function ProductDetailsContent() {
             <button 
               type="button"
               onClick={handleBuyNow}
-              disabled={isBuyNowLoading}
-              className="flex-1 sm:flex-[1.5] py-3.5 px-6 rounded-2xl bg-[#F1BF0A] hover:bg-yellow-400 text-slate-950 font-bold text-base transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex items-center justify-center select-none shadow-md border-none outline-none"
-              style={{ backgroundColor: '#F1BF0A !important', color: '#000000 !important' }}
+              disabled={isBuyNowLoading || isCurrentProductPaused}
+              className={`flex-1 sm:flex-[1.5] py-3.5 px-6 rounded-2xl font-bold text-base transition-all select-none shadow-md border-none outline-none flex items-center justify-center ${
+                isCurrentProductPaused
+                  ? 'bg-slate-300 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed'
+                  : 'bg-[#F1BF0A] hover:bg-yellow-400 text-slate-950 hover:scale-[1.02] active:scale-[0.98] cursor-pointer'
+              }`}
+              style={!isCurrentProductPaused ? { backgroundColor: '#F1BF0A !important', color: '#000000 !important' } : {}}
             >
               {isBuyNowLoading ? (
                 <span className="flex items-center gap-2 text-black font-bold" style={{ color: '#000000 !important' }}>
@@ -666,22 +755,27 @@ function ProductDetailsContent() {
                   <span>Connecting...</span>
                 </span>
               ) : (
-                <span className="text-slate-950 font-bold text-base" style={{ color: '#000000 !important' }}>
-                  Buy Now
+                <span className={isCurrentProductPaused ? "text-slate-500 dark:text-slate-400 font-bold text-sm" : "text-slate-950 font-bold text-base"} style={!isCurrentProductPaused ? { color: '#000000 !important' } : {}}>
+                  {isCurrentProductPaused ? '⏸️ Temporarily Unavailable' : 'Buy Now'}
                 </span>
               )}
             </button>
 
             <button 
               type="button"
-              onClick={() => addToCart(product)}
-              className="flex-1 py-3.5 px-5 rounded-2xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white font-bold text-sm border border-slate-700 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer shadow-md"
+              onClick={handleAddToCartClick}
+              disabled={isCurrentProductPaused}
+              className={`flex-1 py-3.5 px-5 rounded-2xl font-bold text-sm border transition-all shadow-md ${
+                isCurrentProductPaused
+                  ? 'bg-slate-100 dark:bg-slate-900 text-slate-400 border-slate-300 dark:border-slate-800 cursor-not-allowed'
+                  : 'bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white border-slate-700 hover:scale-[1.02] active:scale-[0.98] cursor-pointer'
+              }`}
             >
-              Add to Cart
+              {isCurrentProductPaused ? 'Unavailable' : 'Add to Cart'}
             </button>
 
             <button 
-              type="button"
+              type="button" 
               onClick={() => toggleWishlist(product)}
               className={`font-semibold py-3.5 px-5 rounded-2xl border transition-all hover:scale-[1.02] active:scale-[0.98] shadow-sm cursor-pointer text-center text-sm ${
                 inWishlist 
@@ -722,17 +816,26 @@ function ProductDetailsContent() {
     }`}>
       <button 
         type="button"
-        onClick={() => addToCart(product)}
-        className="w-[40%] h-12 font-bold rounded-2xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-800 shadow-lg active:scale-95"
+        onClick={handleAddToCartClick}
+        disabled={isCurrentProductPaused}
+        className={`w-[40%] h-12 font-bold rounded-2xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-lg border ${
+          isCurrentProductPaused
+            ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 border-slate-300 dark:border-slate-700 cursor-not-allowed'
+            : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800 active:scale-95 cursor-pointer'
+        }`}
       >
-        <span>Add to Cart</span>
+        <span>{isCurrentProductPaused ? 'Unavailable' : 'Add to Cart'}</span>
       </button>
       <button 
         type="button"
         onClick={handleBuyNow}
-        disabled={isBuyNowLoading}
-        className="w-[58%] h-12 font-bold rounded-2xl text-sm flex items-center justify-center transition-all cursor-pointer bg-[#F1BF0A] text-slate-950 shadow-lg active:scale-95 select-none border-none outline-none"
-        style={{ backgroundColor: '#F1BF0A !important', color: '#000000 !important' }}
+        disabled={isBuyNowLoading || isCurrentProductPaused}
+        className={`w-[58%] h-12 font-bold rounded-2xl text-sm flex items-center justify-center transition-all shadow-lg select-none border-none outline-none ${
+          isCurrentProductPaused
+            ? 'bg-slate-300 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed'
+            : 'bg-[#F1BF0A] text-slate-950 active:scale-95 cursor-pointer'
+        }`}
+        style={!isCurrentProductPaused ? { backgroundColor: '#F1BF0A !important', color: '#000000 !important' } : {}}
       >
         {isBuyNowLoading ? (
           <span className="flex items-center gap-1.5 text-black font-bold text-xs" style={{ color: '#000000 !important' }}>
@@ -743,8 +846,8 @@ function ProductDetailsContent() {
             <span>Connecting...</span>
           </span>
         ) : (
-          <span className="text-slate-950 font-bold text-sm" style={{ color: '#000000 !important' }}>
-            Buy Now
+          <span className={isCurrentProductPaused ? "text-slate-500 dark:text-slate-400 font-bold text-xs" : "text-slate-950 font-bold text-sm"} style={!isCurrentProductPaused ? { color: '#000000 !important' } : {}}>
+            {isCurrentProductPaused ? '⏸️ Unavailable' : 'Buy Now'}
           </span>
         )}
       </button>

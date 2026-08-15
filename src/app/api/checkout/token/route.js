@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { sendMetaCapiEvent } from '../../../../utils/metaPixel';
 
 export async function POST(request) {
   try {
@@ -164,8 +165,45 @@ export async function POST(request) {
       return NextResponse.json({ error: `Shiprocket API: ${detailError}` }, { status: response.status });
     }
 
-    // Return the response data containing token details
-    return NextResponse.json(resData);
+    // Send server-side CAPI InitiateCheckout and AddPaymentInfo events with deduplication keys
+    const nowTs = Date.now();
+    const initCheckoutEventId = `init_checkout_${nowTs}`;
+    const addPaymentEventId = `add_payment_${nowTs}`;
+    const clientIpAddress = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || null;
+    const clientUserAgent = request.headers.get('user-agent') || null;
+
+    // 1. CAPI InitiateCheckout
+    sendMetaCapiEvent({
+      eventName: 'InitiateCheckout',
+      eventId: initCheckoutEventId,
+      email: customer?.email || '',
+      phone: customer?.phone || '',
+      fullName: customer?.name || '',
+      value: subtotal,
+      currency: 'INR',
+      items: items,
+      eventSourceUrl: redirect_url,
+      clientIpAddress,
+      clientUserAgent
+    }).catch(capiErr => console.warn('InitiateCheckout CAPI warning:', capiErr.message));
+
+    // 2. CAPI AddPaymentInfo
+    sendMetaCapiEvent({
+      eventName: 'AddPaymentInfo',
+      eventId: addPaymentEventId,
+      email: customer?.email || '',
+      phone: customer?.phone || '',
+      fullName: customer?.name || '',
+      value: subtotal,
+      currency: 'INR',
+      items: items,
+      eventSourceUrl: redirect_url,
+      clientIpAddress,
+      clientUserAgent
+    }).catch(capiErr => console.warn('AddPaymentInfo CAPI warning:', capiErr.message));
+
+    // Return response data containing token details and deduplication event IDs for client pixel matching
+    return NextResponse.json({ ...resData, initCheckoutEventId, addPaymentEventId });
   } catch (err) {
     console.error('Token generation server error:', err);
     return NextResponse.json({ error: `Server exception: ${err.message}` }, { status: 500 });

@@ -8,7 +8,7 @@ import ProductCard from '../components/ProductCard';
 import { ProductSkeletonGrid } from '../components/ProductSkeleton';
 
 export default function Home() {
-  const { products, heroSlides, categoryCards, collectionCards, catalogPositions, bestSellers } = useApp();
+  const { products, heroSlides, categoryCards, collectionCards, catalogPositions, bestSellers, isCatalogPaused, isProductPaused } = useApp();
   const [slideIndex, setSlideIndex] = useState(0);
   const [fadeText, setFadeText] = useState(false);
   const [timeLeft, setTimeLeft] = useState('12H:12M:31S');
@@ -577,21 +577,27 @@ export default function Home() {
           className="flex gap-4 sm:gap-6 overflow-x-auto px-4 pb-6 snap-x scrollbar-none scroll-smooth"
         >
           {(() => {
-            const activeSlots = (bestSellers && bestSellers.length > 0) ? bestSellers.slice(0, 4) : [
+            const rawSlots = (bestSellers && bestSellers.length > 0) ? bestSellers : [
               { slot: 1, catalogId: 'M1' },
               { slot: 2, catalogId: 'M2' },
               { slot: 3, catalogId: 'M3' },
               { slot: 4, catalogId: 'M4' }
             ];
 
+            const activeSlots = rawSlots.filter(slotItem => {
+              const cid = String(slotItem.catalogId || '').trim().toUpperCase();
+              return isCatalogPaused ? !isCatalogPaused(cid) : true;
+            }).slice(0, 4);
+
             return activeSlots.map((slotItem, idx) => {
               const cid = String(slotItem.catalogId || '').trim().toUpperCase();
               const catalogProds = (products || []).filter(p => {
                 const pCid = (p.catalogId || p.catalog_id || `SINGLE-${p.id}`).trim().toUpperCase();
-                return pCid === cid;
+                const isPaused = isProductPaused ? (isProductPaused(p) || isCatalogPaused(pCid)) : false;
+                return pCid === cid && !isPaused;
               });
 
-              const coverProd = catalogProds[0] || (products && products[idx % products.length]) || null;
+              const coverProd = catalogProds[0] || null;
               if (!coverProd) return null;
 
               const variantCount = catalogProds.length || 1;
@@ -658,7 +664,8 @@ export default function Home() {
             const catalogMap = {};
             products.forEach(p => {
               const cid = (p.catalogId || p.catalog_id || `SINGLE-${p.id}`).trim().toUpperCase();
-              if (!catalogMap[cid]) {
+              const isPaused = isProductPaused ? (isProductPaused(p) || isCatalogPaused(cid)) : false;
+              if (!isPaused && !catalogMap[cid]) {
                 catalogMap[cid] = p;
               }
             });

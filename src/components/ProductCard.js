@@ -6,8 +6,9 @@ import Image from 'next/image';
 import { useApp } from '../context/AppContext';
 
 export default function ProductCard({ product }) {
-  const { addToCart, toggleWishlist, setQuickViewProduct, isInWishlist } = useApp();
+  const { addToCart, toggleWishlist, setQuickViewProduct, isInWishlist, isProductPaused, isCatalogPaused, showToast } = useApp();
 
+  const isPaused = isProductPaused ? (isProductPaused(product) || isCatalogPaused(product.catalogId)) : false;
   const formattedPrice = Math.round(product.price || 0).toLocaleString('en-IN');
   const formattedOriginal = product.originalPrice ? Math.round(product.originalPrice).toLocaleString('en-IN') : null;
   const discountPercent = product.originalPrice 
@@ -16,10 +17,18 @@ export default function ProductCard({ product }) {
   const rating = product.rating || 4.5;
   const inWishlist = isInWishlist(product.id);
 
-
+  const handleAddToCart = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isPaused) {
+      if (showToast) showToast("This item is temporarily paused / out of inventory.", "warning");
+      return;
+    }
+    addToCart(product);
+  };
 
   return (
-    <li className="group product-card col-span-1 flex flex-col rounded-3xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 backdrop-blur-md">
+    <li className={`group product-card col-span-1 flex flex-col rounded-3xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 backdrop-blur-md ${isPaused ? 'opacity-90' : ''}`}>
       {/* Image Container */}
       <div className="relative overflow-hidden aspect-[3/4] bg-[#0c1e44]/5 dark:bg-black/20 p-2">
         <Link href={`/product?id=${product.id}`} className="relative block w-full h-full">
@@ -28,22 +37,28 @@ export default function ProductCard({ product }) {
             alt={product.name} 
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-            className="object-cover rounded-2xl transition-transform duration-500 group-hover:scale-105"
+            className={`object-cover rounded-2xl transition-transform duration-500 group-hover:scale-105 ${isPaused ? 'grayscale-[30%]' : ''}`}
             priority={product.id <= 4}
           />
         </Link>
         {/* Badge */}
-        <span className="absolute top-4 left-4 bg-slate-800/80 text-white text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full">
+        <span className="absolute top-4 left-4 bg-slate-800/80 text-white text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full z-20">
           {product.type}
         </span>
+
+        {/* Paused Badge */}
+        {isPaused && (
+          <span className="absolute top-4 right-4 bg-amber-500 text-slate-950 text-[10px] uppercase font-black tracking-wider px-2.5 py-0.5 rounded-full shadow-md z-20 flex items-center gap-1">
+            <span>⏸️</span>
+            <span>Paused</span>
+          </span>
+        )}
         
         {/* Rating Badge */}
         <div className="absolute bottom-4 left-4 bg-white dark:bg-slate-900 text-slate-850 dark:text-slate-100 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-0.5 shadow-md z-20">
           <span>{rating}</span>
           <span className="text-emerald-600">★</span>
         </div>
-
-
 
         {/* Action Overlay */}
         <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity duration-300 z-10">
@@ -54,13 +69,14 @@ export default function ProductCard({ product }) {
           <div className="relative z-10 flex items-center justify-center gap-3 w-full h-full pointer-events-none">
             <button 
               type="button" 
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                addToCart(product);
-              }}
-              className="p-3 bg-white dark:bg-slate-900 hover:bg-[#F1BF0A] dark:hover:bg-[#F1BF0A] text-slate-800 dark:text-slate-100 rounded-full shadow-md transition-colors duration-200 cursor-pointer pointer-events-auto" 
-              title="Add to Cart"
+              onClick={handleAddToCart}
+              disabled={isPaused}
+              className={`p-3 rounded-full shadow-md transition-colors duration-200 cursor-pointer pointer-events-auto ${
+                isPaused 
+                  ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+                  : 'bg-white dark:bg-slate-900 hover:bg-[#F1BF0A] dark:hover:bg-[#F1BF0A] text-slate-800 dark:text-slate-100'
+              }`}
+              title={isPaused ? "Item Paused / Unavailable" : "Add to Cart"}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="size-5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
@@ -133,13 +149,14 @@ export default function ProductCard({ product }) {
           </div>
           <button 
             type="button" 
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              addToCart(product);
-            }}
-            className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 p-2 sm:p-2.5 bg-[#F1BF0A] hover:bg-yellow-500 text-slate-900 rounded-full cursor-pointer transition-transform hover:scale-105 active:scale-95 shadow-sm" 
-            title="Add to Cart"
+            onClick={handleAddToCart}
+            disabled={isPaused}
+            className={`absolute bottom-2 right-2 sm:bottom-4 sm:right-4 p-2 sm:p-2.5 rounded-full transition-transform shadow-sm ${
+              isPaused 
+                ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+                : 'bg-[#F1BF0A] hover:bg-yellow-500 text-slate-900 cursor-pointer hover:scale-105 active:scale-95'
+            }`} 
+            title={isPaused ? "Item Paused / Unavailable" : "Add to Cart"}
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="size-4.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />

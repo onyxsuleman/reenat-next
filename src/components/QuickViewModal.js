@@ -4,11 +4,12 @@ import React from 'react';
 import { useApp } from '../context/AppContext';
 
 export default function QuickViewModal() {
-  const { quickViewProduct, setQuickViewProduct, addToCart, toggleWishlist, isInWishlist } = useApp();
+  const { quickViewProduct, setQuickViewProduct, addToCart, toggleWishlist, isInWishlist, isProductPaused, isCatalogPaused, showToast } = useApp();
 
   if (!quickViewProduct) return null;
 
   const product = quickViewProduct;
+  const isPaused = isProductPaused ? (isProductPaused(product) || isCatalogPaused(product.catalogId)) : false;
   const formattedPrice = Math.round(product.price || 0).toLocaleString('en-IN');
   const formattedOriginal = product.originalPrice ? Math.round(product.originalPrice).toLocaleString('en-IN') : null;
   const inWishlist = isInWishlist(product.id);
@@ -54,10 +55,16 @@ export default function QuickViewModal() {
         
         {/* Left Side: Image */}
         <div className="w-full md:w-1/2 aspect-square md:aspect-auto md:h-[420px] bg-slate-100 dark:bg-black/20 relative p-4 flex items-center justify-center">
-          <img src={product.image} alt={product.name} className="w-full h-full object-cover rounded-2xl" />
-          <span className="absolute top-4 left-4 bg-slate-800/80 text-white text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full">
+          <img src={product.image} alt={product.name} className={`w-full h-full object-cover rounded-2xl ${isPaused ? 'grayscale-[30%]' : ''}`} />
+          <span className="absolute top-4 left-4 bg-slate-800/80 text-white text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full z-20">
             {product.type || 'Saree'}
           </span>
+          {isPaused && (
+            <span className="absolute top-4 right-4 bg-amber-500 text-slate-950 text-[10px] uppercase font-black tracking-wider px-2.5 py-0.5 rounded-full shadow-md z-20 flex items-center gap-1">
+              <span>⏸️</span>
+              <span>Paused</span>
+            </span>
+          )}
         </div>
         
         {/* Right Side: Details */}
@@ -77,6 +84,12 @@ export default function QuickViewModal() {
                 <span className="text-sm line-through text-slate-400">₹{formattedOriginal}</span>
               )}
             </div>
+            {isPaused && (
+              <div className="bg-amber-500/15 border border-amber-500/30 text-amber-900 dark:text-amber-300 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2">
+                <span>⏸️</span>
+                <span>Temporarily Unavailable</span>
+              </div>
+            )}
             <hr className="border-slate-200 dark:border-slate-800" />
             <p className="text-slate-650 dark:text-slate-300 text-xs leading-relaxed">
               {product.desc}
@@ -99,12 +112,21 @@ export default function QuickViewModal() {
             <div className="flex gap-2.5">
               <button 
                 onClick={() => {
+                  if (isPaused) {
+                    if (showToast) showToast("This item is temporarily paused / out of inventory.", "warning");
+                    return;
+                  }
                   addToCart(product);
                   handleClose();
                 }}
-                className="flex-1 bg-[#183fad] hover:bg-blue-800 text-white font-semibold py-2 px-4 rounded-full border border-[#183fad] transition-colors cursor-pointer text-center text-xs"
+                disabled={isPaused}
+                className={`flex-1 font-semibold py-2 px-4 rounded-full border transition-colors text-center text-xs ${
+                  isPaused 
+                    ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 border-slate-300 dark:border-slate-700 cursor-not-allowed'
+                    : 'bg-[#183fad] hover:bg-blue-800 text-white border-[#183fad] cursor-pointer'
+                }`}
               >
-                Add to Cart
+                {isPaused ? 'Unavailable' : 'Add to Cart'}
               </button>
               <button 
                 onClick={() => {

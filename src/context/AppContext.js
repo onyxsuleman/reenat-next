@@ -461,6 +461,10 @@ export function AppProvider({ children }) {
   const [collectionCards, setCollectionCards] = useState(defaultCollectionCards);
   const [catalogPositions, setCatalogPositions] = useState(defaultCatalogPositions);
   const [bestSellers, setBestSellers] = useState(defaultBestSellers);
+  const [pausedCatalogs, setPausedCatalogs] = useState([]);
+  const [pausedProducts, setPausedProducts] = useState([]);
+  // catalogVariantOrders: { [catalogId]: [productId, productId, ...] } — controls display order of variants
+  const [catalogVariantOrders, setCatalogVariantOrders] = useState({});
   const [wishlist, setWishlist] = useState([]);
   const [theme, setTheme] = useState('light');
   const [toast, setToast] = useState(null);
@@ -481,6 +485,12 @@ export function AppProvider({ children }) {
       if (storedPositions) setCatalogPositions(JSON.parse(storedPositions));
       const storedBestSellers = localStorage.getItem('homepage_bestsellers');
       if (storedBestSellers) setBestSellers(JSON.parse(storedBestSellers));
+      const storedPausedCatalogs = localStorage.getItem('homepage_paused_catalogs');
+      if (storedPausedCatalogs) setPausedCatalogs(JSON.parse(storedPausedCatalogs));
+      const storedPausedProducts = localStorage.getItem('homepage_paused_products');
+      if (storedPausedProducts) setPausedProducts(JSON.parse(storedPausedProducts));
+      const storedVariantOrders = localStorage.getItem('homepage_catalog_variant_orders');
+      if (storedVariantOrders) setCatalogVariantOrders(JSON.parse(storedVariantOrders));
     } catch (e) {
       console.warn("Failed to load stored homepage configs from localStorage:", e);
     }
@@ -494,6 +504,9 @@ export function AppProvider({ children }) {
         const collectionsRow = data.find(row => row.key === 'collections');
         const positionsRow = data.find(row => row.key === 'catalog_positions');
         const bestsellersRow = data.find(row => row.key === 'bestsellers');
+        const pausedCatalogsRow = data.find(row => row.key === 'paused_catalogs');
+        const pausedProductsRow = data.find(row => row.key === 'paused_products');
+        const variantOrdersRow = data.find(row => row.key === 'catalog_variant_orders');
 
         if (heroRow && Array.isArray(heroRow.value)) {
           setHeroSlides(heroRow.value);
@@ -514,6 +527,18 @@ export function AppProvider({ children }) {
         if (bestsellersRow && Array.isArray(bestsellersRow.value)) {
           setBestSellers(bestsellersRow.value);
           localStorage.setItem('homepage_bestsellers', JSON.stringify(bestsellersRow.value));
+        }
+        if (pausedCatalogsRow && Array.isArray(pausedCatalogsRow.value)) {
+          setPausedCatalogs(pausedCatalogsRow.value);
+          localStorage.setItem('homepage_paused_catalogs', JSON.stringify(pausedCatalogsRow.value));
+        }
+        if (pausedProductsRow && Array.isArray(pausedProductsRow.value)) {
+          setPausedProducts(pausedProductsRow.value);
+          localStorage.setItem('homepage_paused_products', JSON.stringify(pausedProductsRow.value));
+        }
+        if (variantOrdersRow && variantOrdersRow.value && typeof variantOrdersRow.value === 'object' && !Array.isArray(variantOrdersRow.value)) {
+          setCatalogVariantOrders(variantOrdersRow.value);
+          localStorage.setItem('homepage_catalog_variant_orders', JSON.stringify(variantOrdersRow.value));
         }
       } else if (error) {
         console.warn("Could not load homepage config from database (it might not exist yet):", error.message);
@@ -650,6 +675,12 @@ export function AppProvider({ children }) {
     } else if (type === 'bestsellers') {
       setBestSellers(data);
       localStorage.setItem('homepage_bestsellers', JSON.stringify(data));
+    } else if (type === 'paused_catalogs') {
+      setPausedCatalogs(data);
+      localStorage.setItem('homepage_paused_catalogs', JSON.stringify(data));
+    } else if (type === 'paused_products') {
+      setPausedProducts(data);
+      localStorage.setItem('homepage_paused_products', JSON.stringify(data));
     }
 
     try {
@@ -852,6 +883,101 @@ export function AppProvider({ children }) {
     }
   };
 
+  const isCatalogPaused = (catalogId) => {
+    if (!catalogId) return false;
+    const cid = String(catalogId).toUpperCase().trim();
+    return pausedCatalogs.some(c => String(c).toUpperCase().trim() === cid);
+  };
+
+  const isProductPaused = (productOrId) => {
+    if (!productOrId) return false;
+    let pid, cid, numId;
+    if (typeof productOrId === 'object') {
+      pid = productOrId.productId || productOrId.id;
+      cid = productOrId.catalogId;
+      numId = productOrId.id;
+    } else {
+      pid = productOrId;
+      numId = productOrId;
+    }
+    // If whole catalog is paused, product is considered paused
+    if (cid && isCatalogPaused(cid)) return true;
+
+    // Check individual product ID
+    const pidStr = String(pid || '').toUpperCase().trim();
+    const numIdStr = String(numId || '').toUpperCase().trim();
+    return pausedProducts.some(p => {
+      const s = String(p).toUpperCase().trim();
+      return s === pidStr || s === numIdStr;
+    });
+  };
+
+  const togglePauseCatalog = async (catalogId) => {
+    if (!catalogId) return;
+    const cid = String(catalogId).toUpperCase().trim();
+    const isPaused = isCatalogPaused(cid);
+    const newPausedCatalogs = isPaused 
+      ? pausedCatalogs.filter(c => String(c).toUpperCase().trim() !== cid)
+      : [...pausedCatalogs, catalogId];
+    
+    setPausedCatalogs(newPausedCatalogs);
+    try {
+      localStorage.setItem('homepage_paused_catalogs', JSON.stringify(newPausedCatalogs));
+    } catch (e) {
+      console.warn("Failed to save paused catalogs to localStorage:", e);
+    }
+    await saveHomepageConfig('paused_catalogs', newPausedCatalogs);
+    showToast(isPaused ? `Catalog ${catalogId} resumed (Active 🟢)` : `Catalog ${catalogId} paused (⏸️)`, isPaused ? 'success' : 'info');
+  };
+
+  const togglePauseProduct = async (productOrId) => {
+    if (!productOrId) return;
+    const pid = typeof productOrId === 'object' ? (productOrId.productId || productOrId.id) : productOrId;
+    const pidStr = String(pid).toUpperCase().trim();
+    
+    const isPaused = pausedProducts.some(p => String(p).toUpperCase().trim() === pidStr);
+    const newPausedProducts = isPaused
+      ? pausedProducts.filter(p => String(p).toUpperCase().trim() !== pidStr)
+      : [...pausedProducts, pid];
+
+    setPausedProducts(newPausedProducts);
+    try {
+      localStorage.setItem('homepage_paused_products', JSON.stringify(newPausedProducts));
+    } catch (e) {
+      console.warn("Failed to save paused products to localStorage:", e);
+    }
+    await saveHomepageConfig('paused_products', newPausedProducts);
+    showToast(isPaused ? `Variation resumed (Active 🟢)` : `Variation paused (⏸️)`, isPaused ? 'success' : 'info');
+  };
+
+  /**
+   * Returns the ordered array of product IDs for a given catalog.
+   * Falls back to natural ID-ascending order if no custom ordering is saved.
+   */
+  const getCatalogVariantOrder = (catalogId) => {
+    if (!catalogId) return [];
+    const key = String(catalogId).toUpperCase().trim();
+    return catalogVariantOrders[key] || [];
+  };
+
+  /**
+   * Saves a new variant ordering for a given catalog.
+   * orderedIds: array of product IDs (numeric) in the desired display order.
+   */
+  const saveCatalogVariantOrder = async (catalogId, orderedIds) => {
+    if (!catalogId) return;
+    const key = String(catalogId).toUpperCase().trim();
+    const newOrders = { ...catalogVariantOrders, [key]: orderedIds };
+    setCatalogVariantOrders(newOrders);
+    try {
+      localStorage.setItem('homepage_catalog_variant_orders', JSON.stringify(newOrders));
+    } catch (e) {
+      console.warn('Failed to save catalog variant orders to localStorage:', e);
+    }
+    await saveHomepageConfig('catalog_variant_orders', newOrders);
+    showToast(`Variant display order saved for Catalog ${catalogId} ✅`, 'success');
+  };
+
   return (
     <AppContext.Provider value={{
       products,
@@ -880,7 +1006,18 @@ export function AppProvider({ children }) {
       saveCatalogPositions,
       bestSellers,
       setBestSellers,
+      pausedCatalogs,
+      setPausedCatalogs,
+      pausedProducts,
+      setPausedProducts,
+      isCatalogPaused,
+      isProductPaused,
+      togglePauseCatalog,
+      togglePauseProduct,
       saveHomepageConfig,
+      catalogVariantOrders,
+      getCatalogVariantOrder,
+      saveCatalogVariantOrder,
       refreshDatabase: loadDatabaseProducts
     }}>
       {children}

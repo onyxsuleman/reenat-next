@@ -5,10 +5,11 @@ import { useApp } from '../../context/AppContext';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
+import { getMetaBrowserData, trackMetaPixel } from '../../utils/metaPixel';
 
 export default function Cart() {
   const router = useRouter();
-  const { cart, updateCartQty, removeFromCart, showToast, userSession } = useApp();
+  const { cart, updateCartQty, removeFromCart, showToast, userSession, isProductPaused, isCatalogPaused } = useApp();
   const [promoCode, setPromoCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(0); // e.g. 0.1 for 10%
   const [showCheckoutForm, setShowCheckoutForm] = useState(false);
@@ -85,18 +86,10 @@ export default function Cart() {
       return;
     }
 
-    if (typeof window !== 'undefined' && window.fbq) {
-      try {
-        window.fbq('track', 'InitiateCheckout', {
-          content_ids: cart.map(item => String(item.id)),
-          content_type: 'product',
-          value: Number(cartSubtotal || 0),
-          currency: 'INR',
-          num_items: cart.reduce((acc, item) => acc + (item.qty || 1), 0)
-        });
-      } catch (fbErr) {
-        console.error('Meta Pixel InitiateCheckout error:', fbErr);
-      }
+    const hasPausedItems = cart.some(item => isProductPaused ? (isProductPaused(item) || isCatalogPaused(item.catalogId)) : false);
+    if (hasPausedItems) {
+      showToast('Some items in your cart are currently paused/unavailable. Please remove them to proceed.', 'error');
+      return;
     }
 
     try {
@@ -120,6 +113,18 @@ export default function Cart() {
       if (!response.ok) {
         throw new Error(resData.error || 'Failed to initialize checkout token.');
       }
+
+      // Track Meta Pixel InitiateCheckout & AddPaymentInfo with server-matched eventIDs
+      const pixelCustomData = {
+        content_ids: cart.map(item => String(item.id)),
+        content_type: 'product',
+        value: Number(cartSubtotal || 0),
+        currency: 'INR',
+        num_items: cart.reduce((acc, item) => acc + (item.qty || 1), 0)
+      };
+
+      trackMetaPixel('InitiateCheckout', pixelCustomData, resData.initCheckoutEventId || `init_checkout_${Date.now()}`);
+      trackMetaPixel('AddPaymentInfo', pixelCustomData, resData.addPaymentEventId || `add_payment_${Date.now()}`);
 
       // Extract token (usually found in access_token or token property)
       const token = resData.result?.token || resData.token || resData.access_token || resData.data?.token;
@@ -167,7 +172,8 @@ export default function Cart() {
           address,
           cart,
           promoCode,
-          paymentMethod
+          paymentMethod,
+          browserMeta: getMetaBrowserData()
         })
       });
 
@@ -176,19 +182,19 @@ export default function Cart() {
       if (!response.ok) {
         showToast(resData.error || 'Checkout failed. Please try again.', 'error');
       } else {
-        if (typeof window !== 'undefined' && window.fbq) {
-          try {
-            window.fbq('track', 'Purchase', {
-              content_ids: cart.map(item => String(item.id)),
-              content_type: 'product',
-              value: Number(cartSubtotal || 0),
-              currency: 'INR',
-              num_items: cart.reduce((acc, item) => acc + (item.qty || 1), 0)
-            });
-          } catch (fbErr) {
-            console.error('Meta Pixel Purchase error:', fbErr);
-          }
-        }
+        const pixelCustomData = {
+          content_ids: cart.map(item => String(item.id)),
+          content_type: 'product',
+          value: Number(cartSubtotal || 0),
+          currency: 'INR',
+          num_items: cart.reduce((acc, item) => acc + (item.qty || 1), 0)
+        };
+
+        const addPaymentEventId = resData.addPaymentEventId || (resData.order?.id ? `add_payment_${resData.order.id}` : `add_payment_${Date.now()}`);
+        const purchaseEventId = resData.eventId || (resData.order?.id ? `purchase_${resData.order.id}` : `purchase_${Date.now()}`);
+
+        trackMetaPixel('AddPaymentInfo', pixelCustomData, addPaymentEventId);
+        trackMetaPixel('Purchase', pixelCustomData, purchaseEventId);
 
         // Clear cart
         localStorage.setItem('cart', JSON.stringify([]));
@@ -237,12 +243,27 @@ export default function Cart() {
           {/* Left: Cart Items */}
           <div className="lg:col-span-2 space-y-4">
             <ul className="space-y-4">
-              {cart.map((item, i) => (
-                <li key={item.id || i} className="flex items-center gap-3 p-3 bg-white/70 dark:bg-slate-800/80 border border-black/5 dark:border-white/5 shadow-sm rounded-2xl text-slate-855 dark:text-slate-100 transition-colors duration-200">
-                  <img src={item.image} alt={item.name} className="size-[90px] object-cover rounded-xl shadow-sm border border-black/5 dark:border-white/5" />
+              {cart.map((item, i) => {
+                const isItemPaused = isProductPaused ? (isProductPaused(item) || isCatalogPaused(item.catalogId)) : false;
+                return (
+                <li key={item.id || i} className={`flex items-center gap-3 p-3 bg-white/70 dark:bg-slate-800/80 border shadow-sm rounded-2xl text-slate-855 dark:text-slate-100 transition-colors duration-200 ${isItemPaused ? 'border-amber-500/50 bg-amber-50/20 dark:bg-amber-950/20' : 'border-black/5 dark:border-white/5'}`}>
+                  <div className="relative size-[90px] shrink-0">
+                    <img src={item.image} alt={item.name} className={`size-full object-cover rounded-xl shadow-sm border border-black/5 dark:border-white/5 ${isItemPaused ? 'grayscale-[40%]' : ''}`} />
+                    {isItemPaused && (
+                      <span className="absolute bottom-1 left-1 right-1 bg-amber-500 text-slate-950 text-[8px] font-black text-center py-0.5 rounded shadow">
+                        PAUSED
+                      </span>
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-slate-900 dark:text-white text-base truncate">{item.name}</div>
                     <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">₹{item.price.toLocaleString('en-IN')} x {item.qty}</div>
+                    {isItemPaused && (
+                      <div className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-1">
+                        <span>⏸️</span>
+                        <span>Item temporarily unavailable / paused</span>
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="flex items-center border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 shadow-sm overflow-hidden">
@@ -273,7 +294,8 @@ export default function Cart() {
                     </button>
                   </div>
                 </li>
-              ))}
+              );
+            })}
             </ul>
             
             {/* Lower Clear Cart button container removed (moved to header row) */}

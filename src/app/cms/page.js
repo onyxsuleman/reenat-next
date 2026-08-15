@@ -4,7 +4,27 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 
 export default function CMSConsole() {
-  const { products, setProducts, refreshDatabase, showToast, heroSlides, categoryCards, collectionCards, catalogPositions, bestSellers, saveCatalogPositions, saveHomepageConfig } = useApp();
+  const { 
+    products, 
+    setProducts, 
+    refreshDatabase, 
+    showToast, 
+    heroSlides, 
+    categoryCards, 
+    collectionCards, 
+    catalogPositions, 
+    bestSellers, 
+    saveCatalogPositions, 
+    saveHomepageConfig,
+    pausedCatalogs,
+    pausedProducts,
+    isCatalogPaused,
+    isProductPaused,
+    togglePauseCatalog,
+    togglePauseProduct,
+    getCatalogVariantOrder,
+    saveCatalogVariantOrder
+  } = useApp();
   
   // Homepage Dynamic Configurations State
   const [localHeroSlides, setLocalHeroSlides] = useState([]);
@@ -74,6 +94,7 @@ export default function CMSConsole() {
   // Trigger fresh Vercel build
   const [showDrawer, setShowDrawer] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null); // null means adding new
+  const [isSingleEdit, setIsSingleEdit] = useState(false); // true = only the clicked variant is loaded (locked)
 
   // Batch Products State for Meesho-style variations
   const [batchProducts, setBatchProducts] = useState([]);
@@ -93,6 +114,11 @@ export default function CMSConsole() {
   const [activeView, setActiveView] = useState('home');
   const [activeOrderTab, setActiveOrderTab] = useState('To Accept');
   const [selectedCatalogId, setSelectedCatalogId] = useState(null);
+
+  // Per-catalog variant display order (local reorder state before saving)
+  // Array of numeric product IDs in the desired customer-facing display order
+  const [localVariantOrder, setLocalVariantOrder] = useState([]);
+  const [variantOrderDirty, setVariantOrderDirty] = useState(false); // true if unsaved changes
 
   // Meesho-Style Dashboard Filters & Stock Editor States
   const [searchQuery, setSearchQuery] = useState('');
@@ -552,18 +578,20 @@ export default function CMSConsole() {
     }
   };
 
-  const handleOpenDrawer = (index = null) => {
+  const handleOpenDrawer = (index = null, singleOnly = false) => {
     setEditingIndex(index);
+    setIsSingleEdit(singleOnly);
     if (index !== null) {
       const selectedProduct = products[index];
       const catalogId = selectedProduct.catalogId;
-      
-      // Find all related products sharing the same catalogId
-      const related = catalogId
-        ? products.filter(p => {
-            return p.catalogId && p.catalogId.toLowerCase() === catalogId.toLowerCase();
-          })
-        : [selectedProduct];
+
+      // singleOnly = true (Edit button) → load ONLY this one product, lock other variants
+      // singleOnly = false (Configure Batch) → load all catalog variants as tabs
+      const related = singleOnly
+        ? [selectedProduct]
+        : (catalogId
+            ? products.filter(p => p.catalogId && p.catalogId.toLowerCase() === catalogId.toLowerCase())
+            : [selectedProduct]);
       
       // Map products to form structure
       const mappedRelated = related.map(p => ({
@@ -2323,6 +2351,8 @@ export default function CMSConsole() {
     });
 
     const allCatalogsCount = Object.keys(catalogGroupsMap).length;
+    const activeCatalogsCount = Object.keys(catalogGroupsMap).filter(cid => !isCatalogPaused(cid)).length;
+    const pausedCatalogsCount = Object.keys(catalogGroupsMap).filter(cid => isCatalogPaused(cid) || catalogGroupsMap[cid]?.variants.some(v => isProductPaused(v))).length;
     const outOfStockCount = Object.values(catalogGroupsMap).filter(group => 
       group.variants.every(v => v.stockNumber === 0)
     ).length;
@@ -2348,7 +2378,11 @@ export default function CMSConsole() {
     });
 
     // Apply Status Tabs Filters
-    if (statusFilter === 'out_of_stock') {
+    if (statusFilter === 'active') {
+      filteredGroups = filteredGroups.filter(group => !isCatalogPaused(group.catalogId));
+    } else if (statusFilter === 'paused') {
+      filteredGroups = filteredGroups.filter(group => isCatalogPaused(group.catalogId) || group.variants.some(v => isProductPaused(v)));
+    } else if (statusFilter === 'out_of_stock') {
       filteredGroups = filteredGroups.filter(group => group.variants.every(v => v.stockNumber === 0));
     } else if (statusFilter === 'low_stock') {
       filteredGroups = filteredGroups.filter(group => group.variants.some(v => v.stockNumber > 0 && v.stockNumber < 10));
@@ -2381,37 +2415,88 @@ export default function CMSConsole() {
       return acc;
     }, []);
 
+    // Helper: sort the current catalog's variants by localVariantOrder, unlisted items go last
+    const getSortedVariants = (variants) => {
+      if (!localVariantOrder || localVariantOrder.length === 0) return [...variants];
+      const orderMap = {};
+      localVariantOrder.forEach((pid, idx) => { orderMap[String(pid)] = idx; });
+      return [...variants].sort((a, b) => {
+        const ai = orderMap[String(a.id)];
+        const bi = orderMap[String(b.id)];
+        if (ai !== undefined && bi !== undefined) return ai - bi;
+        if (ai !== undefined) return -1;
+        if (bi !== undefined) return 1;
+        return Number(a.id) - Number(b.id);
+      });
+    };
+
+    // Move a variant up/down in localVariantOrder
+    const moveVariant = (variantId, direction) => {
+      const allIds = getSortedVariants(
+        catalogGroupsMap[activeCatalogId]?.variants || []
+      ).map(v => v.id);
+      const currentOrder = localVariantOrder.length > 0 ? [...localVariantOrder] : allIds;
+      const idx = currentOrder.findIndex(id => String(id) === String(variantId));
+      if (idx === -1) return;
+      const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+      if (newIdx < 0 || newIdx >= currentOrder.length) return;
+      const updated = [...currentOrder];
+      [updated[idx], updated[newIdx]] = [updated[newIdx], updated[idx]];
+      setLocalVariantOrder(updated);
+      setVariantOrderDirty(true);
+    };
+
     return (
       <div className="space-y-6 flex flex-col h-[calc(100vh-120px)] overflow-hidden">
         
         {/* TOP CONTROLS BAR */}
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm shrink-0">
           
-          {/* Tabs (All, Out of stock, Low stock) */}
-          <div className="flex items-center gap-2 border-b xl:border-b-0 pb-3 xl:pb-0 border-slate-100 dark:border-slate-800">
+          {/* Tabs (All, Active, Paused, Out of stock, Low stock) */}
+          <div className="flex items-center gap-1.5 flex-wrap border-b xl:border-b-0 pb-3 xl:pb-0 border-slate-100 dark:border-slate-800">
             <button 
               onClick={() => setStatusFilter('all')}
-              className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer border-0 ${
+              className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer border-0 ${
                 statusFilter === 'all' 
                   ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20' 
                   : 'text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-350 bg-transparent'
               }`}
             >
-              All Catalog ({allCatalogsCount})
+              All ({allCatalogsCount})
+            </button>
+            <button 
+              onClick={() => setStatusFilter('active')}
+              className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer border-0 ${
+                statusFilter === 'active' 
+                  ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/20' 
+                  : 'text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-emerald-400 bg-transparent'
+              }`}
+            >
+              Active 🟢 ({activeCatalogsCount})
+            </button>
+            <button 
+              onClick={() => setStatusFilter('paused')}
+              className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer border-0 ${
+                statusFilter === 'paused' 
+                  ? 'bg-amber-600 text-white shadow-sm shadow-amber-500/20' 
+                  : 'text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-amber-400 bg-transparent'
+              }`}
+            >
+              Paused ⏸️ ({pausedCatalogsCount})
             </button>
             <button 
               onClick={() => setStatusFilter('out_of_stock')}
-              className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer border-0 ${
+              className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer border-0 ${
                 statusFilter === 'out_of_stock' 
-                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20' 
-                  : 'text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-355 bg-transparent'
+                  ? 'bg-rose-600 text-white shadow-sm shadow-rose-500/20' 
+                  : 'text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-rose-400 bg-transparent'
               }`}
             >
               Out of Stock ({outOfStockCount})
             </button>
             <button 
               onClick={() => setStatusFilter('low_stock')}
-              className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer border-0 ${
+              className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer border-0 ${
                 statusFilter === 'low_stock' 
                   ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20' 
                   : 'text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-[#F1BF0A] bg-transparent'
@@ -2483,11 +2568,18 @@ export default function CMSConsole() {
                 filteredGroups.map(group => {
                   const isSelected = activeCatalogId && activeCatalogId.toLowerCase() === group.catalogId.toLowerCase();
                   const extraCount = group.variantsCount > 1 ? `+${group.variantsCount - 1}` : '';
+                  const isPaused = isCatalogPaused(group.catalogId);
 
                   return (
                     <div 
                       key={group.catalogId}
-                      onClick={() => setSelectedCatalogId(group.catalogId)}
+                      onClick={() => {
+                        setSelectedCatalogId(group.catalogId);
+                        // Initialize localVariantOrder from saved ordering when switching catalogs
+                        const savedOrder = getCatalogVariantOrder ? getCatalogVariantOrder(group.catalogId) : [];
+                        setLocalVariantOrder(savedOrder);
+                        setVariantOrderDirty(false);
+                      }}
                       className={`p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer relative flex gap-3.5 ${
                         isSelected 
                           ? 'bg-blue-50/40 dark:bg-blue-950/15 border-blue-500/80 shadow-sm shadow-blue-500/5' 
@@ -2506,9 +2598,16 @@ export default function CMSConsole() {
 
                       {/* Details */}
                       <div className="min-w-0 flex-1 flex flex-col justify-center py-0.5">
-                        <span className="text-[15px] font-black text-blue-600 dark:text-blue-400 font-mono tracking-wide select-text">
-                          Catalog ID: {group.catalogId}
-                        </span>
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-[15px] font-black text-blue-600 dark:text-blue-400 font-mono tracking-wide select-text">
+                            Catalog ID: {group.catalogId}
+                          </span>
+                          <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-md ${
+                            isPaused ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                          }`}>
+                            {isPaused ? '⏸️ Paused' : '🟢 Live'}
+                          </span>
+                        </div>
                         <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 truncate mt-1.5 leading-snug">
                           {group.name}
                         </h4>
@@ -2531,24 +2630,54 @@ export default function CMSConsole() {
               (() => {
                 const selectedCatalog = catalogGroupsMap[activeCatalogId];
                 if (!selectedCatalog) return <div className="flex-1 flex items-center justify-center text-xs text-slate-400">Loading catalog...</div>;
-                
+                const isThisCatalogPaused = isCatalogPaused(selectedCatalog.catalogId);
+
                 return (
                   <>
                     {/* Header Title Bar */}
                     <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
                       <div>
-                        <h2 className="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2 tracking-tight">
-                          SKUs and Products of Catalog ID: <span className="font-mono text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded-xl font-black text-sm select-text">
-                            {selectedCatalog.catalogId}
-                          </span>
-                        </h2>
+                        <div className="flex items-center gap-3">
+                          <h2 className="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2 tracking-tight">
+                            SKUs and Products of Catalog ID: <span className="font-mono text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded-xl font-black text-sm select-text">
+                              {selectedCatalog.catalogId}
+                            </span>
+                          </h2>
+                          {/* CATALOG LEVEL PAUSE TOGGLE BUTTON */}
+                          <button 
+                            type="button"
+                            onClick={() => togglePauseCatalog(selectedCatalog.catalogId)}
+                            className={`px-3 py-1 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer border ${
+                              isThisCatalogPaused
+                                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/20 shadow-sm'
+                                : 'bg-emerald-500/10 text-emerald-650 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20 shadow-sm'
+                            }`}
+                            title={isThisCatalogPaused ? "Click to resume this catalog (Make Active)" : "Click to pause all products in this catalog"}
+                          >
+                            <span>{isThisCatalogPaused ? '⏸️ Catalog Paused' : '🟢 Catalog Live'}</span>
+                            <span className="text-[10px] opacity-75">{isThisCatalogPaused ? '(Resume)' : '(Pause)'}</span>
+                          </button>
+                        </div>
                         <p className="text-[10px] text-slate-450 dark:text-slate-550 mt-1.5 flex items-center gap-3">
                           <span>📦 <strong>{selectedCatalog.estimatedOrders} Orders</strong> in last 30 days</span>
                           <span>•</span>
                           <span className="bg-emerald-500/10 text-emerald-650 dark:text-emerald-450 px-1.5 py-0.5 rounded text-[9px] font-black">⭐ {selectedCatalog.rating.toFixed(1)} Rating</span>
                         </p>
                       </div>
-                      <div className="flex gap-2 shrink-0">
+                      <div className="flex gap-2 shrink-0 flex-wrap">
+                        {/* Save Display Order button — only shown if there are unsaved reorder changes */}
+                        {variantOrderDirty && (
+                          <button
+                            onClick={async () => {
+                              await saveCatalogVariantOrder(selectedCatalog.catalogId, localVariantOrder);
+                              setVariantOrderDirty(false);
+                            }}
+                            className="bg-amber-500 hover:bg-amber-600 text-white font-extrabold py-2 px-3 rounded-xl text-xs transition-transform active:scale-95 shadow-sm cursor-pointer flex items-center gap-1.5 border-0 animate-pulse"
+                            title="Save the current variant display order to the live database"
+                          >
+                            💾 Save Display Order
+                          </button>
+                        )}
                         <button 
                           onClick={() => handleOpenDrawer(selectedCatalog.firstVariantGlobalIndex)}
                           className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold py-2 px-4 rounded-xl text-xs transition-transform active:scale-95 shadow-sm cursor-pointer flex items-center gap-1.5 border-0"
@@ -2557,7 +2686,7 @@ export default function CMSConsole() {
                         </button>
                         <button 
                           onClick={() => deleteCatalog(selectedCatalog.catalogId)}
-                          className="bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 font-extrabold py-2 px-4 rounded-xl text-xs border border-rose-200 dark:border-rose-900/40 transition-transform active:scale-95 cursor-pointer"
+                          className="bg-rose-50 hover:bg-rose-100 dark:bg-rose-955/30 text-rose-600 dark:text-rose-400 font-extrabold py-2 px-4 rounded-xl text-xs border border-rose-200 dark:border-rose-900/40 transition-transform active:scale-95 cursor-pointer"
                         >
                           Delete Catalog
                         </button>
@@ -2566,36 +2695,45 @@ export default function CMSConsole() {
 
                     {/* Table wrapper */}
                     <div className="flex-1 overflow-y-auto custom-scrollbar">
+                      {variantOrderDirty && (
+                        <div className="px-4 py-2 bg-amber-50 dark:bg-amber-950/20 border-b border-amber-200 dark:border-amber-800/40 text-[10px] font-bold text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                          <span>⚠️</span> Display order changed — click <strong>Save Display Order</strong> above to apply to the customer portal.
+                        </div>
+                      )}
                       <table className="w-full text-xs text-left border-collapse text-slate-800 dark:text-slate-100">
                         <thead>
                           <tr className="bg-slate-100/70 dark:bg-black/40 border-b border-slate-200 dark:border-slate-800 font-extrabold text-[9.5px] uppercase tracking-wider text-slate-700 dark:text-slate-300 shrink-0">
                             <th className="p-4 w-10 text-center select-all"><input type="checkbox" className="rounded text-blue-600 focus:ring-blue-500" /></th>
+                            <th className="p-3 w-10 text-center" title="Drag to reorder display sequence">🔢</th>
                             <th className="p-4 w-20">SKU Image</th>
                             <th className="p-4">SKU Info</th>
                             <th className="p-4 w-28">Product ID</th>
                             <th className="p-4 w-32">SKU ID (optional)</th>
                             <th className="p-4 text-right w-24">Price</th>
                             <th className="p-4 text-center w-36">Stock</th>
-                            <th className="p-4 text-right w-24">Actions</th>
+                            <th className="p-4 text-center w-28">Status</th>
+                            <th className="p-4 text-right w-32">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                           {(() => {
                             const query = searchQuery.toLowerCase().trim();
+                            // Get all variants sorted by current localVariantOrder
+                            const sortedVariants = getSortedVariants(selectedCatalog.variants);
                             const displayVariants = query 
-                              ? selectedCatalog.variants.filter(v => 
+                              ? sortedVariants.filter(v => 
                                   v.name.toLowerCase().includes(query) ||
                                   (v.color && v.color.toLowerCase().includes(query)) ||
                                   (v.skuId && v.skuId.toLowerCase().includes(query)) ||
                                   (v.productId && v.productId.toLowerCase().includes(query)) ||
                                   (v.productId && v.productId.replace('NYS', 'NSY').toLowerCase().includes(query))
                                 )
-                              : selectedCatalog.variants;
+                              : sortedVariants;
 
                             if (displayVariants.length === 0) {
                               return (
                                 <tr>
-                                  <td colSpan="8" className="p-8 text-center text-slate-400 dark:text-slate-550 font-bold">
+                                  <td colSpan="9" className="p-8 text-center text-slate-400 dark:text-slate-550 font-bold">
                                     No variants match your search query.
                                   </td>
                                 </tr>
@@ -2604,12 +2742,40 @@ export default function CMSConsole() {
 
                             return displayVariants.map((item, i) => {
                             const isEditingThisStock = editingStockId === item.id;
+                            const isThisProductPaused = isProductPaused(item);
+                            const isFirst = i === 0;
+                            const isLast = i === displayVariants.length - 1;
                             
                             return (
                               <tr key={item.id} className="hover:bg-slate-50/40 dark:hover:bg-white/5 transition-colors">
                                 {/* Checkbox */}
                                 <td className="p-4 text-center">
                                   <input type="checkbox" className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 size-3.5 cursor-pointer" />
+                                </td>
+
+                                {/* Position / Reorder Controls */}
+                                <td className="p-3 text-center">
+                                  <div className="flex flex-col items-center gap-0.5">
+                                    <span className="text-[9px] font-black text-slate-400 dark:text-slate-600 tabular-nums">{i + 1}</span>
+                                    <button
+                                      type="button"
+                                      disabled={isFirst}
+                                      onClick={() => moveVariant(item.id, 'up')}
+                                      className="text-slate-400 hover:text-blue-500 disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer bg-transparent border-0 p-0 leading-none text-[10px] font-black"
+                                      title="Move up"
+                                    >
+                                      ▲
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={isLast}
+                                      onClick={() => moveVariant(item.id, 'down')}
+                                      className="text-slate-400 hover:text-blue-500 disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer bg-transparent border-0 p-0 leading-none text-[10px] font-black"
+                                      title="Move down"
+                                    >
+                                      ▼
+                                    </button>
+                                  </div>
                                 </td>
 
                                 {/* Image */}
@@ -2685,13 +2851,31 @@ export default function CMSConsole() {
                                   )}
                                 </td>
 
+                                {/* PRODUCT LEVEL PAUSE TOGGLE SWITCH */}
+                                <td className="p-4 text-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => togglePauseProduct(item.productId || item.id)}
+                                    className={`px-2.5 py-1 rounded-full text-[10px] font-black inline-flex items-center gap-1.5 transition-all cursor-pointer border ${
+                                      isThisProductPaused 
+                                        ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/25'
+                                        : 'bg-emerald-500/15 text-emerald-650 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25'
+                                    }`}
+                                    title={isThisProductPaused ? "Variation is paused (Click to make Active)" : "Variation is live (Click to pause)"}
+                                  >
+                                    <span className="size-2 rounded-full inline-block" style={{ backgroundColor: isThisProductPaused ? '#f43f5e' : '#10b981' }}></span>
+                                    <span>{isThisProductPaused ? 'Paused ⏸️' : 'Active 🟢'}</span>
+                                  </button>
+                                </td>
+
                                 {/* Actions */}
                                 <td className="p-4 text-right space-x-2.5 whitespace-nowrap">
                                   <button 
-                                    onClick={() => handleOpenDrawer(item.globalIndex)}
+                                    onClick={() => handleOpenDrawer(item.globalIndex, true)}
                                     className="text-blue-600 dark:text-blue-450 hover:underline font-extrabold bg-transparent border-0 p-0 cursor-pointer text-xs"
+                                    title="Edit only this variant (other variants are locked)"
                                   >
-                                    Edit
+                                    ✏️ Edit
                                   </button>
                                   <span className="text-slate-300 dark:text-slate-750 select-none">|</span>
                                   <button 
@@ -2957,9 +3141,17 @@ export default function CMSConsole() {
                 <img src={activeProduct.image || "/saree_kanjivaram.png"} className="w-full h-full object-cover" />
               </div>
               <div className="min-w-0">
-                <h2 className="text-sm font-extrabold truncate max-w-[150px]" style={{ color: '#ffffff' }}>
-                  {activeProduct.name || (editingIndex !== null ? 'Configure Saree' : 'New Saree')}
-                </h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-extrabold truncate max-w-[150px]" style={{ color: '#ffffff' }}>
+                    {activeProduct.name || (editingIndex !== null ? 'Configure Saree' : 'New Saree')}
+                  </h2>
+                  {isSingleEdit && (
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 whitespace-nowrap shrink-0">🔒 Single Edit</span>
+                  )}
+                  {!isSingleEdit && editingIndex !== null && (
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 whitespace-nowrap shrink-0">⚙️ Batch Edit</span>
+                  )}
+                </div>
                 <p className="text-[10px] font-bold font-mono" style={{ color: '#94a3b8' }}>ID: {activeProduct.productId || 'N/A'}</p>
               </div>
             </div>
@@ -3010,16 +3202,23 @@ export default function CMSConsole() {
                 );
               })}
 
-              {/* Add Variant Tab */}
-              <button
-                type="button"
-                onClick={handleAddVariant}
-                className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-extrabold transition-all cursor-pointer shadow-sm border-0"
-                title="Click FIRST to create a new variation tab before typing new color & image"
-              >
-                <span>➕</span>
-                <span>+ Add Product</span>
-              </button>
+              {/* Add Variant Tab — hidden in single-edit mode to prevent accidental new products */}
+              {!isSingleEdit && (
+                <button
+                  type="button"
+                  onClick={handleAddVariant}
+                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-extrabold transition-all cursor-pointer shadow-sm border-0"
+                  title="Click FIRST to create a new variation tab before typing new color & image"
+                >
+                  <span>➕</span>
+                  <span>+ Add Product</span>
+                </button>
+              )}
+              {isSingleEdit && (
+                <span className="flex-shrink-0 text-[9px] font-bold text-slate-500 dark:text-slate-600 italic px-2">
+                  🔒 Other variants locked — use ⚙️ Batch Edit to manage all
+                </span>
+              )}
             </div>
 
             <button 

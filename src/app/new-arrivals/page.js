@@ -5,17 +5,23 @@ import { useApp } from '../../context/AppContext';
 import ProductCard from '../../components/ProductCard';
 
 export default function NewArrivals() {
-  const { products } = useApp();
+  const { products, isProductPaused, isCatalogPaused } = useApp();
   const [selectedType, setSelectedType] = useState('All');
   const [selectedPriceRange, setSelectedPriceRange] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
+  // Active unpaused products
+  const activeProducts = (products || []).filter(product => {
+    const isPaused = isProductPaused ? (isProductPaused(product) || isCatalogPaused(product.catalogId || product.catalog_id)) : false;
+    return !isPaused;
+  });
+
   // Extract unique types for filters
-  const types = ['All', ...new Set(products.map(p => p.type).filter(Boolean))];
+  const types = ['All', ...new Set(activeProducts.map(p => p.type).filter(Boolean))];
 
   // Filter products based on selected criteria
-  const filteredProducts = products.filter(product => {
+  const filteredProducts = activeProducts.filter(product => {
     // 1. Type filter
     if (selectedType !== 'All' && product.type !== selectedType) {
       return false;

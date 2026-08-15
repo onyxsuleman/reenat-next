@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '../../../utils/supabaseServer';
 import { pushOrderToShiprocket } from '../../../utils/shiprocketApi';
+import { sendMetaCapiEvent } from '../../../utils/metaPixel';
 
 export async function POST(request) {
   try {
@@ -181,7 +182,57 @@ export async function POST(request) {
       });
     }
 
-    return NextResponse.json({ success: true, order: order[0] });
+    const createdOrder = order && order[0] ? order[0] : null;
+    const eventId = createdOrder ? `purchase_${createdOrder.id}` : `purchase_${Date.now()}`;
+    const addPaymentEventId = createdOrder ? `add_payment_${createdOrder.id}` : `add_payment_${Date.now()}`;
+
+    // 10. Send Meta Conversions API (CAPI) Purchase and AddPaymentInfo Events with event_id deduplication keys
+    if (createdOrder) {
+      const clientIpAddress = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || null;
+      const clientUserAgent = request.headers.get('user-agent') || (body.browserMeta?.user_agent) || null;
+      const fbp = body.browserMeta?.fbp || request.cookies.get('_fbp')?.value || null;
+      const fbc = body.browserMeta?.fbc || request.cookies.get('_fbc')?.value || null;
+
+      // CAPI Purchase
+      sendMetaCapiEvent({
+        eventName: 'Purchase',
+        eventId: eventId,
+        email: email.trim(),
+        phone: phone.trim(),
+        fullName: fullName.trim(),
+        value: createdOrder.total || roundedTotal,
+        currency: 'INR',
+        items: verifiedOrderItems,
+        eventSourceUrl: 'https://www.reenattrends.com/cart',
+        clientIpAddress: clientIpAddress,
+        clientUserAgent: clientUserAgent,
+        fbp: fbp,
+        fbc: fbc
+      }).catch(capiErr => {
+        console.warn('Non-blocking Meta CAPI Purchase send warning:', capiErr.message);
+      });
+
+      // CAPI AddPaymentInfo
+      sendMetaCapiEvent({
+        eventName: 'AddPaymentInfo',
+        eventId: addPaymentEventId,
+        email: email.trim(),
+        phone: phone.trim(),
+        fullName: fullName.trim(),
+        value: createdOrder.total || roundedTotal,
+        currency: 'INR',
+        items: verifiedOrderItems,
+        eventSourceUrl: 'https://www.reenattrends.com/cart',
+        clientIpAddress: clientIpAddress,
+        clientUserAgent: clientUserAgent,
+        fbp: fbp,
+        fbc: fbc
+      }).catch(capiErr => {
+        console.warn('Non-blocking Meta CAPI AddPaymentInfo send warning:', capiErr.message);
+      });
+    }
+
+    return NextResponse.json({ success: true, order: createdOrder, eventId, addPaymentEventId });
 
   } catch (err) {
     console.error("Checkout route general exception:", err);
