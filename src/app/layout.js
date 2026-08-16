@@ -42,6 +42,11 @@ export default function RootLayout({ children }) {
           src="https://checkout-ui.shiprocket.com/assets/js/channels/login.js" 
           strategy="afterInteractive" 
         />
+        {/* Load Fastrr checkout SDK globally so it's ready before the user reaches /cart */}
+        <Script 
+          src="https://checkout-ui.shiprocket.com/assets/js/channels/custom.js" 
+          strategy="afterInteractive" 
+        />
       </body>
     </html>
   );

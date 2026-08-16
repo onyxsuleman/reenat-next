@@ -20,7 +20,8 @@ export default function Cart() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('Cash on Delivery');
+  // Payment method is fixed to COD in the fallback form. "Pay Online" requires a real gateway.
+  const paymentMethod = 'Cash on Delivery';
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [savedAddresses, setSavedAddresses] = useState([]);
 
@@ -135,12 +136,14 @@ export default function Cart() {
       }
 
       // --- 1.3 SDK readiness guard (cart page) ---
+      // Poll for up to 6 seconds (60 × 100ms). Doubled from 3s to handle slow mobile
+      // connections and cases where the user taps Checkout before afterInteractive fires.
       const waitForFastrr = () => new Promise((resolve) => {
         if (window.HeadlessCheckout) { resolve(true); return; }
         let attempts = 0;
         const poll = setInterval(() => {
           attempts++;
-          if (window.HeadlessCheckout || attempts >= 30) {
+          if (window.HeadlessCheckout || attempts >= 60) {
             clearInterval(poll);
             resolve(!!window.HeadlessCheckout);
           }
@@ -484,29 +487,10 @@ export default function Cart() {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Payment Method</label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('Cash on Delivery')}
-                      className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                        paymentMethod === 'Cash on Delivery'
-                          ? 'bg-[#183fad] border-[#183fad] text-white'
-                          : 'bg-white/40 dark:bg-black/10 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-350'
-                      }`}
-                    >
-                      Cash on Delivery (COD)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('Pay Online')}
-                      className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                        paymentMethod === 'Pay Online'
-                          ? 'bg-[#183fad] border-[#183fad] text-white'
-                          : 'bg-white/40 dark:bg-black/10 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-350'
-                      }`}
-                    >
-                      Pay Online (Simulated)
-                    </button>
+                  <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/60 dark:bg-emerald-950/20">
+                    <span className="text-base">🚚</span>
+                    <span className="text-sm font-bold text-emerald-800 dark:text-emerald-300">Cash on Delivery (COD)</span>
+                    <span className="ml-auto text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-2 py-0.5 rounded-full">Pay at door</span>
                   </div>
                 </div>
 
