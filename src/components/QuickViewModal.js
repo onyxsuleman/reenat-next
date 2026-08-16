@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useApp } from '../context/AppContext';
+import SafeImage from './SafeImage';
 
 export default function QuickViewModal() {
   const { quickViewProduct, setQuickViewProduct, addToCart, toggleWishlist, isInWishlist, isProductPaused, isCatalogPaused, showToast } = useApp();
@@ -55,7 +56,7 @@ export default function QuickViewModal() {
         
         {/* Left Side: Image */}
         <div className="w-full md:w-1/2 aspect-square md:aspect-auto md:h-[420px] bg-slate-100 dark:bg-black/20 relative p-4 flex items-center justify-center">
-          <img src={product.image} alt={product.name} className={`w-full h-full object-cover rounded-2xl ${isPaused ? 'grayscale-[30%]' : ''}`} />
+          <SafeImage src={product.image} alt={product.name} className={`w-full h-full object-cover rounded-2xl ${isPaused ? 'grayscale-[30%]' : ''}`} />
           <span className="absolute top-4 left-4 bg-slate-800/80 text-white text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full z-20">
             {product.type || 'Saree'}
           </span>

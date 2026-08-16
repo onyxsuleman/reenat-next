@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import SafeImage from './SafeImage';
 import { useApp } from '../context/AppContext';
 
 export default function ProductCard({ product }) {
@@ -32,12 +32,10 @@ export default function ProductCard({ product }) {
       {/* Image Container */}
       <div className="relative overflow-hidden aspect-[3/4] bg-[#0c1e44]/5 dark:bg-black/20 p-2">
         <Link href={`/product?id=${product.id}`} className="relative block w-full h-full">
-          <Image 
+          <SafeImage 
             src={product.image} 
             alt={product.name} 
-            fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-            className={`object-cover rounded-2xl transition-transform duration-500 group-hover:scale-105 ${isPaused ? 'grayscale-[30%]' : ''}`}
+            className={`w-full h-full object-cover rounded-2xl transition-transform duration-500 group-hover:scale-105 ${isPaused ? 'grayscale-[30%]' : ''}`}
             priority={product.id <= 4}
           />
         </Link>

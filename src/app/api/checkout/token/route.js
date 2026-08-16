@@ -171,6 +171,8 @@ export async function POST(request) {
     const addPaymentEventId = `add_payment_${nowTs}`;
     const clientIpAddress = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || null;
     const clientUserAgent = request.headers.get('user-agent') || null;
+    const fbp = request.cookies.get('_fbp')?.value || null;
+    const fbc = request.cookies.get('_fbc')?.value || null;
 
     // 1. CAPI InitiateCheckout
     sendMetaCapiEvent({
@@ -184,7 +186,9 @@ export async function POST(request) {
       items: items,
       eventSourceUrl: redirect_url,
       clientIpAddress,
-      clientUserAgent
+      clientUserAgent,
+      fbp,
+      fbc
     }).catch(capiErr => console.warn('InitiateCheckout CAPI warning:', capiErr.message));
 
     // 2. CAPI AddPaymentInfo
@@ -199,7 +203,9 @@ export async function POST(request) {
       items: items,
       eventSourceUrl: redirect_url,
       clientIpAddress,
-      clientUserAgent
+      clientUserAgent,
+      fbp,
+      fbc
     }).catch(capiErr => console.warn('AddPaymentInfo CAPI warning:', capiErr.message));
 
     // Return response data containing token details and deduplication event IDs for client pixel matching

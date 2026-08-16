@@ -1,959 +1,170 @@
-'use client';
+import { notFound } from 'next/navigation';
+import { getSupabaseServerClient } from '../../utils/supabaseServer';
+import ProductClient from './ProductClient';
 
-import React, { useState, useEffect, useRef, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
-import Image from 'next/image';
-import Script from 'next/script';
-import { useApp } from '../../context/AppContext';
-import ProductCard from '../../components/ProductCard';
-import { trackMetaPixel } from '../../utils/metaPixel';
-
-function ProductDetailsContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const { products, addToCart, toggleWishlist, isInWishlist, showToast, userSession, isProductPaused, isCatalogPaused, getCatalogVariantOrder } = useApp();
-  const [product, setProduct] = useState(null);
-  const [isBuyNowLoading, setIsBuyNowLoading] = useState(false);
-  const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [showExtendedInfo, setShowExtendedInfo] = useState(false);
-  const [titleExpanded, setTitleExpanded] = useState(false);
-  const [showStickyBar, setShowStickyBar] = useState(false);
-  const [loadError, setLoadError] = useState(false);
-  // Tracks the last productId for which ViewContent was fired — prevents duplicate
-  // fires when AppContext re-fetches (cache → DB) and the products array updates
-  const lastTrackedProductId = useRef(null);
-  const mobileCarouselRef = useRef(null);
-  const desktopCarouselRef = useRef(null);
-  const variationSectionRef = useRef(null);
-
-  const productId = searchParams.get('id');
-  const isCurrentProductPaused = product ? (isProductPaused(product) || isCatalogPaused(product.catalogId)) : false;
-
-  useEffect(() => {
-    if (products.length > 0 && productId) {
-      const cleanId = String(productId).replace('NSY', '').replace(/^0+/, '');
-      const found = products.find(p => 
-        String(p.id) === String(productId) || 
-        String(p.id) === cleanId || 
-        p.productId === productId
-      );
-      if (found) {
-        setProduct(found);
-        setLoadError(false);
-        setActiveImageIndex(0);
-        if (mobileCarouselRef.current) {
-          mobileCarouselRef.current.scrollLeft = 0;
-        }
-        if (desktopCarouselRef.current) {
-          desktopCarouselRef.current.scrollLeft = 0;
-        }
-
-        // --- 1.1 ViewContent Meta Pixel + CAPI ---
-        // Guard: only fire once per unique product page visit.
-        // lastTrackedProductId ref survives re-renders when products[] updates
-        // (e.g. localStorage cache → Supabase DB swap) so the event doesn't double-fire.
-        const trackedId = String(found.id);
-        if (lastTrackedProductId.current !== trackedId) {
-          lastTrackedProductId.current = trackedId;
-          const eventId = `view_content_${trackedId}_${Date.now()}`;
-
-          // Client-side browser pixel
-          trackMetaPixel('ViewContent', {
-            content_ids: [trackedId],
-            content_name: found.name,
-            content_type: 'product',
-            value: Number(found.price || 0),
-            currency: 'INR'
-          }, eventId);
-
-          // Server-side CAPI (deduplicated via matching eventId)
-          fetch('/api/pixel/view-content', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              eventId,
-              productId: trackedId,
-              productName: found.name,
-              price: Number(found.price || 0)
-            })
-          }).catch(err => console.warn('ViewContent CAPI fire error:', err));
-        }
-      }
-    }
-  }, [products, productId]);
-
-  const handleCarouselScroll = (e) => {
-    const container = e.currentTarget;
-    const scrollPosition = container.scrollLeft;
-    const width = container.offsetWidth;
-    const newIndex = Math.round(scrollPosition / width);
-    if (newIndex !== activeImageIndex && newIndex >= 0 && newIndex < galleryImages.length) {
-      setActiveImageIndex(newIndex);
-    }
+// mapRawProduct mirrors the normalization done in AppContext.js so ProductClient
+// receives the same camelCase-fielded objects it was already built around.
+function mapRawProduct(raw) {
+  return {
+    id: raw.id,
+    name: raw.name,
+    type: raw.type,
+    color: raw.color,
+    price: Number(raw.price) || 0,
+    originalPrice: Number(raw.originalprice || raw.originalPrice) || 0,
+    image: raw.image || '/saree_kanjivaram.png',
+    image2: raw.image2 || '',
+    image3: raw.image3 || '',
+    image4: raw.image4 || '',
+    image5: raw.image5 || '',
+    image6: raw.image6 || '',
+    videoUrl: raw.video_url || raw.videoUrl || '',
+    stockQty: raw.stock_qty !== undefined ? raw.stock_qty : (raw.stockQty || 50),
+    origin: raw.origin || 'India',
+    craft: raw.craft || 'Handloom',
+    desc: raw.desc || '',
+    gst: raw.gst || '5',
+    hsn: raw.hsn || '520811',
+    weight: raw.weight || 450,
+    styleId: raw.styleid || raw.styleId || '',
+    styleid: raw.styleid || raw.styleId || '',
+    skuId: raw.styleid || raw.styleId || '',
+    blouseLen: raw.blouselen || raw.blouseLen || '0.8',
+    sareeLen: raw.sareelen || raw.sareeLen || '5.5',
+    blouseType: raw.blousetype || raw.blouseType || 'Zari Woven',
+    blouseColor: raw.blousecolor || raw.blouseColor || '',
+    transparency: raw.transparency || 'No',
+    fabric: raw.fabric || 'Cotton Silk',
+    border: raw.border || 'Zari',
+    occasion: raw.occasion || 'Traditional',
+    loom: raw.loom || 'Handloom',
+    brand: raw.brand || 'REENAT TRENDS',
+    linkedTo: raw.linked_to || raw.linkedTo || '',
+    linked_to: raw.linked_to || raw.linkedTo || '',
+    catalogId: raw.catalog_id || raw.catalogId || '',
+    catalog_id: raw.catalog_id || raw.catalogId || '',
+    rating: Number(raw.rating) || 4.5,
   };
-
-  const handleImageChange = (idx) => {
-    setActiveImageIndex(idx);
-    // Scroll both carousels
-    [mobileCarouselRef, desktopCarouselRef].forEach(ref => {
-      const container = ref.current;
-      if (container) {
-        const width = container.clientWidth;
-        container.scrollTo({
-          left: idx * width,
-          behavior: 'smooth'
-        });
-      }
-    });
-  };
-
-  const handleDesktopPrev = () => {
-    const newIdx = activeImageIndex > 0 ? activeImageIndex - 1 : galleryImages.length - 1;
-    handleImageChange(newIdx);
-  };
-
-  const handleDesktopNext = () => {
-    const newIdx = activeImageIndex < galleryImages.length - 1 ? activeImageIndex + 1 : 0;
-    handleImageChange(newIdx);
-  };
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setShowStickyBar(window.scrollY > 220);
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, []);
-
-  // --- 1.2 Timeout + error state ---
-  // If the product hasn't loaded within 5 seconds (Supabase slow / product ID doesn't exist),
-  // replace the infinite spinner with an actionable error UI.
-  // Resets on every new productId so variant navigation gets a fresh countdown.
-  useEffect(() => {
-    lastTrackedProductId.current = null; // reset ViewContent guard on URL change
-    setLoadError(false);
-    const timer = setTimeout(() => setLoadError(true), 5000);
-    return () => clearTimeout(timer);
-  }, [productId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  if (!product) {
-    if (loadError) {
-      return (
-        <div className="py-16 max-w-sm mx-auto text-center px-4 space-y-5">
-          <div className="size-16 rounded-2xl bg-rose-500/10 text-rose-500 mx-auto flex items-center justify-center text-3xl border border-rose-500/20">⚠️</div>
-          <div className="space-y-2">
-            <h2 className="text-lg font-bold text-slate-800 dark:text-white">Couldn't Load This Product</h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">The saree details took too long to load. Please try again or browse our full collection.</p>
-          </div>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-            <button
-              onClick={() => { setLoadError(false); window.location.reload(); }}
-              className="px-5 py-2.5 bg-[#183fad] hover:bg-blue-700 text-white font-bold text-sm rounded-full transition-colors cursor-pointer"
-            >
-              Try Again
-            </button>
-            <Link href="/new-arrivals" className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold text-sm rounded-full transition-colors">
-              Browse All Sarees
-            </Link>
-          </div>
-        </div>
-      );
-    }
-    return (
-      <div className="py-12 text-center text-slate-500 dark:text-slate-400">
-        <p className="font-medium animate-pulse text-lg">Gathering master weave details…</p>
-      </div>
-    );
-  }
-
-  const discountPercent = product.originalPrice 
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-    : 0;
-  const onlinePrice = product.price - 100;
-  const inWishlist = isInWishlist(product.id);
-
-
-
-  const handleShare = () => {
-    const shareText = `Hey! What do you think of this gorgeous "${product.name}" saree on Reenat Trends? Woven details: ${product.craft} from ${product.origin}. See details: ${window.location.origin}/product?id=${product.id}`;
-    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
-  };
-
-  const handleAddToCartClick = (e) => {
-    if (e) e.preventDefault();
-    if (isCurrentProductPaused) {
-      if (showToast) showToast("This saree variation is temporarily paused / out of inventory.", "warning");
-      return;
-    }
-    addToCart(product);
-  };
-
-  const handleBuyNow = async (e) => {
-    if (e) e.preventDefault();
-    if (isCurrentProductPaused) {
-      if (showToast) showToast("This saree variation is temporarily paused / out of inventory.", "warning");
-      return;
-    }
-    if (isBuyNowLoading) return;
-
-    try {
-      setIsBuyNowLoading(true);
-      if (showToast) showToast('Connecting to Shiprocket Fastrr Checkout...', 'info');
-
-      addToCart(product);
-
-      const response = await fetch('/api/checkout/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          cart: [{ ...product, qty: 1 }],
-          customer: userSession ? {
-            email: userSession.email || '',
-            phone: userSession.phone || '',
-            name: userSession.username || ''
-          } : null
-        })
-      });
-
-      const resData = await response.json();
-
-      if (!response.ok) {
-        throw new Error(resData.error || 'Failed to initialize checkout session.');
-      }
-
-      // Track Meta Pixel InitiateCheckout with server-matched eventID
-      trackMetaPixel('InitiateCheckout', {
-        content_name: product.name || product.title,
-        content_ids: [String(product.id)],
-        content_type: 'product',
-        value: Number(product.price || 0),
-        currency: 'INR',
-        num_items: 1
-      }, resData.initCheckoutEventId || `init_checkout_${Date.now()}`);
-
-      const token = resData.result?.token || resData.token || resData.access_token || resData.data?.token;
-
-      if (!token) {
-        throw new Error('Invalid token response from server.');
-      }
-
-      // --- 1.3 SDK readiness guard ---
-      // Polls every 100ms for up to 3 seconds for the Fastrr SDK to be available.
-      // Prevents silent failures when the user taps Buy Now faster than lazyOnload fires.
-      const waitForFastrr = () => new Promise((resolve) => {
-        if (typeof window !== 'undefined' && window.HeadlessCheckout) { resolve(true); return; }
-        let attempts = 0;
-        const poll = setInterval(() => {
-          attempts++;
-          if ((typeof window !== 'undefined' && window.HeadlessCheckout) || attempts >= 30) {
-            clearInterval(poll);
-            resolve(typeof window !== 'undefined' && !!window.HeadlessCheckout);
-          }
-        }, 100);
-      });
-      const sdkReady = await waitForFastrr();
-      if (sdkReady && window.HeadlessCheckout) {
-        window.HeadlessCheckout.addToCart(e, token, {
-          fallbackUrl: `${window.location.origin}/cart`
-        });
-      } else {
-        router.push('/cart');
-      }
-    } catch (err) {
-      console.error('Shiprocket Buy Now error:', err);
-      if (showToast) showToast('Redirecting to checkout...', 'info');
-      router.push('/cart');
-    } finally {
-      setIsBuyNowLoading(false);
-    }
-  };
-
-  // Get active image src / media gallery
-  const galleryImages = [
-    ...(product.videoUrl ? [{ type: 'video', src: product.videoUrl }] : []),
-    { type: 'image', src: product.image },
-    ...(product.image2 ? [{ type: 'image', src: product.image2 }] : []),
-    ...(product.image3 ? [{ type: 'image', src: product.image3 }] : []),
-    ...(product.image4 ? [{ type: 'image', src: product.image4 }] : []),
-    ...(product.image5 ? [{ type: 'image', src: product.image5 }] : []),
-    ...(product.image6 ? [{ type: 'image', src: product.image6 }] : [])
-  ];
-
-  const activeImageSrc = galleryImages[activeImageIndex]?.src;
-
-  // Recommended weaves (exclude current product and other variants in the same catalog group)
-  const currentCatalogId = product.catalogId ? product.catalogId.toLowerCase() : '';
-  const seenRecommendedCatalogs = new Set();
-  if (currentCatalogId) seenRecommendedCatalogs.add(currentCatalogId);
-  const recommended = products
-    .filter(p => {
-      if (String(p.id) === String(product.id)) return false;
-      const isPaused = isProductPaused ? (isProductPaused(p) || isCatalogPaused(p.catalogId)) : false;
-      if (isPaused) return false;
-      const cid = p.catalogId ? p.catalogId.toLowerCase() : '';
-      if (cid && seenRecommendedCatalogs.has(cid)) return false;
-      if (cid) seenRecommendedCatalogs.add(cid);
-      return true;
-    })
-    .slice(0, 30);
-
-  // Get color variants (matching the catalog ID or linked product IDs to show true + cross-linked color variants)
-  const colorVariants = (() => {
-    if (!product || !products || products.length === 0) return [];
-    
-    // Build set of all connected catalog and product IDs
-    const connectedCatalogs = new Set();
-    const connectedProductIds = new Set();
-    
-    if (product.catalogId) connectedCatalogs.add(product.catalogId.toLowerCase());
-    if (product.productId) connectedProductIds.add(product.productId.toLowerCase());
-    if (product.id) connectedProductIds.add(String(product.id).toLowerCase());
-    if (product.linkedTo) {
-      connectedProductIds.add(product.linkedTo.toLowerCase());
-      connectedCatalogs.add(product.linkedTo.toLowerCase());
-    }
-    
-    // Multi-pass expansion to catch indirect links
-    for (let pass = 0; pass < 2; pass++) {
-      for (const p of products) {
-        const pid = p.productId ? p.productId.toLowerCase() : '';
-        const cid = p.catalogId ? p.catalogId.toLowerCase() : '';
-        const lid = p.linkedTo ? p.linkedTo.toLowerCase() : '';
-        const dbId = p.id ? String(p.id).toLowerCase() : '';
-        
-        const isCatalogConnected = cid && connectedCatalogs.has(cid);
-        const isProductConnected = (pid && connectedProductIds.has(pid)) || (dbId && connectedProductIds.has(dbId));
-        const isLinkConnected = lid && (connectedProductIds.has(lid) || connectedCatalogs.has(lid));
-        
-        if (isCatalogConnected || isProductConnected || isLinkConnected) {
-          if (cid) connectedCatalogs.add(cid);
-          if (pid) connectedProductIds.add(pid);
-          if (dbId) connectedProductIds.add(dbId);
-          if (lid) {
-            connectedProductIds.add(lid);
-            connectedCatalogs.add(lid);
-          }
-        }
-      }
-    }
-    
-    const result = products.filter(p => {
-      const isPaused = isProductPaused ? (isProductPaused(p) || isCatalogPaused(p.catalogId)) : false;
-      if (isPaused) return false;
-
-      const pid = p.productId ? p.productId.toLowerCase() : '';
-      const cid = p.catalogId ? p.catalogId.toLowerCase() : '';
-      const lid = p.linkedTo ? p.linkedTo.toLowerCase() : '';
-      const dbId = p.id ? String(p.id).toLowerCase() : '';
-      
-      return (cid && connectedCatalogs.has(cid)) ||
-             (pid && connectedProductIds.has(pid)) ||
-             (dbId && connectedProductIds.has(dbId)) ||
-             (lid && (connectedProductIds.has(lid) || connectedCatalogs.has(lid)));
-    });
-    
-    // De-duplicate
-    const uniqueMap = new Map();
-    for (const p of result) {
-      uniqueMap.set(p.id, p);
-    }
-    const unsortedVariants = Array.from(uniqueMap.values());
-
-    // Sort by admin-defined variant display order for this catalog
-    const catalogId = product.catalogId || '';
-    const orderedIds = getCatalogVariantOrder ? getCatalogVariantOrder(catalogId) : [];
-    if (orderedIds && orderedIds.length > 0) {
-      const orderMap = {};
-      orderedIds.forEach((pid, idx) => { orderMap[String(pid)] = idx; });
-      unsortedVariants.sort((a, b) => {
-        const ai = orderMap[String(a.id)];
-        const bi = orderMap[String(b.id)];
-        // Items in the order list come first; unlisted items go to the end sorted by id
-        if (ai !== undefined && bi !== undefined) return ai - bi;
-        if (ai !== undefined) return -1;
-        if (bi !== undefined) return 1;
-        return Number(a.id) - Number(b.id);
-      });
-    } else {
-      // Default: sort by id ascending (oldest = first)
-      unsortedVariants.sort((a, b) => Number(a.id) - Number(b.id));
-    }
-    return unsortedVariants;
-  })();
-
-  const displayVariants = colorVariants.length > 1 ? colorVariants : [];
-
-  if (isCurrentProductPaused) {
-    return (
-      <div className="py-20 max-w-lg mx-auto text-center px-4 space-y-6">
-        <div className="size-20 rounded-3xl bg-amber-500/10 text-amber-500 mx-auto flex items-center justify-center text-4xl shadow-inner border border-amber-500/20">
-          ⏸️
-        </div>
-        <div className="space-y-2">
-          <h1 className="text-2xl font-anton tracking-wide text-slate-900 dark:text-white uppercase">
-            Saree Currently Unavailable
-          </h1>
-          <p className="text-sm text-slate-600 dark:text-slate-400">
-            This saree or color variation is temporarily unavailable / out of inventory.
-          </p>
-        </div>
-        <div className="pt-2">
-          <Link 
-            href="/new-arrivals" 
-            className="inline-flex items-center gap-2 bg-[#F1BF0A] hover:bg-yellow-400 text-slate-950 font-bold px-6 py-3 rounded-full text-sm shadow-md transition-transform hover:scale-105 active:scale-95"
-          >
-            <span>Explore Available Sarees</span>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-4">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-            </svg>
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <div className="space-y-6">
-      {/* Breadcrumbs */}
-      <nav className="hidden text-xs text-slate-500 dark:text-slate-400 mb-6 items-center gap-2 select-none overflow-hidden whitespace-nowrap">
-        <Link href="/" className="hover:text-[#183fad] dark:hover:text-[#F1BF0A] shrink-0">Home</Link>
-        <span className="shrink-0">/</span>
-        <Link href="/new-arrivals" className="hover:text-[#183fad] dark:hover:text-[#F1BF0A] shrink-0">Collection</Link>
-        <span className="shrink-0">/</span>
-        <span className="text-slate-800 dark:text-white font-medium truncate max-w-[200px] sm:max-w-[300px] md:max-w-[450px]" title={product.name}>
-          {product.name}
-        </span>
-      </nav>
-
-      {/* Product Main details */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12 items-start">
-        {/* Left Column: Image Carousel + Color Variants */}
-        <div className="col-span-1 md:col-span-5 space-y-4 md:space-y-5 md:sticky md:top-4">
-          {/* Unified Image Carousel (both mobile + desktop) */}
-          <div className="relative aspect-[3/4] overflow-hidden select-none bg-slate-100 dark:bg-black/20 md:rounded-2xl border border-black/5 dark:border-white/10 shadow-md">
-            <div 
-              ref={mobileCarouselRef}
-              className="md:hidden flex overflow-x-auto snap-x snap-mandatory scrollbar-none w-full h-full"
-              onScroll={handleCarouselScroll}
-            >
-              {galleryImages.map((img, idx) => (
-                <div key={idx} className="w-full h-full shrink-0 snap-center relative">
-                  {img.type === 'video' ? (
-                    <video 
-                      src={img.src} 
-                      className="w-full h-full object-cover" 
-                      controls
-                      playsInline
-                      muted
-                    />
-                  ) : (
-                    <Image 
-                      src={img.src} 
-                      alt={`${product.name} - View ${idx + 1}`} 
-                      fill
-                      sizes="100vw"
-                      className="object-cover"
-                      priority={idx === 0}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Desktop sliding carousel */}
-            <div 
-              ref={desktopCarouselRef}
-              className="hidden md:flex overflow-x-auto snap-x snap-mandatory scrollbar-none w-full h-full"
-              onScroll={handleCarouselScroll}
-            >
-              {galleryImages.map((img, idx) => (
-                <div key={idx} className="w-full h-full shrink-0 snap-center relative">
-                  {img.type === 'video' ? (
-                    <video 
-                      src={img.src} 
-                      className="w-full h-full object-cover" 
-                      controls
-                      playsInline
-                      muted
-                    />
-                  ) : (
-                    <Image 
-                      src={img.src} 
-                      alt={`${product.name} - View ${idx + 1}`} 
-                      fill
-                      sizes="50vw"
-                      className="object-cover"
-                      priority={idx === 0}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-            
-            {/* Slide progress indicator */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20">
-              {galleryImages.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleImageChange(idx)}
-                  className={`rounded-full transition-all duration-300 cursor-pointer ${
-                    idx === activeImageIndex 
-                      ? 'w-6 h-2 bg-white shadow-md' 
-                      : 'w-2 h-2 bg-white/50 hover:bg-white/70'
-                  }`}
-                />
-              ))}
-            </div>
-
-            {/* Desktop prev/next arrows */}
-            <button 
-              onClick={handleDesktopPrev}
-              className="hidden md:flex absolute left-3 top-1/2 -translate-y-1/2 z-20 items-center justify-center w-9 h-9 rounded-full bg-white/80 dark:bg-black/50 backdrop-blur-md shadow-lg border border-white/30 dark:border-white/10 cursor-pointer hover:bg-white dark:hover:bg-black/70 transition-all hover:scale-110 active:scale-95"
-              aria-label="Previous image"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-4 text-slate-700 dark:text-white">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-              </svg>
-            </button>
-            <button 
-              onClick={handleDesktopNext}
-              className="hidden md:flex absolute right-3 top-1/2 -translate-y-1/2 z-20 items-center justify-center w-9 h-9 rounded-full bg-white/80 dark:bg-black/50 backdrop-blur-md shadow-lg border border-white/30 dark:border-white/10 cursor-pointer hover:bg-white dark:hover:bg-black/70 transition-all hover:scale-110 active:scale-95"
-              aria-label="Next image"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-4 text-slate-700 dark:text-white">
-                <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-              </svg>
-            </button>
-
-            {/* Image counter badge */}
-            <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-md text-white text-[10px] font-bold tracking-wider px-2.5 py-1 rounded-full pointer-events-none z-20">
-              {activeImageIndex + 1} / {galleryImages.length}
-            </div>
-          </div>
-
-          {/* Color Variant Selector - moved below image on both mobile & desktop */}
-          {displayVariants.length > 0 ? (
-            <div 
-              ref={variationSectionRef}
-              className="block bg-white/60 dark:bg-[#0c1e44]/30 border border-white/40 dark:border-white/8 rounded-2xl p-4 backdrop-blur-xl shadow-sm card-fabric-texture"
-            >
-              <span className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2.5">
-                Selected Color: <span className="text-slate-800 dark:text-white font-semibold">{product.color || 'Classic Gold'}</span>
-              </span>
-              
-              <div className="relative">
-                <div className="variation-slider-container pb-1">
-                  {displayVariants.map((variant) => {
-                    const isSelected = String(variant.id) === String(product.id);
-                    const isVarPaused = isProductPaused(variant) || isCatalogPaused(variant.catalogId);
-                    return (
-                      <Link
-                        key={variant.id}
-                        href={`/product?id=${variant.id}`}
-                        className={`variation-slider-item aspect-[4/5] rounded-xl overflow-hidden bg-white dark:bg-slate-900 border-2 transition-all cursor-pointer relative group ${
-                          isSelected 
-                            ? 'border-slate-900 dark:border-[#F1BF0A] scale-102 shadow-sm' 
-                            : 'border-slate-200 dark:border-slate-850 opacity-85 hover:opacity-100'
-                        } ${isVarPaused ? 'opacity-60' : ''}`}
-                      >
-                        <Image 
-                          src={variant.image} 
-                          alt={variant.name} 
-                          fill
-                          sizes="128px"
-                          className={`object-cover ${isVarPaused ? 'grayscale-[40%]' : ''}`}
-                        />
-                        {isVarPaused && (
-                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
-                            <span className="bg-amber-500 text-slate-950 text-[8px] font-black uppercase px-1 py-0.5 rounded shadow">
-                              Paused
-                            </span>
-                          </div>
-                        )}
-                        {isSelected && (
-                          <div className="absolute inset-0 bg-slate-900/10 dark:bg-amber-500/5 pointer-events-none" />
-                        )}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div ref={variationSectionRef} className="h-0 w-0" />
-          )}
-        </div>
-
-        {/* Right Column: Specifications, Actions */}
-        <div className="col-span-1 md:col-span-7 space-y-4">
-          <div className="mobile-card card-fabric-texture md:bg-white/40 md:dark:bg-[#0c1e44]/15 md:border md:border-black/5 md:dark:border-white/5 md:rounded-3xl md:p-5 md:glass space-y-3">
-            <div className="flex justify-between items-start gap-4">
-              <div className="relative w-full pb-6">
-                <span className="text-[11px] uppercase tracking-widest text-[#d9a05b] font-bold">
-                  Traditional Handloom {product.type}
-                </span>
-                <div 
-                  className="ai-style-change-3 overflow-hidden transition-all duration-350 pr-16"
-                  style={{ maxHeight: titleExpanded ? '1000px' : '60px' }}
-                >
-                  <h1 className="text-xl md:text-2xl font-semibold text-slate-800 dark:text-white mt-0.5 leading-snug">
-                    {product.name} Saree With Blouse
-                  </h1>
-                </div>
-                <button 
-                  onClick={() => setTitleExpanded(!titleExpanded)}
-                  className="absolute bottom-0 right-0 text-xs font-bold text-[#183fad] dark:text-[#F1BF0A] bg-transparent pl-2 cursor-pointer hover:underline select-none"
-                >
-                  {titleExpanded ? 'Show less' : 'Show more'}
-                </button>
-              </div>
-            </div>
-
-            {/* Ratings Summary & Action Icons integrated */}
-            <div className="flex justify-between items-center gap-2 mt-1">
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-0.5 bg-emerald-600 dark:bg-emerald-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-md">
-                  <span>{product.rating || 4.8}</span>
-                  <span className="text-[9px]">★</span>
-                </span>
-                <span className="text-xs text-slate-600 dark:text-slate-300 font-medium">
-                  Handloom Verified Rating
-                </span>
-              </div>
-              <div className="flex items-center gap-3.5 mt-1 shrink-0">
-                <button 
-                  onClick={() => toggleWishlist(product)}
-                  className={`transition-colors p-1 cursor-pointer ${
-                    inWishlist ? 'text-rose-500' : 'text-slate-500 hover:text-rose-500 dark:text-slate-400 dark:hover:text-rose-455'
-                  }`}
-                  title="Wishlist"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill={inWishlist ? "currentColor" : "none"} viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="size-6">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
-                  </svg>
-                </button>
-                <button onClick={handleShare} className="text-slate-500 hover:text-emerald-500 dark:text-slate-400 dark:hover:text-emerald-400 transition-colors p-1 cursor-pointer" title="Share Saree Link">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="size-6">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-800/60 mt-2">
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
-                  ₹{product.price.toLocaleString('en-IN')}
-                </span>
-                {product.originalPrice && (
-                  <>
-                    <span className="text-sm line-through text-slate-400">
-                      ₹{product.originalPrice.toLocaleString('en-IN')}
-                    </span>
-                    <span className="text-xs bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-[#25D366] px-2 py-0.5 rounded-full font-bold ml-1">
-                      {discountPercent}% OFF
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Paused Notice Banner */}
-            {isCurrentProductPaused && (
-              <div className="bg-amber-500/15 border border-amber-500/30 text-amber-900 dark:text-amber-300 px-4 py-3 rounded-2xl flex items-center gap-2.5 text-xs font-bold mt-3 shadow-sm">
-                <span className="text-lg">⏸️</span>
-                <div>
-                  <div className="font-extrabold uppercase tracking-wide text-[10px] text-amber-700 dark:text-amber-400">Temporarily Unavailable</div>
-                  <div className="text-slate-700 dark:text-slate-200 text-xs font-medium mt-0.5">This saree variation is currently paused / out of inventory. Please check other color options or check back soon!</div>
-                </div>
-              </div>
-            )}
-
-            {/* Special Online Pay discount Banner */}
-            <div className="relative overflow-hidden bg-white/85 dark:bg-[#0c1e44]/40 backdrop-blur-xl border border-[#d9a05b]/30 dark:border-[#F1BF0A]/20 rounded-2xl p-4 shadow-[0_8px_30px_rgb(0,0,0,0.02)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] mt-3.5 group transition-all duration-300 hover:border-[#d9a05b]/50 dark:hover:border-[#F1BF0A]/40">
-              {/* Subtle gold gradient background glow */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-amber-400/10 dark:bg-amber-400/5 rounded-full blur-3xl pointer-events-none -mr-8 -mt-8" />
-              
-              <div className="flex items-center justify-between gap-4 relative z-10">
-                <div className="flex items-center gap-3">
-                  <span className="bg-gradient-to-r from-[#d9a05b] to-[#F1BF0A] text-slate-900 text-[9px] font-black tracking-widest px-2.5 py-1 rounded-md uppercase shadow-sm shrink-0">
-                    OFFER
-                  </span>
-                  <div className="flex flex-col">
-                    <span className="text-[9px] text-[#b47a24] dark:text-[#F1BF0A] font-bold uppercase tracking-widest">
-                      Prepaid Discount
-                    </span>
-                    <span className="text-sm font-medium text-slate-800 dark:text-slate-200 mt-0.5 leading-relaxed">
-                      Buy at <span className="text-[#c68a0c] dark:text-[#F1BF0A] font-extrabold text-base">₹{onlinePrice.toLocaleString('en-IN')}</span> Pay Online &amp; Get <span className="text-[#c68a0c] dark:text-[#F1BF0A] font-extrabold">₹100 Discount</span>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Value Propositions — Premium Glassy White iPhone UI */}
-          <div className="mobile-card md:bg-transparent md:border-0 md:p-0">
-            <div className="grid grid-cols-3 gap-2.5 text-center">
-              <div className="group flex flex-col items-center justify-center p-3.5 rounded-2xl bg-white/70 dark:bg-white/8 backdrop-blur-xl border border-white/60 dark:border-white/10 shadow-[0_2px_16px_rgba(0,0,0,0.06)] dark:shadow-[0_2px_16px_rgba(0,0,0,0.3)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.1)] transition-all duration-300 hover:-translate-y-0.5">
-                <div className="size-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center mb-2 shadow-md group-hover:scale-110 transition-transform duration-300">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="size-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" />
-                  </svg>
-                </div>
-                <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 leading-tight">Lowest Price</span>
-                <span className="text-[8px] text-slate-400 dark:text-slate-500 mt-0.5">Guaranteed</span>
-              </div>
-              <div className="group flex flex-col items-center justify-center p-3.5 rounded-2xl bg-white/70 dark:bg-white/8 backdrop-blur-xl border border-white/60 dark:border-white/10 shadow-[0_2px_16px_rgba(0,0,0,0.06)] dark:shadow-[0_2px_16px_rgba(0,0,0,0.3)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.1)] transition-all duration-300 hover:-translate-y-0.5">
-                <div className="size-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 text-white flex items-center justify-center mb-2 shadow-md group-hover:scale-110 transition-transform duration-300">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="size-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.079-.504 1.003-1.12l-.766-6.13A2.25 2.25 0 0 0 18.63 9.75H15" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 9.75h12.75" />
-                  </svg>
-                </div>
-                <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 leading-tight">Cash on Delivery</span>
-                <span className="text-[8px] text-slate-400 dark:text-slate-500 mt-0.5">Pay at door</span>
-              </div>
-              <div className="group flex flex-col items-center justify-center p-3.5 rounded-2xl bg-white/70 dark:bg-white/8 backdrop-blur-xl border border-white/60 dark:border-white/10 shadow-[0_2px_16px_rgba(0,0,0,0.06)] dark:shadow-[0_2px_16px_rgba(0,0,0,0.3)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.1)] transition-all duration-300 hover:-translate-y-0.5">
-                <div className="size-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 text-white flex items-center justify-center mb-2 shadow-md group-hover:scale-110 transition-transform duration-300">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="size-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" />
-                  </svg>
-                </div>
-                <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 leading-tight">7 Days Return</span>
-                <span className="text-[8px] text-slate-400 dark:text-slate-500 mt-0.5">Easy refund</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Size Info */}
-          <div className="mobile-card card-fabric-texture md:bg-white/40 md:dark:bg-[#0c1e44]/15 md:border md:border-black/5 md:dark:border-white/5 md:rounded-3xl md:p-5 md:glass flex items-center gap-6">
-            <span className="text-sm font-semibold text-slate-700 dark:text-white">Size</span>
-            <span className="border border-slate-700 dark:border-slate-350 text-slate-800 dark:text-white px-6 py-2 rounded-md font-bold text-xs bg-transparent">
-              Free Size
-            </span>
-          </div>
-
-          {/* Specs Table */}
-          <div className="mobile-card card-fabric-texture md:bg-white/40 md:dark:bg-[#0c1e44]/15 md:border md:border-black/5 md:dark:border-white/5 md:rounded-3xl md:p-5 md:glass space-y-4">
-            <h2 className="text-base font-bold text-slate-800 dark:text-white uppercase tracking-wider pb-1">
-              Product Information
-            </h2>
-            
-            <div className="space-y-3">
-              <table className="w-full text-left border-collapse text-slate-800 dark:text-slate-100">
-                <tbody>
-                  <tr className="border-b border-slate-200 dark:border-slate-800/80">
-                    <td className="py-3 text-slate-500 dark:text-slate-400 font-medium text-sm w-[45%]">Brand</td>
-                    <td className="py-3 text-right font-semibold text-sm w-[55%]">{product.brand || 'REENAT TRENDS'}</td>
-                  </tr>
-                  <tr className="border-b border-slate-200 dark:border-slate-800/80">
-                    <td className="py-3 text-slate-500 dark:text-slate-400 font-medium text-sm">Material / Craft</td>
-                    <td className="py-3 text-right font-semibold text-sm">{product.craft || 'Silk Handloom'}</td>
-                  </tr>
-                  <tr className="border-b border-slate-200 dark:border-slate-800/80">
-                    <td className="py-3 text-slate-500 dark:text-slate-400 font-medium text-sm">Size</td>
-                    <td className="py-3 text-right font-semibold text-sm">Free Size</td>
-                  </tr>
-                  
-                  {showExtendedInfo && (
-                    <>
-                      <tr className="border-b border-slate-200 dark:border-slate-800/80 animate-in slide-in-from-top-1">
-                        <td className="py-3 text-slate-500 dark:text-slate-400 font-medium text-sm">Saree Length</td>
-                        <td className="py-3 text-right font-semibold text-sm">{product.sareeLen || '5.5'} Meters</td>
-                      </tr>
-                      <tr className="border-b border-slate-200 dark:border-slate-800/80 animate-in slide-in-from-top-1">
-                        <td className="py-3 text-slate-500 dark:text-slate-400 font-medium text-sm">Blouse Info</td>
-                        <td className="py-3 text-right font-semibold text-sm">{product.blouseType || 'Contrast Blouse'} ({product.blouseLen || '0.8'}m)</td>
-                      </tr>
-                      <tr className="border-b border-slate-200 dark:border-slate-800/80 animate-in slide-in-from-top-1">
-                        <td className="py-3 text-slate-500 dark:text-slate-400 font-medium text-sm">Fabric / Loom</td>
-                        <td className="py-3 text-right font-semibold text-sm">{product.fabric} ({product.loom})</td>
-                      </tr>
-                      <tr className="border-b border-slate-200 dark:border-slate-800/80 animate-in slide-in-from-top-1">
-                        <td className="py-3 text-slate-500 dark:text-slate-400 font-medium text-sm">Occasion</td>
-                        <td className="py-3 text-right font-semibold text-sm">{product.occasion}</td>
-                      </tr>
-                      <tr className="border-b border-slate-200 dark:border-slate-800/80 animate-in slide-in-from-top-1">
-                        <td className="py-3 text-slate-500 dark:text-slate-400 font-medium text-sm">Transparency</td>
-                        <td className="py-3 text-right font-semibold text-sm">{product.transparency}</td>
-                      </tr>
-
-                      <tr className="border-b border-slate-200 dark:border-slate-800/80 animate-in slide-in-from-top-1">
-                        <td className="py-3 text-slate-500 dark:text-slate-400 font-medium text-sm">SKU ID</td>
-                        <td className="py-3 text-right font-semibold text-sm">{product.skuId}</td>
-                      </tr>
-                      
-                      <tr className="animate-in slide-in-from-top-1">
-                        <td colSpan="2" className="pt-5">
-                          <div className="border-b border-slate-200 dark:border-slate-800/80 mb-4"></div>
-                          <div className="text-center font-bold text-slate-800 dark:text-white text-xs uppercase tracking-widest mb-4">
-                            PRODUCT DESCRIPTION
-                          </div>
-                          <div className="border-b border-slate-200 dark:border-slate-800/80 mb-4"></div>
-                          <div className="space-y-3 text-left text-slate-650 dark:text-slate-350 leading-relaxed text-xs pt-2">
-                            <p className="font-semibold">{product.desc}</p>
-                            <p>This traditional Indian drape is crafted with pride and meticulous detail, ensuring you carry the rich aesthetic heritage of the weaver lineage. Premium threads align perfectly for wedding events, temple days, and celebratory parties.</p>
-                          </div>
-                        </td>
-                      </tr>
-                    </>
-                  )}
-                </tbody>
-              </table>
-              
-              <button 
-                onClick={() => setShowExtendedInfo(!showExtendedInfo)}
-                className="mx-auto flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full bg-slate-200/80 dark:bg-slate-800/80 text-slate-800 dark:text-slate-100 hover:bg-slate-300/90 dark:hover:bg-slate-700/90 transition-all font-bold text-xs cursor-pointer select-none border border-slate-300/60 dark:border-slate-700/60 shadow-sm"
-              >
-                <span>{showExtendedInfo ? 'Read Less' : 'More Details'}</span>
-                <span className="transition-transform duration-300">{showExtendedInfo ? '▲' : '▼'}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-3">
-            <button 
-              type="button"
-              onClick={handleBuyNow}
-              disabled={isBuyNowLoading || isCurrentProductPaused}
-              className={`flex-1 sm:flex-[1.5] py-3.5 px-6 rounded-2xl font-bold text-base transition-all select-none shadow-md border-none outline-none flex items-center justify-center ${
-                isCurrentProductPaused
-                  ? 'bg-slate-300 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed'
-                  : 'bg-[#F1BF0A] hover:bg-yellow-400 text-slate-950 hover:scale-[1.02] active:scale-[0.98] cursor-pointer'
-              }`}
-              style={!isCurrentProductPaused ? { backgroundColor: '#F1BF0A !important', color: '#000000 !important' } : {}}
-            >
-              {isBuyNowLoading ? (
-                <span className="flex items-center gap-2 text-black font-bold" style={{ color: '#000000 !important' }}>
-                  <svg className="animate-spin size-4 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <span>Connecting...</span>
-                </span>
-              ) : (
-                <span className={isCurrentProductPaused ? "text-slate-500 dark:text-slate-400 font-bold text-sm" : "text-slate-950 font-bold text-base"} style={!isCurrentProductPaused ? { color: '#000000 !important' } : {}}>
-                  {isCurrentProductPaused ? '⏸️ Temporarily Unavailable' : 'Buy Now'}
-                </span>
-              )}
-            </button>
-
-            <button 
-              type="button"
-              onClick={handleAddToCartClick}
-              disabled={isCurrentProductPaused}
-              className={`flex-1 py-3.5 px-5 rounded-2xl font-bold text-sm border transition-all shadow-md ${
-                isCurrentProductPaused
-                  ? 'bg-slate-100 dark:bg-slate-900 text-slate-400 border-slate-300 dark:border-slate-800 cursor-not-allowed'
-                  : 'bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white border-slate-700 hover:scale-[1.02] active:scale-[0.98] cursor-pointer'
-              }`}
-            >
-              {isCurrentProductPaused ? 'Unavailable' : 'Add to Cart'}
-            </button>
-
-            <button 
-              type="button" 
-              onClick={() => toggleWishlist(product)}
-              className={`font-semibold py-3.5 px-5 rounded-2xl border transition-all hover:scale-[1.02] active:scale-[0.98] shadow-sm cursor-pointer text-center text-sm ${
-                inWishlist 
-                  ? 'bg-rose-500 border-rose-500 text-white' 
-                  : 'bg-white dark:bg-slate-800 text-rose-550 border-slate-200 dark:border-slate-700 hover:bg-rose-500 hover:text-white'
-              }`}
-            >
-              {inWishlist ? 'Wishlisted' : 'Wishlist'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Recommended weaves section */}
-      {recommended.length > 0 && (
-        <section className="mt-16 border-t border-slate-200 dark:border-slate-800 pt-10">
-          <div className="text-center md:text-left">
-            <h2 className="text-2xl font-anton text-slate-850 dark:text-white tracking-wider">
-              RECOMMENDED WEAVES
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Sarees carrying matching handloom lineages and weaving styles.
-            </p>
-          </div>
-
-          <ul id="related-product-list" className="grid grid-cols-2 gap-4 md:grid-cols-3 mt-8">
-            {recommended.map(item => (
-              <ProductCard key={item.id} product={item} />
-            ))}
-          </ul>
-        </section>
-      )}
-    </div>
-
-    {/* Sticky Mobile Actions — Borderless and Paddingless Floating Buttons */}
-    <div className={`fixed bottom-2 left-2 right-2 flex items-center justify-between gap-2 z-30 md:hidden transition-all duration-300 ${
-      showStickyBar ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-10 pointer-events-none'
-    }`}>
-      <button 
-        type="button"
-        onClick={handleAddToCartClick}
-        disabled={isCurrentProductPaused}
-        className={`w-[40%] h-12 font-bold rounded-2xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-lg border ${
-          isCurrentProductPaused
-            ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 border-slate-300 dark:border-slate-700 cursor-not-allowed'
-            : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800 active:scale-95 cursor-pointer'
-        }`}
-      >
-        <span>{isCurrentProductPaused ? 'Unavailable' : 'Add to Cart'}</span>
-      </button>
-      <button 
-        type="button"
-        onClick={handleBuyNow}
-        disabled={isBuyNowLoading || isCurrentProductPaused}
-        className={`w-[58%] h-12 font-bold rounded-2xl text-sm flex items-center justify-center transition-all shadow-lg select-none border-none outline-none ${
-          isCurrentProductPaused
-            ? 'bg-slate-300 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed'
-            : 'bg-[#F1BF0A] text-slate-950 active:scale-95 cursor-pointer'
-        }`}
-        style={!isCurrentProductPaused ? { backgroundColor: '#F1BF0A !important', color: '#000000 !important' } : {}}
-      >
-        {isBuyNowLoading ? (
-          <span className="flex items-center gap-1.5 text-black font-bold text-xs" style={{ color: '#000000 !important' }}>
-            <svg className="animate-spin size-4 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <span>Connecting...</span>
-          </span>
-        ) : (
-          <span className={isCurrentProductPaused ? "text-slate-500 dark:text-slate-400 font-bold text-xs" : "text-slate-950 font-bold text-sm"} style={!isCurrentProductPaused ? { color: '#000000 !important' } : {}}>
-            {isCurrentProductPaused ? '⏸️ Unavailable' : 'Buy Now'}
-          </span>
-        )}
-      </button>
-    </div>
-
-    {/* Fastrr Headless Checkout SDK Script */}
-    <Script 
-      src="https://checkout-ui.shiprocket.com/assets/js/channels/custom.js" 
-      strategy="afterInteractive" 
-    />
-  </>
-  );
 }
 
-export default function ProductDetailsPage() {
+// Resolve a numeric DB row ID from the NSY-prefixed product URL param.
+// Accepts both "NSY0042" and raw numeric strings.
+function resolveNumericId(idParam) {
+  if (!idParam) return null;
+  const cleaned = String(idParam).replace(/^NSY0*/i, '').replace(/^0+/, '') || '0';
+  const num = parseInt(cleaned, 10);
+  return isNaN(num) ? null : num;
+}
+
+export async function generateMetadata({ searchParams }) {
+  const params = await searchParams;
+  const idParam = params?.id;
+  const numId = resolveNumericId(idParam);
+  if (!numId) return { title: 'Product Not Found | Reenat Trends' };
+
+  try {
+    const supabase = getSupabaseServerClient();
+    const { data } = await supabase
+      .from('products')
+      .select('name, color, type, craft, image')
+      .eq('id', numId)
+      .single();
+
+    if (!data) return { title: 'Product Not Found | Reenat Trends' };
+
+    const title = `${data.name} | Reenat Trends`;
+    const description = `Shop ${data.color || ''} ${data.type || 'saree'} handcrafted with ${data.craft || 'traditional handloom'} techniques. Free shipping & 7-day returns.`;
+
+    return {
+      title,
+      description,
+      openGraph: {
+        title,
+        description,
+        images: data.image ? [{ url: data.image, width: 800, height: 1067 }] : [],
+      },
+    };
+  } catch {
+    return { title: 'Saree Details | Reenat Trends' };
+  }
+}
+
+export default async function ProductDetailsPage({ searchParams }) {
+  const params = await searchParams;
+  const idParam = params?.id;
+  const numId = resolveNumericId(idParam);
+
+  if (!numId) notFound();
+
+  const supabase = getSupabaseServerClient();
+
+  // 1. Fetch the requested product
+  const { data: rawProduct, error: productError } = await supabase
+    .from('products')
+    .select('*')
+    .eq('id', numId)
+    .single();
+
+  if (productError || !rawProduct) notFound();
+
+  const product = mapRawProduct(rawProduct);
+  const catalogId = product.catalogId || '';
+
+  // 2. Fetch all products in the same catalog group (color variants).
+  //    Fall back to just the current product if no catalogId is set.
+  let colorVariants = [product];
+  if (catalogId) {
+    const { data: variantRows } = await supabase
+      .from('products')
+      .select('*')
+      .eq('catalog_id', catalogId)
+      .order('id', { ascending: true });
+
+    if (variantRows && variantRows.length > 0) {
+      // De-duplicate by id (safety guard for linked_to variants)
+      const seen = new Set();
+      colorVariants = variantRows
+        .map(mapRawProduct)
+        .filter(p => { if (seen.has(p.id)) return false; seen.add(p.id); return true; });
+    }
+  }
+
+  // 3. Fetch recommended products — different catalogs, limit 30.
+  //    Exclude current catalog to prevent duplicates.
+  let recommended = [];
+  try {
+    const { data: allProducts } = await supabase
+      .from('products')
+      .select('*')
+      .order('id', { ascending: false })
+      .limit(200);
+
+    if (allProducts && allProducts.length > 0) {
+      const seenCatalogs = new Set();
+      if (catalogId) seenCatalogs.add(catalogId.toLowerCase());
+
+      recommended = allProducts
+        .map(mapRawProduct)
+        .filter(p => {
+          if (String(p.id) === String(product.id)) return false;
+          const cid = p.catalogId ? p.catalogId.toLowerCase() : '';
+          if (cid && seenCatalogs.has(cid)) return false;
+          if (cid) seenCatalogs.add(cid);
+          return true;
+        })
+        .slice(0, 30);
+    }
+  } catch (err) {
+    console.warn('[product/page.js] Failed to fetch recommended products:', err.message);
+  }
+
   return (
-    <Suspense fallback={
-      <div className="py-12 text-center text-slate-500 dark:text-slate-400">
-        <p className="font-medium animate-pulse text-lg">Loading saree details…</p>
-      </div>
-    }>
-      <ProductDetailsContent />
-    </Suspense>
+    <div className="max-w-6xl mx-auto px-4 py-6">
+      <ProductClient
+        product={product}
+        colorVariants={colorVariants}
+        recommended={recommended}
+      />
+    </div>
   );
 }

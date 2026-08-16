@@ -4,11 +4,22 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useApp } from '../context/AppContext';
+import SafeImage from '../components/SafeImage';
 import ProductCard from '../components/ProductCard';
 import { ProductSkeletonGrid } from '../components/ProductSkeleton';
 
 export default function Home() {
-  const { products, heroSlides, categoryCards, collectionCards, catalogPositions, bestSellers, isCatalogPaused, isProductPaused } = useApp();
+  const { 
+    products, 
+    heroSlides, 
+    categoryCards, 
+    collectionCards, 
+    catalogPositions, 
+    bestSellers, 
+    isCatalogPaused, 
+    isProductPaused,
+    getCatalogVariantOrder 
+  } = useApp();
   const [slideIndex, setSlideIndex] = useState(0);
   const [fadeText, setFadeText] = useState(false);
   const [timeLeft, setTimeLeft] = useState('12H:12M:31S');
@@ -184,12 +195,13 @@ export default function Home() {
           </div>
         </div>
 
-        <img 
+        <SafeImage 
           id="hero-image" 
           src={activeSlide.image} 
-          alt={activeSlide.title} 
+          alt={activeSlide.title || "Hero Saree"} 
           className={`block object-contain h-[95vw] max-h-[420px] md:h-[56vw] md:max-h-135 absolute bottom-6 left-1/2 z-[100] select-none pointer-events-none animate-float carousel-image-transition ${fadeText ? 'carousel-image-hidden' : ''}`}
           style={{ filter: "drop-shadow(5px 5px 10px rgba(0, 0, 0, 0.4))" }}
+          fallbackSrc="/assets/hero (1).png"
         />
       </header>
 
@@ -597,7 +609,30 @@ export default function Home() {
                 return pCid === cid && !isPaused;
               });
 
-              const coverProd = catalogProds[0] || null;
+              if (catalogProds.length === 0) return null;
+
+              // Filter out products with dead URLs or empty images
+              const validProds = catalogProds.filter(p => p.image && !p.image.includes('eilxtuedgtimrxfvqojv'));
+              const targetPool = validProds.length > 0 ? validProds : catalogProds;
+
+              const variantOrder = (getCatalogVariantOrder ? getCatalogVariantOrder(cid) : []) || [];
+              let coverProd = null;
+
+              if (variantOrder.length > 0) {
+                for (const orderedId of variantOrder) {
+                  const match = targetPool.find(p => String(p.id) === String(orderedId));
+                  if (match) {
+                    coverProd = match;
+                    break;
+                  }
+                }
+              }
+
+              if (!coverProd) {
+                // If no custom order is configured, pick highest id or first valid
+                coverProd = targetPool[0] || null;
+              }
+
               if (!coverProd) return null;
 
               const variantCount = catalogProds.length || 1;
@@ -608,8 +643,8 @@ export default function Home() {
                   className="w-[315px] sm:w-[340px] shrink-0 snap-center relative rounded-3xl overflow-hidden h-[495px] sm:h-[540px] group shadow-xl border border-slate-200/50 dark:border-white/10 bg-slate-900 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1"
                 >
                   {/* Pure Unshadowed Saree Image */}
-                  <img 
-                    src={coverProd.image || "/saree_kanjivaram.png"} 
+                  <SafeImage 
+                    src={coverProd.image} 
                     alt={coverProd.name || `Catalog ${cid}`} 
                     className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
                   />

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useApp } from '../../context/AppContext';
+import SafeImage from '../../components/SafeImage';
 
 export default function Account() {
   const router = useRouter();
@@ -510,7 +511,7 @@ export default function Account() {
                         <div className="flex flex-wrap gap-2.5 border-t border-black/5 dark:border-white/5 pt-2">
                           {Array.isArray(order.items) && order.items.map((item, i) => (
                             <div key={i} className="flex items-center gap-2 bg-white/40 dark:bg-black/20 p-1.5 rounded-xl border border-black/5 dark:border-white/5 flex-1 min-w-[180px] max-w-xs">
-                              <img src={item.image} className="size-10 object-cover rounded-lg border border-black/5 dark:border-white/5" alt="" />
+                              <SafeImage src={item.image} className="size-10 object-cover rounded-lg border border-black/5 dark:border-white/5" alt="" />
                               <div className="text-[10px] min-w-0 flex-1">
                                 <div className="font-bold truncate text-slate-800 dark:text-white">{item.name}</div>
                                 <div className="text-slate-500 dark:text-slate-400">₹{item.price.toLocaleString('en-IN')} x {item.qty}</div>
@@ -595,7 +596,7 @@ export default function Account() {
                 ) : (
                   wishlist.map(product => (
                     <div key={product.id} className="flex items-center gap-3 p-3 bg-white/40 dark:bg-black/20 border border-black/5 dark:border-white/5 rounded-2xl">
-                      <img src={product.image} className="size-16 object-cover rounded-xl border border-black/5 dark:border-white/5 shadow-sm" alt="" />
+                      <SafeImage src={product.image} className="size-16 object-cover rounded-xl border border-black/5 dark:border-white/5 shadow-sm" alt="" />
                       <div className="flex-1 min-w-0 text-xs">
                         <div className="font-bold truncate text-slate-850 dark:text-white">{product.name}</div>
                         <div className="text-slate-500 dark:text-slate-400 mt-0.5">₹{product.price.toLocaleString('en-IN')}</div>

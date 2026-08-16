@@ -1,13 +1,130 @@
 import crypto from 'crypto';
 
 /**
- * SHA-256 hash string for Meta CAPI compliance (trimmed, lowercased)
+ * SHA-256 hash string for Meta CAPI compliance (lowercase hex digest)
+ */
+export function sha256Hash(val) {
+  if (val === null || val === undefined) return null;
+  const str = String(val).trim().toLowerCase();
+  if (!str) return null;
+  // If already a 64-character SHA-256 hex string, return as-is
+  if (/^[a-f0-9]{64}$/i.test(str)) {
+    return str;
+  }
+  return crypto.createHash('sha256').update(str).digest('hex');
+}
+
+/**
+ * Backwards-compatible alias for sha256Hash
  */
 export function hashMetaUserData(str) {
-  if (!str || typeof str !== 'string') return null;
-  const cleaned = str.trim().toLowerCase();
-  if (!cleaned) return null;
-  return crypto.createHash('sha256').update(cleaned).digest('hex');
+  return sha256Hash(str);
+}
+
+/**
+ * Normalizes email: trim whitespace, convert to lowercase
+ */
+export function normalizeEmail(email) {
+  if (!email) return null;
+  const str = String(email).trim().toLowerCase();
+  return str.includes('@') ? str : null;
+}
+
+/**
+ * Normalizes phone number according to Meta CAPI specification:
+ * - Remove non-digits
+ * - Strip leading zeros
+ * - Include country code (default 91 for India if 10 digits provided)
+ */
+export function normalizePhone(phone, defaultCountryCode = '91') {
+  if (!phone) return null;
+  let digits = String(phone).replace(/\D/g, '');
+  if (!digits) return null;
+  digits = digits.replace(/^0+/, ''); // strip leading zeroes
+  // If 10 digits (standard Indian mobile number), prepend country code 91
+  if (digits.length === 10 && defaultCountryCode) {
+    digits = `${defaultCountryCode}${digits}`;
+  }
+  return digits;
+}
+
+/**
+ * Normalizes name: trim, lowercase, remove punctuation & digits
+ */
+export function normalizeName(name) {
+  if (!name) return null;
+  const str = String(name)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, '')
+    .replace(/\s+/g, ' ');
+  return str || null;
+}
+
+/**
+ * Normalizes city: trim, lowercase, remove punctuation & special characters
+ */
+export function normalizeCity(city) {
+  if (!city) return null;
+  const str = String(city)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, '')
+    .replace(/\s+/g, '');
+  return str || null;
+}
+
+/**
+ * Normalizes state: trim, lowercase, remove punctuation
+ */
+export function normalizeState(state) {
+  if (!state) return null;
+  const str = String(state)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, '');
+  return str || null;
+}
+
+/**
+ * Normalizes zip/pincode: trim, lowercase, remove whitespace and special characters
+ */
+export function normalizeZip(zip) {
+  if (!zip) return null;
+  const str = String(zip).trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  return str || null;
+}
+
+/**
+ * Normalizes country: lowercase 2-letter ISO 3166-1 alpha-2 code
+ */
+export function normalizeCountry(country) {
+  if (!country) return 'in';
+  const str = String(country).trim().toLowerCase();
+  if (str === 'india' || str === 'in' || str === 'ind') return 'in';
+  if (str === 'united states' || str === 'usa' || str === 'us') return 'us';
+  return str.slice(0, 2);
+}
+
+/**
+ * Normalizes gender: single lowercase character 'm' or 'f'
+ */
+export function normalizeGender(gender) {
+  if (!gender) return null;
+  const str = String(gender).trim().toLowerCase();
+  if (str.startsWith('m')) return 'm';
+  if (str.startsWith('f')) return 'f';
+  return null;
+}
+
+/**
+ * Normalizes date of birth: YYYYMMDD format
+ */
+export function normalizeDateOfBirth(dob) {
+  if (!dob) return null;
+  const digits = String(dob).replace(/\D/g, '');
+  if (digits.length === 8) return digits;
+  return null;
 }
 
 /**
@@ -58,10 +175,15 @@ export async function sendMetaCapiEvent({
   email = '',
   phone = '',
   fullName = '',
+  firstName = '',
+  lastName = '',
   city = '',
   state = '',
   zipcode = '',
   country = 'India',
+  gender = '',
+  dateOfBirth = '',
+  externalId = '',
   value = 0,
   currency = 'INR',
   items = [],
@@ -86,22 +208,42 @@ export async function sendMetaCapiEvent({
       return { success: false, reason: 'Missing eventId' };
     }
 
-    const cleanPhone = phone ? phone.replace(/\D/g, '') : '';
-    const nameParts = fullName ? fullName.trim().split(/\s+/) : [];
-    const firstName = nameParts[0] || '';
-    const lastName = nameParts.slice(1).join(' ') || '';
+    // Resolve first & last names
+    let fName = firstName;
+    let lName = lastName;
+    if (!fName && fullName) {
+      const nameParts = String(fullName).trim().split(/\s+/);
+      fName = nameParts[0] || '';
+      lName = nameParts.slice(1).join(' ') || '';
+    }
 
-    // Standardized SHA-256 PII Hashing
-    const hashedEmail = hashMetaUserData(email);
-    const hashedPhone = hashMetaUserData(cleanPhone);
-    const hashedFirstName = hashMetaUserData(firstName);
-    const hashedLastName = hashMetaUserData(lastName);
-    const hashedCity = hashMetaUserData(city);
-    const hashedState = hashMetaUserData(state);
-    const hashedZipcode = hashMetaUserData(zipcode);
-    const hashedCountry = hashMetaUserData(country === 'India' ? 'in' : country);
+    // Standardized normalization & SHA-256 PII Hashing per Meta CAPI documentation
+    const normEmail = normalizeEmail(email);
+    const normPhone = normalizePhone(phone);
+    const normFirstName = normalizeName(fName);
+    const normLastName = normalizeName(lName);
+    const normCity = normalizeCity(city);
+    const normState = normalizeState(state);
+    const normZip = normalizeZip(zipcode);
+    const normCountry = normalizeCountry(country);
+    const normGender = normalizeGender(gender);
+    const normDob = normalizeDateOfBirth(dateOfBirth);
+    const normExtId = externalId ? String(externalId).trim().toLowerCase() : null;
 
-    // Build comprehensive user_data object for maximum Event Match Quality (EMQ > 8.5)
+    const hashedEmail = sha256Hash(normEmail);
+    const hashedPhone = sha256Hash(normPhone);
+    const hashedFirstName = sha256Hash(normFirstName);
+    const hashedLastName = sha256Hash(normLastName);
+    const hashedCity = sha256Hash(normCity);
+    const hashedState = sha256Hash(normState);
+    const hashedZipcode = sha256Hash(normZip);
+    const hashedCountry = sha256Hash(normCountry);
+    const hashedGender = sha256Hash(normGender);
+    const hashedDob = sha256Hash(normDob);
+    const hashedExtId = sha256Hash(normExtId);
+
+    // Build user_data object:
+    // ALL PII fields must be arrays of SHA-256 hashed strings
     const userDataObj = {};
     if (hashedEmail) userDataObj.em = [hashedEmail];
     if (hashedPhone) userDataObj.ph = [hashedPhone];
@@ -111,7 +253,11 @@ export async function sendMetaCapiEvent({
     if (hashedState) userDataObj.st = [hashedState];
     if (hashedZipcode) userDataObj.zp = [hashedZipcode];
     if (hashedCountry) userDataObj.country = [hashedCountry];
+    if (hashedGender) userDataObj.ge = [hashedGender];
+    if (hashedDob) userDataObj.db = [hashedDob];
+    if (hashedExtId) userDataObj.external_id = [hashedExtId];
 
+    // Technical fields — must NOT be hashed per Meta spec
     if (clientIpAddress) userDataObj.client_ip_address = clientIpAddress;
     if (clientUserAgent) userDataObj.client_user_agent = clientUserAgent;
     if (fbp) userDataObj.fbp = fbp;

@@ -22,6 +22,8 @@ export async function POST(request) {
       request.headers.get('x-real-ip') ||
       null;
     const clientUserAgent = request.headers.get('user-agent') || null;
+    const fbp = request.cookies.get('_fbp')?.value || null;
+    const fbc = request.cookies.get('_fbc')?.value || null;
 
     const result = await sendMetaCapiEvent({
       eventName: 'ViewContent',
@@ -32,6 +34,8 @@ export async function POST(request) {
       eventSourceUrl: `https://www.reenattrends.com/product?id=${productId}`,
       clientIpAddress,
       clientUserAgent,
+      fbp,
+      fbc,
     });
 
     return NextResponse.json({ success: true, capiResult: result });
