@@ -5,6 +5,7 @@ import { useApp } from '../../context/AppContext';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
+import SafeImage from '../../components/SafeImage';
 import { getMetaBrowserData, trackMetaPixel } from '../../utils/metaPixel';
 
 export default function Cart() {
@@ -118,7 +119,7 @@ export default function Cart() {
       const pixelCustomData = {
         content_ids: cart.map(item => String(item.id)),
         content_type: 'product',
-        value: Number(cartSubtotal || 0),
+        value: Number(subtotal || 0),
         currency: 'INR',
         num_items: cart.reduce((acc, item) => acc + (item.qty || 1), 0)
       };
@@ -202,7 +203,7 @@ export default function Cart() {
         const pixelCustomData = {
           content_ids: cart.map(item => String(item.id)),
           content_type: 'product',
-          value: Number(cartSubtotal || 0),
+          value: Number(subtotal || 0),
           currency: 'INR',
           num_items: cart.reduce((acc, item) => acc + (item.qty || 1), 0)
         };
@@ -265,7 +266,7 @@ export default function Cart() {
                 return (
                 <li key={item.id || i} className={`flex items-center gap-3 p-3 bg-white/70 dark:bg-slate-800/80 border shadow-sm rounded-2xl text-slate-855 dark:text-slate-100 transition-colors duration-200 ${isItemPaused ? 'border-amber-500/50 bg-amber-50/20 dark:bg-amber-950/20' : 'border-black/5 dark:border-white/5'}`}>
                   <div className="relative size-[90px] shrink-0">
-                    <img src={item.image} alt={item.name} className={`size-full object-cover rounded-xl shadow-sm border border-black/5 dark:border-white/5 ${isItemPaused ? 'grayscale-[40%]' : ''}`} />
+                    <SafeImage src={item.image} alt={item.name} className={`size-full object-cover rounded-xl shadow-sm border border-black/5 dark:border-white/5 ${isItemPaused ? 'grayscale-[40%]' : ''}`} />
                     {isItemPaused && (
                       <span className="absolute bottom-1 left-1 right-1 bg-amber-500 text-slate-950 text-[8px] font-black text-center py-0.5 rounded shadow">
                         PAUSED
