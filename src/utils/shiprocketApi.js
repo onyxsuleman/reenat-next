@@ -111,6 +111,20 @@ export async function pushOrderToShiprocket(order) {
       const padId = numId ? numId.padStart(4, '0') : '0001';
       const resolvedSku = item.skuId || item.sku || `NSY${padId}`;
 
+      const rawImage = item.image || item.image_front || item.image_url || '';
+      let imageUrl = '';
+      if (rawImage && typeof rawImage === 'string') {
+        if (rawImage.startsWith('http://') || rawImage.startsWith('https://')) {
+          if (rawImage.includes('.sslip.io') || rawImage.includes('supabasekong')) {
+            imageUrl = `https://www.reenattrends.com/api/image-proxy?url=${encodeURIComponent(rawImage)}`;
+          } else {
+            imageUrl = rawImage;
+          }
+        } else {
+          imageUrl = `https://www.reenattrends.com${rawImage.startsWith('/') ? rawImage : `/${rawImage}`}`;
+        }
+      }
+
       return {
         name: item.name || 'Paithani Saree',
         sku: resolvedSku,
@@ -118,7 +132,9 @@ export async function pushOrderToShiprocket(order) {
         selling_price: String(item.price || 949),
         discount: '0',
         tax: '0',
-        hsn: 520811
+        hsn: 520811,
+        image: imageUrl || undefined,
+        product_image: imageUrl || undefined
       };
     });
 

@@ -110,6 +110,8 @@ export async function GET(request) {
           } else if (rawVariantImage.startsWith('http://') || rawVariantImage.startsWith('https://')) {
             if (rawVariantImage.includes('localhost') || rawVariantImage.includes('127.0.0.1')) {
               variantImage = fallbackImage;
+            } else if (rawVariantImage.includes('.sslip.io') || rawVariantImage.includes('supabasekong')) {
+              variantImage = `https://www.reenattrends.com/api/image-proxy?url=${encodeURIComponent(rawVariantImage)}`;
             } else {
               variantImage = rawVariantImage;
             }
@@ -147,6 +149,8 @@ export async function GET(request) {
       let mainImage = mainVariant.image || mainVariant.image_front || mainVariant.image1 || '';
       if (mainImage.startsWith('/')) {
         mainImage = `https://www.reenattrends.com${mainImage}`;
+      } else if (mainImage.includes('.sslip.io') || mainImage.includes('supabasekong')) {
+        mainImage = `https://www.reenattrends.com/api/image-proxy?url=${encodeURIComponent(mainImage)}`;
       } else if (!mainImage || mainImage.includes('localhost') || mainImage.includes('127.0.0.1')) {
         mainImage = fallbackImage;
       }

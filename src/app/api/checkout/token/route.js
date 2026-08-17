@@ -61,6 +61,8 @@ export async function POST(request) {
         if (rawImage.startsWith('http://') || rawImage.startsWith('https://')) {
           if (rawImage.includes('localhost') || rawImage.includes('127.0.0.1')) {
             imageUrl = fallbackImage;
+          } else if (rawImage.includes('.sslip.io') || rawImage.includes('supabasekong')) {
+            imageUrl = `https://www.reenattrends.com/api/image-proxy?url=${encodeURIComponent(rawImage)}`;
           } else {
             imageUrl = rawImage;
           }
