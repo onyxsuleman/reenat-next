@@ -2320,9 +2320,11 @@ export default function CMSConsole() {
 
     // Group products by catalogId
     const catalogGroupsMap = {};
-    products.forEach((p, idx) => {
-      const cid = p.catalogId || 'UNCATALOGED';
+    (products || []).forEach((p, idx) => {
+      const cid = (p.catalogId || p.catalog_id || 'UNCATALOGED').trim().toUpperCase();
       const stockVal = getStockNumber(p);
+      const prodId = p.productId || (p.id ? (Number(p.id) >= 1000000 ? `NSY${p.id}` : `NSY${String(p.id).padStart(4, '0')}`) : 'NSY0001');
+      const sku = p.skuId || p.styleId || p.styleid || '';
       
       if (!catalogGroupsMap[cid]) {
         catalogGroupsMap[cid] = {
@@ -2334,20 +2336,20 @@ export default function CMSConsole() {
           variants: [],
           variantsCount: 0,
           totalStock: 0,
-          minPrice: p.price || 0,
-          maxPrice: p.price || 0,
+          minPrice: Number(p.price) || 0,
+          maxPrice: Number(p.price) || 0,
           estimatedOrders: (parseInt(p.id || 0) * 123) % 1000 + 50, // simulated order history
-          rating: p.rating || 4.2,
+          rating: Number(p.rating) || 4.5,
           createdDate: new Date(Date.now() - (parseInt(p.id || 0) * 24 * 60 * 60 * 1000)), // simulated date
           firstVariantGlobalIndex: idx
         };
       }
       
-      catalogGroupsMap[cid].variants.push({ ...p, globalIndex: idx, stockNumber: stockVal });
+      catalogGroupsMap[cid].variants.push({ ...p, productId: prodId, skuId: sku, globalIndex: idx, stockNumber: stockVal });
       catalogGroupsMap[cid].variantsCount += 1;
       catalogGroupsMap[cid].totalStock += stockVal;
-      catalogGroupsMap[cid].minPrice = Math.min(catalogGroupsMap[cid].minPrice, p.price || 0);
-      catalogGroupsMap[cid].maxPrice = Math.max(catalogGroupsMap[cid].maxPrice, p.price || 0);
+      catalogGroupsMap[cid].minPrice = Math.min(catalogGroupsMap[cid].minPrice, Number(p.price) || 0);
+      catalogGroupsMap[cid].maxPrice = Math.max(catalogGroupsMap[cid].maxPrice, Number(p.price) || 0);
     });
 
     const allCatalogsCount = Object.keys(catalogGroupsMap).length;
@@ -2365,14 +2367,15 @@ export default function CMSConsole() {
       const query = searchQuery.toLowerCase().trim();
       if (!query) return true;
       return (
-        group.catalogId.toLowerCase().includes(query) ||
-        group.name.toLowerCase().includes(query) ||
-        group.weaveType.toLowerCase().includes(query) ||
-        group.origin.toLowerCase().includes(query) ||
+        (group.catalogId || '').toLowerCase().includes(query) ||
+        (group.name || '').toLowerCase().includes(query) ||
+        (group.weaveType || '').toLowerCase().includes(query) ||
+        (group.origin || '').toLowerCase().includes(query) ||
         group.variants.some(v => 
-          (v.skuId && v.skuId.toLowerCase().includes(query)) ||
-          (v.productId && v.productId.toLowerCase().includes(query)) ||
-          (v.productId && v.productId.replace('NYS', 'NSY').toLowerCase().includes(query))
+          (v.skuId && String(v.skuId).toLowerCase().includes(query)) ||
+          (v.productId && String(v.productId).toLowerCase().includes(query)) ||
+          (v.productId && String(v.productId).replace('NYS', 'NSY').toLowerCase().includes(query)) ||
+          (v.id && String(v.id).includes(query))
         )
       );
     });
@@ -2661,7 +2664,7 @@ export default function CMSConsole() {
                         <p className="text-[10px] text-slate-450 dark:text-slate-550 mt-1.5 flex items-center gap-3">
                           <span>📦 <strong>{selectedCatalog.estimatedOrders} Orders</strong> in last 30 days</span>
                           <span>•</span>
-                          <span className="bg-emerald-500/10 text-emerald-650 dark:text-emerald-450 px-1.5 py-0.5 rounded text-[9px] font-black">⭐ {selectedCatalog.rating.toFixed(1)} Rating</span>
+                          <span className="bg-emerald-500/10 text-emerald-650 dark:text-emerald-450 px-1.5 py-0.5 rounded text-[9px] font-black">⭐ {Number(selectedCatalog.rating || 4.5).toFixed(1)} Rating</span>
                         </p>
                       </div>
                       <div className="flex gap-2 shrink-0 flex-wrap">
@@ -2722,11 +2725,12 @@ export default function CMSConsole() {
                             const sortedVariants = getSortedVariants(selectedCatalog.variants);
                             const displayVariants = query 
                               ? sortedVariants.filter(v => 
-                                  v.name.toLowerCase().includes(query) ||
+                                  (v.name && v.name.toLowerCase().includes(query)) ||
                                   (v.color && v.color.toLowerCase().includes(query)) ||
-                                  (v.skuId && v.skuId.toLowerCase().includes(query)) ||
-                                  (v.productId && v.productId.toLowerCase().includes(query)) ||
-                                  (v.productId && v.productId.replace('NYS', 'NSY').toLowerCase().includes(query))
+                                  (v.skuId && String(v.skuId).toLowerCase().includes(query)) ||
+                                  (v.productId && String(v.productId).toLowerCase().includes(query)) ||
+                                  (v.productId && String(v.productId).replace('NYS', 'NSY').toLowerCase().includes(query)) ||
+                                  (v.id && String(v.id).includes(query))
                                 )
                               : sortedVariants;
 
@@ -2794,12 +2798,12 @@ export default function CMSConsole() {
 
                                 {/* Product ID */}
                                 <td className="p-4 font-mono font-bold text-slate-455 dark:text-slate-550 select-text">
-                                  {item.productId.replace('NYS', 'NSY')}
+                                  {item.productId ? String(item.productId).replace('NYS', 'NSY') : (item.id ? `NSY${String(item.id).padStart(4, '0')}` : 'N/A')}
                                 </td>
 
                                 {/* SKU ID */}
                                 <td className="p-4 font-mono text-slate-500 dark:text-slate-450 select-text">
-                                  {item.skuId || 'N/A'}
+                                  {item.skuId || item.styleId || item.styleid || 'N/A'}
                                 </td>
 
                                 {/* Price */}

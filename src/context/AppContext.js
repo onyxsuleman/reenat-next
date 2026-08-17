@@ -395,6 +395,8 @@ const mapRawProduct = (raw) => ({
   linked_to: raw.linked_to || raw.linkedTo || '',
   catalogId: raw.catalog_id || raw.catalogId || '',
   catalog_id: raw.catalog_id || raw.catalogId || '',
+  productId: raw.productId || (raw.id ? (Number(raw.id) >= 1000000 ? `NSY${raw.id}` : `NSY${String(raw.id).padStart(4, '0')}`) : ''),
+  skuId: raw.skuId || raw.styleid || raw.styleId || '',
   rating: Number(raw.rating) || 4.5
 });
 
