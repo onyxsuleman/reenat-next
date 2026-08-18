@@ -11,14 +11,38 @@ export async function POST(request) {
       email, 
       phone, 
       address, 
+      city,
+      state,
+      pincode,
       cart, 
       promoCode, 
       paymentMethod 
     } = body;
 
-    // 1. Basic Field Validation
-    if (!fullName || !email || !phone || !address || !cart || !Array.isArray(cart) || cart.length === 0) {
-      return NextResponse.json({ error: 'Missing or invalid checkout fields.' }, { status: 400 });
+    const resolvedCity = (city || body.shippingCity || body.shipping_city || '').trim();
+    const resolvedState = (state || body.shippingState || body.shipping_state || '').trim();
+    const resolvedPincode = (pincode || body.shippingPincode || body.shipping_pincode || '').trim();
+    const resolvedAddress = (address || body.shippingAddress || body.shipping_line1 || '').trim();
+    const resolvedFullName = (fullName || body.name || '').trim();
+    const resolvedEmail = (email || '').trim();
+    const resolvedPhone = (phone || '').trim();
+
+    // 1. Strict Field Validation (Full shipping address with city, state, and pincode is required)
+    if (
+      !resolvedFullName || 
+      !resolvedEmail || 
+      !resolvedPhone || 
+      !resolvedAddress || 
+      !resolvedCity || 
+      !resolvedState || 
+      !resolvedPincode || 
+      !cart || 
+      !Array.isArray(cart) || 
+      cart.length === 0
+    ) {
+      return NextResponse.json({ 
+        error: 'Missing or invalid checkout fields. Full address including City, State, and Pincode is required.' 
+      }, { status: 400 });
     }
 
     // 3. Connect to Supabase
@@ -115,35 +139,52 @@ export async function POST(request) {
     const tax = subtotal * taxRate;
     const total = subtotal + tax - discountAmount;
 
-    // 7. Deduplication check: Prevent duplicate orders within 60 seconds
-    const oneMinuteAgo = new Date(Date.now() - 60000).toISOString();
+    // 7. Deduplication check: Prevent duplicate orders within a short window.
+    // Deliberately NOT matching on total/quantity — a duplicate caused by a
+    // differing cart state (retry, double-submit, fallback firing alongside
+    // a successful Fastrr order) will usually have a DIFFERENT total, which
+    // is exactly the case this check needs to catch, not exclude.
+    const twoMinutesAgo = new Date(Date.now() - 120000).toISOString();
     const roundedTotal = Math.round(total);
     const { data: existingLocalOrders } = await supabase
       .from('orders')
-      .select('id, created_at')
+      .select('id, created_at, total, order_status, shiprocket_order_id')
       .eq('phone', phone.trim())
-      .eq('total', roundedTotal)
-      .gte('created_at', oneMinuteAgo)
+      .gte('created_at', twoMinutesAgo)
       .limit(1);
 
     let order = null;
+    let isDuplicate = false;
 
     if (existingLocalOrders && existingLocalOrders.length > 0) {
-      console.log(`Duplicate local checkout detected (Order #${existingLocalOrders[0].id}). Returning existing record.`);
+      isDuplicate = true;
+      console.warn(`Duplicate checkout attempt detected for phone ${phone.trim()} within 2 minutes (existing Order #${existingLocalOrders[0].id}, total ₹${existingLocalOrders[0].total}). Skipping new order creation and re-push to Shiprocket.`);
       const { data: fetchedData } = await supabase
         .from('orders')
         .select('*')
         .eq('id', existingLocalOrders[0].id);
       order = fetchedData;
+
+      // Duplicate: return the existing order immediately, skip stock
+      // decrement, skip Meta CAPI, and — critically — skip the Shiprocket
+      // push below, since that existing order was already pushed once.
+      const createdOrder = order && order[0] ? order[0] : null;
+      return NextResponse.json({ success: true, order: createdOrder, duplicate: true });
     } else {
+      const fullCombinedAddress = `${resolvedAddress}, ${resolvedCity}, ${resolvedState} - ${resolvedPincode}`.replace(/\s+/g, ' ').trim();
       const paymentStatus = paymentMethod === 'Pay Online' ? 'paid' : 'pending';
       const { data: newOrder, error: insertErr } = await supabase
         .from('orders')
         .insert({
-          customer_name: fullName.trim(),
-          email: email.trim(),
-          phone: phone.trim(),
-          address: address.trim(),
+          customer_name: resolvedFullName,
+          email: resolvedEmail,
+          phone: resolvedPhone,
+          address: fullCombinedAddress,
+          shipping_line1: resolvedAddress,
+          shipping_city: resolvedCity,
+          shipping_state: resolvedState,
+          shipping_pincode: resolvedPincode,
+          shipping_country: 'India',
           subtotal: Math.round(subtotal),
           tax: Math.round(tax),
           discount: Math.round(discountAmount),
@@ -197,12 +238,12 @@ export async function POST(request) {
       sendMetaCapiEvent({
         eventName: 'Purchase',
         eventId: eventId,
-        email: email.trim(),
-        phone: phone.trim(),
-        fullName: fullName.trim(),
-        city: '',
-        state: '',
-        zipcode: '',
+        email: resolvedEmail,
+        phone: resolvedPhone,
+        fullName: resolvedFullName,
+        city: resolvedCity,
+        state: resolvedState,
+        zipcode: resolvedPincode,
         country: 'India',
         value: createdOrder.total || roundedTotal,
         currency: 'INR',
@@ -220,12 +261,12 @@ export async function POST(request) {
       sendMetaCapiEvent({
         eventName: 'AddPaymentInfo',
         eventId: addPaymentEventId,
-        email: email.trim(),
-        phone: phone.trim(),
-        fullName: fullName.trim(),
-        city: '',
-        state: '',
-        zipcode: '',
+        email: resolvedEmail,
+        phone: resolvedPhone,
+        fullName: resolvedFullName,
+        city: resolvedCity,
+        state: resolvedState,
+        zipcode: resolvedPincode,
         country: 'India',
         value: createdOrder.total || roundedTotal,
         currency: 'INR',

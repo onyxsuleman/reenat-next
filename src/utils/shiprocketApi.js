@@ -3,6 +3,7 @@
  * Pushes storefront orders to Shiprocket Shipping Dashboard (app.shiprocket.in)
  */
 
+import { sanitizeSku } from './skuUtils.js';
 import { getSupabaseServerClient } from './supabaseServer.js';
 
 let cachedToken = null;
@@ -96,9 +97,18 @@ export async function pushOrderToShiprocket(order) {
 
     const rawAddress = order.shipping_line1 || order.address || 'Address details on record';
     const address = String(rawAddress).trim().slice(0, 180);
-    const city = order.shipping_city || 'Nashik';
-    const state = order.shipping_state || 'Maharashtra';
-    const pincode = order.shipping_pincode || '423203';
+    const city = order.shipping_city;
+    const state = order.shipping_state;
+    const pincode = order.shipping_pincode;
+
+    if (!city || !state || !pincode) {
+      console.error(`Refusing to push order ${order.id} to Shiprocket — missing shipping address fields (city: ${city}, state: ${state}, pincode: ${pincode}). This order needs manual review before shipping.`);
+      return {
+        success: false,
+        error: 'Missing required shipping address fields (city/state/pincode) — order NOT pushed to Shiprocket to prevent shipping to the wrong address.'
+      };
+    }
+
     const country = order.shipping_country || 'India';
     const email = order.email || 'customer@reenattrends.com';
 
@@ -109,7 +119,7 @@ export async function pushOrderToShiprocket(order) {
     const orderItems = items.map(item => {
       const numId = String(item.id || '').replace(/\D/g, '');
       const padId = numId ? numId.padStart(4, '0') : '0001';
-      const resolvedSku = item.skuId || item.sku || `NSY${padId}`;
+      const resolvedSku = sanitizeSku(item.skuId || item.sku, item.id);
 
       const rawImage = item.image || item.image_front || item.image_url || '';
       let imageUrl = '';

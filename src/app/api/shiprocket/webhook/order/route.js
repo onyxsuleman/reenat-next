@@ -285,10 +285,21 @@ export async function POST(request) {
     if (shiprocketOrderId && shiprocketOrderId.length > 0) {
       existingQuery = existingQuery.eq('shiprocket_order_id', shiprocketOrderId);
     } else if (phone && phone.trim()) {
-      existingQuery = existingQuery.eq('phone', phone.trim()).eq('total', total);
+      existingQuery = existingQuery.eq('phone', phone.trim());
     }
 
     const { data: existingOrders } = await existingQuery.limit(1);
+    const isDuplicateRetry = !!(
+      existingOrders &&
+      existingOrders.length > 0 &&
+      (
+        (shiprocketOrderId && String(existingOrders[0].shiprocket_order_id) === String(shiprocketOrderId)) ||
+        (phone && phone.trim())
+      )
+    );
+    if (isDuplicateRetry) {
+      console.warn(`Duplicate webhook retry detected for Shiprocket Order ID ${shiprocketOrderId || existingOrders[0]?.id}. Skipping duplicate line item inserts and stock decrement.`);
+    }
     let legacyInsertedOrder = null;
 
     if (existingOrders && existingOrders.length > 0) {
@@ -363,50 +374,52 @@ export async function POST(request) {
       if (!mainErr && newCheckoutOrder && newCheckoutOrder[0]) {
         const checkoutOrderId = newCheckoutOrder[0].id;
 
-        // Write Line Items to checkout_order_items
-        const itemRows = orderItems.map(item => ({
-          order_id: checkoutOrderId,
-          product_id: typeof item.id === 'number' ? item.id : null,
-          sku: item.skuId || item.sku || 'N/A',
-          variant_id: item.variantId || '',
-          product_name: item.name || 'Saree',
-          image_url: item.image || '',
-          color: item.color || '',
-          unit_price: Number(item.price || 0),
-          quantity: Number(item.qty || 1),
-          total_price: Number((item.price || 0) * (item.qty || 1))
-        }));
+        // Write Line Items, Address, and Shipment Metadata only on fresh orders (not retries)
+        if (!isDuplicateRetry) {
+          const itemRows = orderItems.map(item => ({
+            order_id: checkoutOrderId,
+            product_id: typeof item.id === 'number' ? item.id : null,
+            sku: item.skuId || item.sku || 'N/A',
+            variant_id: item.variantId || '',
+            product_name: item.name || 'Saree',
+            image_url: item.image || '',
+            color: item.color || '',
+            unit_price: Number(item.price || 0),
+            quantity: Number(item.qty || 1),
+            total_price: Number((item.price || 0) * (item.qty || 1))
+          }));
 
-        if (itemRows.length > 0) {
-          await supabase.from('checkout_order_items').insert(itemRows);
+          if (itemRows.length > 0) {
+            await supabase.from('checkout_order_items').insert(itemRows);
+          }
+
+          // Write Address to checkout_order_addresses
+          await supabase.from('checkout_order_addresses').insert({
+            order_id: checkoutOrderId,
+            address_type: 'shipping',
+            full_name: customerName,
+            phone: phone.trim(),
+            email: email.trim(),
+            address_line1: shippingLine1,
+            address_line2: shippingLine2,
+            city: shippingCity,
+            state: shippingState,
+            pincode: shippingPincode,
+            country: shippingCountry
+          });
+
+          // Write Shipment Metadata to checkout_shipments
+          const shipmentData = payload.shipment_details || {};
+          await supabase.from('checkout_shipments').insert({
+            order_id: checkoutOrderId,
+            shipment_id: String(shipmentData.shipment_id || shiprocketOrderId),
+            courier_name: shipmentData.courier_name || '',
+            awb_code: shipmentData.awb_code || '',
+            pickup_location: process.env.SHIPROCKET_PICKUP_LOCATION || 'work',
+            tracking_status: shipmentData.tracking_status || 'MANIFESTED',
+            tracking_url: shipmentData.tracking_url || ''
+          });
         }
-
-        // Write Address to checkout_order_addresses
-        await supabase.from('checkout_order_addresses').insert({
-          order_id: checkoutOrderId,
-          address_type: 'shipping',
-          full_name: customerName,
-          phone: phone.trim(),
-          email: email.trim(),
-          address_line1: shippingLine1,
-          address_line2: shippingLine2,
-          city: shippingCity,
-          state: shippingState,
-          pincode: shippingPincode,
-          country: shippingCountry
-        });
-
-        // Write Shipment Metadata to checkout_shipments
-        const shipmentData = payload.shipment_details || {};
-        await supabase.from('checkout_shipments').insert({
-          order_id: checkoutOrderId,
-          shipment_id: String(shipmentData.shipment_id || shiprocketOrderId),
-          courier_name: shipmentData.courier_name || '',
-          awb_code: shipmentData.awb_code || '',
-          pickup_location: process.env.SHIPROCKET_PICKUP_LOCATION || 'work',
-          tracking_status: shipmentData.tracking_status || 'MANIFESTED',
-          tracking_url: shipmentData.tracking_url || ''
-        });
 
         console.log(`✅ 4-Table Normalized Order Save Successful! (Checkout Order UUID: ${checkoutOrderId})`);
       }
@@ -414,28 +427,30 @@ export async function POST(request) {
       console.warn('4-Table normalized write fallback warning (table may not exist yet):', normErr.message);
     }
 
-    // 3. Stock Control Decrement
-    for (const item of orderItems) {
-      if (item.id && !String(item.id).startsWith('temp-')) {
-        const { data: product } = await supabase
-          .from('products')
-          .select('stock_qty')
-          .eq('id', item.id)
-          .single();
-
-        if (product) {
-          const currentStock = Number(product.stock_qty || 10);
-          const newStock = Math.max(0, currentStock - item.qty);
-
-          await supabase
+    // 3. Stock Control Decrement (Only for fresh orders to prevent double stock reduction on webhook retries)
+    if (!isDuplicateRetry) {
+      for (const item of orderItems) {
+        if (item.id && !String(item.id).startsWith('temp-')) {
+          const { data: product } = await supabase
             .from('products')
-            .update({ stock_qty: newStock })
-            .eq('id', item.id);
+            .select('stock_qty')
+            .eq('id', item.id)
+            .single();
+
+          if (product) {
+            const currentStock = Number(product.stock_qty || 10);
+            const newStock = Math.max(0, currentStock - item.qty);
+
+            await supabase
+              .from('products')
+              .update({ stock_qty: newStock })
+              .eq('id', item.id);
+          }
         }
       }
     }
 
-    // Send Meta Conversions API (CAPI) Server-Side Purchase Event
+    // Send Meta Conversions API (CAPI) Server-Side Purchase Event (Only once per new order)
     try {
       const eventId = `purchase_${shiprocketOrderId || fastrrOrderId}`;
       sendMetaCapiEvent({
