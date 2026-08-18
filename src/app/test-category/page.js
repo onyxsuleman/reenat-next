@@ -426,7 +426,7 @@ export default function TestCategoryPage() {
       {/* Hero Header Section */}
       <header className="max-w-5xl mx-auto bg-[#0c1e44]/95 text-white px-3.5 pb-3.5 pt-8 sm:pt-14 rounded-tl-4xl rounded-b-4xl relative z-0 overflow-hidden glass page-hero">
         <div className="w-full flex justify-center overflow-hidden py-6 sm:py-8 select-none">
-          <span className="font-anton font-black text-[11.5vw] sm:text-[12vw] md:text-[90px] leading-none tracking-wider text-white/95 dark:text-[#f1bf0a] uppercase text-center drop-shadow-md inline-block select-none transform scale-x-135 scale-y-135 sm:scale-x-145 sm:scale-y-140 md:scale-x-160 md:scale-y-150 origin-center hero-title-span w-auto">
+          <span className="font-anton font-black text-[11.5vw] sm:text-[12vw] md:text-[90px] leading-none tracking-wider text-white/95 dark:text-[#f1bf0a] uppercase text-center drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)] inline-block select-none transform scale-x-135 scale-y-135 sm:scale-x-145 sm:scale-y-140 md:scale-x-160 md:scale-y-150 origin-center hero-title-span w-auto">
              REENAT
            </span>
         </div>

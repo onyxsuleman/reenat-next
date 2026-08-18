@@ -126,7 +126,7 @@ export default function Home() {
       {/* Hero Header Section */}
       <header className="max-w-5xl mx-auto bg-[#0c1e44]/95 text-white px-3.5 pb-3.5 pt-8 sm:pt-14 rounded-tl-4xl rounded-b-4xl relative z-10 glass page-hero">
         <div className="w-full flex justify-center overflow-hidden py-6 sm:py-8 select-none">
-          <span className="font-anton font-black text-[11.5vw] sm:text-[12vw] md:text-[90px] leading-none tracking-wider text-white/95 dark:text-[#f1bf0a] uppercase text-center drop-shadow-md inline-block select-none transform scale-x-135 scale-y-135 sm:scale-x-145 sm:scale-y-140 md:scale-x-160 md:scale-y-150 origin-center hero-title-span w-auto">
+          <span className="font-anton font-black text-[11.5vw] sm:text-[12vw] md:text-[90px] leading-none tracking-wider text-white/95 dark:text-[#f1bf0a] uppercase text-center drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)] inline-block select-none transform scale-x-135 scale-y-135 sm:scale-x-145 sm:scale-y-140 md:scale-x-160 md:scale-y-150 origin-center hero-title-span w-auto">
             REENAT
           </span>
         </div>
@@ -682,15 +682,15 @@ export default function Home() {
           <h2 className="font-anton text-2xl sm:text-4xl tracking-wider text-slate-900 dark:text-white uppercase">
             EXPLORE THE COLLECTION
           </h2>
-          <a 
-            href="#product-list" 
+          <Link 
+            href="/shop" 
             className="inline-flex items-center gap-2 bg-[#F1BF0A] hover:bg-yellow-500 text-slate-950 font-bold text-xs sm:text-sm py-2 px-4 rounded-full transition-transform hover:scale-105 active:scale-95 shadow-md shrink-0 hover:no-underline"
           >
             <span>Explore Collection</span>
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-4">
               <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 8.25 21 12m0 0-3.75 3.75M21 12H3" />
             </svg>
-          </a>
+          </Link>
         </div>
 
         {/* Product Grid */}

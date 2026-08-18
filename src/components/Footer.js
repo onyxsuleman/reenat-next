@@ -8,8 +8,9 @@ export default function Footer() {
     <footer className="max-w-5xl w-full mx-auto bg-[#183fad] text-white px-4 sm:px-9.5 pb-4 mt-20 pt-6 sm:pt-10 rounded-t-4xl relative z-0 overflow-hidden glass">
       <nav className="-mb-6 flex flex-wrap justify-center gap-x-6 gap-y-3 text-xs md:text-sm/6 max-w-4xl mx-auto px-4">
         <Link href="/" className="hover:text-[#F1BF0A] transition-colors">Home</Link>
+        <Link href="/shop" className="hover:text-[#F1BF0A] transition-colors">Shop All</Link>
         <Link href="/about" className="hover:text-[#F1BF0A] transition-colors">About</Link>
-        <Link href="/new-arrivals" className="hover:text-[#F1BF0A] transition-colors">Collection</Link>
+        <Link href="/new-arrivals" className="hover:text-[#F1BF0A] transition-colors">New Arrivals</Link>
         <a 
           href="https://wa.me/919028571571?text=Hi%2C%20I%27m%20interested%20in%20wholesale%20buying%20from%20Reenat%20Trends." 
           target="_blank" 

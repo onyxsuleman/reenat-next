@@ -449,9 +449,10 @@ const defaultCategoryCards = [
 ];
 
 const defaultCollectionCards = [
-  { name: "SAREES", image: "/saree_kanjivaram.png", link: "#product-list" },
-  { name: "POPULAR THIS WEEK", image: "/saree_chanderi.png", link: "#product-list" },
-  { name: "TRENDING STYLES", image: "/saree_banarasi.png", link: "#product-list" }
+  { name: "PAITHANI", image: "/saree_banarasi.png", link: "/shop?collection=Paithani" },
+  { name: "HATHI RAJA", image: "/saree_kanjivaram.png", link: "/shop?collection=Hathi Raja" },
+  { name: "ELEPHANT", image: "/saree_chanderi.png", link: "/shop?collection=Elephant" },
+  { name: "MEENA MOR", image: "/saree_hero.png", link: "/shop?collection=Meena Mor" }
 ];
 
 const defaultCatalogPositions = [
