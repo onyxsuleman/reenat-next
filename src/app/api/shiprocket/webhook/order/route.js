@@ -29,18 +29,6 @@ export async function POST(request) {
     }
 
     const payload = rawBody ? JSON.parse(rawBody) : {};
-    const supabase = getSupabaseServerClient();
-
-    // 0. Raw Payload Logging for inspection of Fastrr field structure
-    try {
-      await supabase.from('webhook_raw_logs').insert({
-        source: 'fastrr_order_webhook',
-        raw_payload: payload,
-        received_at: new Date().toISOString()
-      });
-    } catch (logErr) {
-      console.warn('Raw webhook log insert failed (non-fatal):', logErr.message);
-    }
 
     // Validation ping check
     if (Object.keys(payload).length === 0) {
@@ -55,47 +43,28 @@ export async function POST(request) {
     const shiprocketOrderId = String(payload.shiprocket_order_id || payload.order_id || payload.id || payload.transaction_id || '');
     const fastrrOrderId = String(payload.fastrr_order_id || payload.fastrr_id || `FAST-${shiprocketOrderId || Date.now()}`);
     
-    const cleanStr = (val) => (typeof val === 'string' ? val.trim() : (typeof val === 'number' ? String(val).trim() : ''));
+    const customerName = payload.customer_name || 
+                         payload.billing_name || 
+                         (customerDetails.first_name ? `${customerDetails.first_name} ${customerDetails.last_name || ''}`.trim() : '') ||
+                         (shippingAddress && typeof shippingAddress === 'object' ? shippingAddress.name || (shippingAddress.first_name ? `${shippingAddress.first_name} ${shippingAddress.last_name || ''}`.trim() : '') : '') ||
+                         (billingAddress.name ? billingAddress.name : '') || 
+                         'Customer';
 
-    // Customer Name extraction fallbacks
-    const customerName = cleanStr(
-      payload.customer_name || 
-      payload.billing_name || 
-      (customerDetails.first_name ? `${customerDetails.first_name} ${customerDetails.last_name || ''}`.trim() : '') ||
-      customerDetails.name ||
-      customerDetails.full_name ||
-      (shippingAddress && typeof shippingAddress === 'object' ? shippingAddress.name || (shippingAddress.first_name ? `${shippingAddress.first_name} ${shippingAddress.last_name || ''}`.trim() : '') : '') ||
-      (billingAddress && typeof billingAddress === 'object' ? billingAddress.name || (billingAddress.first_name ? `${billingAddress.first_name} ${billingAddress.last_name || ''}`.trim() : '') : '') || 
-      'Customer'
-    );
+    const email = payload.customer_email || 
+                  payload.email || 
+                  customerDetails.email || 
+                  (shippingAddress && typeof shippingAddress === 'object' ? shippingAddress.email : '') || 
+                  billingAddress.email || 
+                  '';
 
-    // Email extraction fallbacks
-    const email = cleanStr(
-      payload.customer_email || 
-      payload.email || 
-      customerDetails.email || 
-      customerDetails.email_id ||
-      customerDetails.customer_email ||
-      (shippingAddress && typeof shippingAddress === 'object' ? (shippingAddress.email || shippingAddress.email_id) : '') || 
-      (billingAddress && typeof billingAddress === 'object' ? (billingAddress.email || billingAddress.email_id) : '') || 
-      (payload.payment_info && payload.payment_info.email) ||
-      (payload.user && payload.user.email) ||
-      ''
-    );
+    const phone = payload.customer_phone || 
+                  payload.phone || 
+                  customerDetails.phone || 
+                  (shippingAddress && typeof shippingAddress === 'object' ? shippingAddress.phone : '') || 
+                  billingAddress.phone || 
+                  '';
 
-    // Phone extraction fallbacks
-    const phone = cleanStr(
-      payload.customer_phone || 
-      payload.phone || 
-      customerDetails.phone || 
-      customerDetails.phone_number ||
-      customerDetails.mobile ||
-      (shippingAddress && typeof shippingAddress === 'object' ? (shippingAddress.phone || shippingAddress.mobile) : '') || 
-      (billingAddress && typeof billingAddress === 'object' ? (billingAddress.phone || billingAddress.mobile) : '') || 
-      ''
-    );
-
-    // Structured Address Fields extraction with comprehensive Fastrr / Shopify key coverage
+    // Structured Address Fields
     let shippingLine1 = '';
     let shippingLine2 = '';
     let shippingCity = '';
@@ -103,125 +72,25 @@ export async function POST(request) {
     let shippingPincode = '';
     let shippingCountry = 'India';
 
+    const cleanStr = (val) => (typeof val === 'string' ? val : (typeof val === 'number' ? String(val) : ''));
+
     if (shippingAddress && typeof shippingAddress === 'object') {
-      shippingLine1 = cleanStr(
-        shippingAddress.address1 || 
-        shippingAddress.line1 || 
-        shippingAddress.address || 
-        shippingAddress.street ||
-        shippingAddress.house_no ||
-        ''
-      );
-      shippingLine2 = cleanStr(
-        shippingAddress.address2 || 
-        shippingAddress.line2 || 
-        shippingAddress.landmark || 
-        shippingAddress.area || 
-        shippingAddress.village || 
-        shippingAddress.sub_district ||
-        shippingAddress.company || 
-        ''
-      );
-      shippingCity = cleanStr(
-        shippingAddress.city || 
-        shippingAddress.district || 
-        shippingAddress.district_city || 
-        shippingAddress.city_name || 
-        shippingAddress.town || 
-        ''
-      );
-      shippingState = cleanStr(
-        shippingAddress.state || 
-        shippingAddress.province || 
-        shippingAddress.state_name || 
-        shippingAddress.province_code || 
-        shippingAddress.zone || 
-        shippingAddress.region ||
-        ''
-      );
-      shippingPincode = cleanStr(
-        shippingAddress.zip || 
-        shippingAddress.pincode || 
-        shippingAddress.postal_code || 
-        shippingAddress.postcode || 
-        shippingAddress.zipcode || 
-        ''
-      );
-      shippingCountry = cleanStr(
-        shippingAddress.country || 
-        shippingAddress.country_name || 
-        shippingAddress.country_code || 
-        'India'
-      );
+      shippingLine1 = cleanStr(shippingAddress.address1 || shippingAddress.line1);
+      shippingLine2 = cleanStr(shippingAddress.address2 || shippingAddress.line2);
+      shippingCity = cleanStr(shippingAddress.city);
+      shippingState = cleanStr(shippingAddress.state);
+      shippingPincode = cleanStr(shippingAddress.zip || shippingAddress.pincode);
+      shippingCountry = cleanStr(shippingAddress.country) || 'India';
     } else if (typeof shippingAddress === 'string') {
-      shippingLine1 = cleanStr(shippingAddress);
+      shippingLine1 = shippingAddress;
+      shippingLine2 = cleanStr(payload.shipping_address_2 || payload.shipping_line2);
+      shippingCity = cleanStr(payload.shipping_city || payload.city);
+      shippingState = cleanStr(payload.shipping_state || payload.state);
+      shippingPincode = cleanStr(payload.shipping_pincode || payload.pincode);
+      shippingCountry = cleanStr(payload.shipping_country || payload.country) || 'India';
     }
-
-    // Top-level / Billing fallbacks if any field is still empty
-    if (!shippingLine1) {
-      shippingLine1 = cleanStr(
-        payload.shipping_address_1 || 
-        payload.shipping_line1 || 
-        payload.address1 || 
-        payload.address || 
-        (billingAddress && typeof billingAddress === 'object' ? (billingAddress.address1 || billingAddress.line1) : '')
-      );
-    }
-    if (!shippingLine2) {
-      shippingLine2 = cleanStr(
-        payload.shipping_address_2 || 
-        payload.shipping_line2 || 
-        payload.address2 || 
-        payload.landmark || 
-        (billingAddress && typeof billingAddress === 'object' ? (billingAddress.address2 || billingAddress.line2 || billingAddress.landmark) : '')
-      );
-    }
-    if (!shippingCity) {
-      shippingCity = cleanStr(
-        payload.shipping_city || 
-        payload.city || 
-        payload.district || 
-        payload.district_city || 
-        (billingAddress && typeof billingAddress === 'object' ? (billingAddress.city || billingAddress.district) : '')
-      );
-    }
-    if (!shippingState) {
-      shippingState = cleanStr(
-        payload.shipping_state || 
-        payload.state || 
-        payload.province || 
-        payload.state_name || 
-        payload.province_code || 
-        payload.region || 
-        (billingAddress && typeof billingAddress === 'object' ? (billingAddress.state || billingAddress.province || billingAddress.state_name) : '')
-      );
-    }
-    if (!shippingPincode) {
-      shippingPincode = cleanStr(
-        payload.shipping_pincode || 
-        payload.pincode || 
-        payload.zip || 
-        payload.postal_code || 
-        payload.postcode || 
-        (billingAddress && typeof billingAddress === 'object' ? (billingAddress.zip || billingAddress.pincode || billingAddress.postal_code) : '')
-      );
-    }
-
-    // Build human-readable full address
-    const addressParts = [
-      shippingLine1, 
-      shippingLine2, 
-      shippingCity, 
-      shippingState ? `${shippingState}${shippingPincode ? ` - ${shippingPincode}` : ''}` : shippingPincode, 
-      shippingCountry
-    ].filter(Boolean);
-
-    const fullAddress = addressParts.join(', ').replace(/\s+/g, ' ').trim();
-
-    // Check if critical shipping fields are still missing and log a clear warning
-    if (!shippingCity || !shippingState || !shippingPincode) {
-      console.warn(`[Fastrr Webhook Extraction Alert] Order ${fastrrOrderId} has missing address components (city: "${shippingCity}", state: "${shippingState}", pincode: "${shippingPincode}"). Full address: "${fullAddress}". Staff can edit in CMS before pushing to Shiprocket.`);
-    }
+    
+    const fullAddress = `${shippingLine1} ${shippingLine2}, ${shippingCity}, ${shippingState} - ${shippingPincode}, ${shippingCountry}`.replace(/\s+/g, ' ').replace(/^[\s,]+|[\s,]+$/g, '').trim();
 
     // Financials
     const total = Math.round(Number(payload.total_price || payload.total || 0));
@@ -255,6 +124,8 @@ export async function POST(request) {
     const paymentStatus = isCod ? (rawPaymentStatus || 'pending') : (rawPaymentStatus || 'paid');
     const financialStatus = paymentStatus === 'paid' ? 'paid' : 'pending';
     const orderStatus = payload.order_status || 'Pending';
+
+    const supabase = getSupabaseServerClient();
 
     // Parse Line Items with Self-Healing Product Lookup by Unique Product ID (NSY00xx) or SKU
     const rawItems = payload.items || payload.line_items || [];
@@ -414,21 +285,10 @@ export async function POST(request) {
     if (shiprocketOrderId && shiprocketOrderId.length > 0) {
       existingQuery = existingQuery.eq('shiprocket_order_id', shiprocketOrderId);
     } else if (phone && phone.trim()) {
-      existingQuery = existingQuery.eq('phone', phone.trim());
+      existingQuery = existingQuery.eq('phone', phone.trim()).eq('total', total);
     }
 
     const { data: existingOrders } = await existingQuery.limit(1);
-    const isDuplicateRetry = !!(
-      existingOrders &&
-      existingOrders.length > 0 &&
-      (
-        (shiprocketOrderId && String(existingOrders[0].shiprocket_order_id) === String(shiprocketOrderId)) ||
-        (phone && phone.trim())
-      )
-    );
-    if (isDuplicateRetry) {
-      console.warn(`Duplicate webhook retry detected for Shiprocket Order ID ${shiprocketOrderId || existingOrders[0]?.id}. Skipping duplicate line item inserts and stock decrement.`);
-    }
     let legacyInsertedOrder = null;
 
     if (existingOrders && existingOrders.length > 0) {
@@ -503,52 +363,50 @@ export async function POST(request) {
       if (!mainErr && newCheckoutOrder && newCheckoutOrder[0]) {
         const checkoutOrderId = newCheckoutOrder[0].id;
 
-        // Write Line Items, Address, and Shipment Metadata only on fresh orders (not retries)
-        if (!isDuplicateRetry) {
-          const itemRows = orderItems.map(item => ({
-            order_id: checkoutOrderId,
-            product_id: typeof item.id === 'number' ? item.id : null,
-            sku: item.skuId || item.sku || 'N/A',
-            variant_id: item.variantId || '',
-            product_name: item.name || 'Saree',
-            image_url: item.image || '',
-            color: item.color || '',
-            unit_price: Number(item.price || 0),
-            quantity: Number(item.qty || 1),
-            total_price: Number((item.price || 0) * (item.qty || 1))
-          }));
+        // Write Line Items to checkout_order_items
+        const itemRows = orderItems.map(item => ({
+          order_id: checkoutOrderId,
+          product_id: typeof item.id === 'number' ? item.id : null,
+          sku: item.skuId || item.sku || 'N/A',
+          variant_id: item.variantId || '',
+          product_name: item.name || 'Saree',
+          image_url: item.image || '',
+          color: item.color || '',
+          unit_price: Number(item.price || 0),
+          quantity: Number(item.qty || 1),
+          total_price: Number((item.price || 0) * (item.qty || 1))
+        }));
 
-          if (itemRows.length > 0) {
-            await supabase.from('checkout_order_items').insert(itemRows);
-          }
-
-          // Write Address to checkout_order_addresses
-          await supabase.from('checkout_order_addresses').insert({
-            order_id: checkoutOrderId,
-            address_type: 'shipping',
-            full_name: customerName,
-            phone: phone.trim(),
-            email: email.trim(),
-            address_line1: shippingLine1,
-            address_line2: shippingLine2,
-            city: shippingCity,
-            state: shippingState,
-            pincode: shippingPincode,
-            country: shippingCountry
-          });
-
-          // Write Shipment Metadata to checkout_shipments
-          const shipmentData = payload.shipment_details || {};
-          await supabase.from('checkout_shipments').insert({
-            order_id: checkoutOrderId,
-            shipment_id: String(shipmentData.shipment_id || shiprocketOrderId),
-            courier_name: shipmentData.courier_name || '',
-            awb_code: shipmentData.awb_code || '',
-            pickup_location: process.env.SHIPROCKET_PICKUP_LOCATION || 'work',
-            tracking_status: shipmentData.tracking_status || 'MANIFESTED',
-            tracking_url: shipmentData.tracking_url || ''
-          });
+        if (itemRows.length > 0) {
+          await supabase.from('checkout_order_items').insert(itemRows);
         }
+
+        // Write Address to checkout_order_addresses
+        await supabase.from('checkout_order_addresses').insert({
+          order_id: checkoutOrderId,
+          address_type: 'shipping',
+          full_name: customerName,
+          phone: phone.trim(),
+          email: email.trim(),
+          address_line1: shippingLine1,
+          address_line2: shippingLine2,
+          city: shippingCity,
+          state: shippingState,
+          pincode: shippingPincode,
+          country: shippingCountry
+        });
+
+        // Write Shipment Metadata to checkout_shipments
+        const shipmentData = payload.shipment_details || {};
+        await supabase.from('checkout_shipments').insert({
+          order_id: checkoutOrderId,
+          shipment_id: String(shipmentData.shipment_id || shiprocketOrderId),
+          courier_name: shipmentData.courier_name || '',
+          awb_code: shipmentData.awb_code || '',
+          pickup_location: process.env.SHIPROCKET_PICKUP_LOCATION || 'work',
+          tracking_status: shipmentData.tracking_status || 'MANIFESTED',
+          tracking_url: shipmentData.tracking_url || ''
+        });
 
         console.log(`✅ 4-Table Normalized Order Save Successful! (Checkout Order UUID: ${checkoutOrderId})`);
       }
@@ -556,30 +414,28 @@ export async function POST(request) {
       console.warn('4-Table normalized write fallback warning (table may not exist yet):', normErr.message);
     }
 
-    // 3. Stock Control Decrement (Only for fresh orders to prevent double stock reduction on webhook retries)
-    if (!isDuplicateRetry) {
-      for (const item of orderItems) {
-        if (item.id && !String(item.id).startsWith('temp-')) {
-          const { data: product } = await supabase
+    // 3. Stock Control Decrement
+    for (const item of orderItems) {
+      if (item.id && !String(item.id).startsWith('temp-')) {
+        const { data: product } = await supabase
+          .from('products')
+          .select('stock_qty')
+          .eq('id', item.id)
+          .single();
+
+        if (product) {
+          const currentStock = Number(product.stock_qty || 10);
+          const newStock = Math.max(0, currentStock - item.qty);
+
+          await supabase
             .from('products')
-            .select('stock_qty')
-            .eq('id', item.id)
-            .single();
-
-          if (product) {
-            const currentStock = Number(product.stock_qty || 10);
-            const newStock = Math.max(0, currentStock - item.qty);
-
-            await supabase
-              .from('products')
-              .update({ stock_qty: newStock })
-              .eq('id', item.id);
-          }
+            .update({ stock_qty: newStock })
+            .eq('id', item.id);
         }
       }
     }
 
-    // Send Meta Conversions API (CAPI) Server-Side Purchase Event (Only once per new order)
+    // Send Meta Conversions API (CAPI) Server-Side Purchase Event
     try {
       const eventId = `purchase_${shiprocketOrderId || fastrrOrderId}`;
       sendMetaCapiEvent({

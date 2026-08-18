@@ -20,16 +20,9 @@ This project has been migrated from a static HTML/CSS/JS site to a modern **Next
   - `/cms` (Inventory management console dashboard, passcode protected by `admin123`)
 
 ## Important Guidelines for Future Agents
-1. **🔒 ZERO DISTURBANCE TO CHECKOUT & SHIPROCKET APIS (STRICT RULE)**:
-   Under NO circumstances should any future website changes, styling tweaks, catalog additions, or refactoring disturb, alter, or break the core checkout pipelines:
-   - `/api/checkout/token` (Fastrr session token generation & payload signing).
-   - `/api/shiprocket/webhook/order` (Fastrr order intake webhook, address extraction, stock management, and deduplication).
-   - `/api/checkout` (Manual checkout with strict address validation).
-   - `/api/cms/shiprocket-sync` & `src/utils/shiprocketApi.js` (Shiprocket fulfillment dashboard adhoc push).
-   - All existing route contracts, HMAC signatures, and payload structures must be preserved and never broken.
-2. **Hydration Mismatch Mitigation**: Both `<html>` and `<body>` tags in `src/app/layout.js` include `suppressHydrationWarning` to prevent React hydration issues stemming from system-level dark/light mode configurations.
-3. **Quota Handling**: LocalStorage serialization of products cache inside `src/context/AppContext.js` is wrapped in try-catch to prevent `QuotaExceededError` if large base64 image strings are present.
-4. **SVG Attributes**: Never use hyphenated standard HTML SVG attributes (like `stroke-linecap`). Always use React JSX camelCase props (like `strokeLinecap`).
+1. **Hydration Mismatch Mitigation**: Both `<html>` and `<body>` tags in `src/app/layout.js` include `suppressHydrationWarning` to prevent React hydration issues stemming from system-level dark/light mode configurations.
+2. **Quota Handling**: LocalStorage serialization of products cache inside `src/context/AppContext.js` is wrapped in try-catch to prevent `QuotaExceededError` if large base64 image strings are present.
+3. **SVG Attributes**: Never use hyphenated standard HTML SVG attributes (like `stroke-linecap`). Always use React JSX camelCase props (like `strokeLinecap`).
 
 ## National-Level E-Commerce Standard Guidelines
 

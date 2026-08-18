@@ -109,7 +109,7 @@ export default function Home() {
   return (
     <div className="space-y-12">
       {/* Promo Bar */}
-      <div className="w-full bg-rose-600/90 dark:bg-rose-950/90 text-white py-2 px-4 rounded-xl flex items-center justify-between gap-4 font-semibold text-xs sm:text-sm shadow-md border border-rose-500/20 glass animate-pulse-subtle">
+      <div className="w-full bg-rose-600 dark:bg-rose-950 text-white py-2 px-4 rounded-xl flex items-center justify-between gap-4 font-semibold text-xs sm:text-sm shadow-md border border-rose-500/20 animate-pulse-subtle rose-notification-bar notification-element !mb-4">
         <div className="flex items-center gap-2">
           <span className="flex h-2 w-2 relative">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
@@ -125,9 +125,9 @@ export default function Home() {
 
       {/* Hero Header Section */}
       <header className="max-w-5xl mx-auto bg-[#0c1e44]/95 text-white px-3.5 pb-3.5 pt-8 sm:pt-14 rounded-tl-4xl rounded-b-4xl relative z-10 glass page-hero">
-        <div className="w-full flex justify-center overflow-hidden py-4 sm:py-6 select-none">
-          <span className="font-anton text-[11vw] sm:text-[12vw] md:text-[100px] leading-none tracking-wider text-white/95 dark:text-[#f1bf0a] uppercase w-full text-center drop-shadow-md block select-none">
-            REENAT'S
+        <div className="w-full flex justify-center overflow-hidden py-6 sm:py-8 select-none">
+          <span className="font-anton font-black text-[11.5vw] sm:text-[12vw] md:text-[90px] leading-none tracking-wider text-white/95 dark:text-[#f1bf0a] uppercase text-center drop-shadow-md inline-block select-none transform scale-x-135 scale-y-135 sm:scale-x-145 sm:scale-y-140 md:scale-x-160 md:scale-y-150 origin-center hero-title-span w-auto">
+            REENAT
           </span>
         </div>
 

@@ -10,6 +10,14 @@ export default function Footer() {
         <Link href="/" className="hover:text-[#F1BF0A] transition-colors">Home</Link>
         <Link href="/about" className="hover:text-[#F1BF0A] transition-colors">About</Link>
         <Link href="/new-arrivals" className="hover:text-[#F1BF0A] transition-colors">Collection</Link>
+        <a 
+          href="https://wa.me/919028571571?text=Hi%2C%20I%27m%20interested%20in%20wholesale%20buying%20from%20Reenat%20Trends." 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="hover:text-[#F1BF0A] transition-colors text-white/90 font-medium"
+        >
+          Bulk Purchase
+        </a>
         <Link href="/shipping-policy" className="hover:text-[#F1BF0A] transition-colors text-white/80">Shipping Policy</Link>
         <Link href="/refund-policy" className="hover:text-[#F1BF0A] transition-colors text-white/80">Refund Policy</Link>
         <Link href="/privacy-policy" className="hover:text-[#F1BF0A] transition-colors text-white/80">Privacy Policy</Link>
@@ -17,7 +25,30 @@ export default function Footer() {
         <Link href="/returns" className="hover:text-[#F1BF0A] transition-colors text-white/80">Returns & Exchanges</Link>
       </nav>
 
-      <div className="mt-10 border-t border-white/30 pt-4 md:flex md:items-center md:justify-between">
+      {/* Bulk Purchase / Wholesale Callout */}
+      <div className="mt-12 max-w-2xl mx-auto bg-white/10 dark:bg-black/20 rounded-2xl p-4 sm:p-5 border border-white/15 backdrop-blur-sm flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+        <div>
+          <span className="text-[#F1BF0A] font-bold text-[11px] uppercase tracking-wider block mb-0.5">Wholesale Deals & Bulk Orders</span>
+          <h4 className="font-bold text-white text-sm sm:text-base">Buying in Bulk?</h4>
+          <p className="text-white/80 text-xs mt-0.5 leading-relaxed">
+            Get special wholesale pricing, custom packing, and priority shipping for weddings, gifting, or retail.
+          </p>
+        </div>
+        <a 
+          href="https://wa.me/919028571571?text=Hi%2C%20I%27m%20interested%20in%20wholesale%20buying%20from%20Reenat%20Trends." 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="shrink-0 inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full py-2.5 px-5 font-semibold text-xs transition-colors shadow-md hover:no-underline"
+        >
+          <svg viewBox="0 0 24 24" fill="currentColor" className="size-4 shrink-0">
+            <path d="M17.472 14.382c-.022-.079-.186-.285-.438-.413-.252-.127-1.49-.736-1.72-.818-.23-.082-.397-.123-.564.123-.167.247-.648.818-.795.986-.147.168-.293.188-.545.061-.252-.127-1.066-.393-2.03-1.253-.75-.67-1.257-1.498-1.405-1.75-.147-.253-.015-.39.111-.516.113-.113.252-.293.378-.44.127-.147.168-.253.253-.42.083-.168.041-.314-.02-.44-.061-.127-.564-1.36-.773-1.86-.203-.49-.406-.423-.564-.423-.146-.007-.314-.007-.482-.007-.168 0-.443.063-.674.314-.23.253-.88.86-.88 2.098 0 1.237.9 2.43 1.025 2.6.126.17 1.767 2.698 4.28 3.784.6.257 1.065.41 1.43.527.6.19 1.15.163 1.583.098.483-.072 1.49-.61 1.702-1.2 0 0 .041-.21.015-.285z"/>
+            <path d="M12.003 21c-1.63 0-3.176-.426-4.526-1.173l-.324-.192-3.36.88.895-3.277-.21-.335A8.966 8.966 0 013 12c0-4.963 4.037-9 9-9 4.962 0 9 4.037 9 9 0 4.962-4.038 9-9 9zm9.006-18C16.326.31 9.684.31 5.006 4.988 1.309 8.687.312 14.238 2.502 19.06L.5 24.5l5.56-.1.085-.05c4.71 3.25 11.233 2.15 14.654-2.58 3.656-5.06 2.378-12.062-2.79-15.77z"/>
+          </svg>
+          <span>WhatsApp Wholesale</span>
+        </a>
+      </div>
+
+      <div className="mt-8 border-t border-white/30 pt-4 md:flex md:items-center md:justify-between">
         {/* Social Icons */}
         <div className="flex gap-x-6 justify-center md:justify-start md:order-2">
           <a href="https://www.facebook.com/people/Reenat-Trends/61592477576586/" target="_blank" rel="noopener noreferrer" className="text-white hover:text-[#F1BF0A] transition-colors">

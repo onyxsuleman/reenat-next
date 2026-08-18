@@ -127,18 +127,6 @@ export default function CMSConsole() {
   const [editingStockId, setEditingStockId] = useState(null); // id of product variant being edited
   const [editingStockValue, setEditingStockValue] = useState(''); // current stock text value
 
-  // Address Edit Modal State
-  const [editingAddressOrder, setEditingAddressOrder] = useState(null);
-  const [editLine1, setEditLine1] = useState('');
-  const [editLine2, setEditLine2] = useState('');
-  const [editCity, setEditCity] = useState('');
-  const [editState, setEditState] = useState('');
-  const [editPincode, setEditPincode] = useState('');
-  const [editCustomerName, setEditCustomerName] = useState('');
-  const [editPhone, setEditPhone] = useState('');
-  const [editEmail, setEditEmail] = useState('');
-  const [isSavingAddress, setIsSavingAddress] = useState(false);
-
   // Tasks, Notes, and Schedule State
   const [tasks, setTasks] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -339,15 +327,8 @@ export default function CMSConsole() {
             fastrrOrderId: order.fastrr_order_id || order.fastrrOrderId || displayOrderId,
             date: `${formattedDate}, ${formattedTime}`,
             customer: order.customer_name || order.customer || 'Customer',
-            email: order.email || order.customer_email || '',
-            phone: order.phone || order.customer_phone || '',
+            phone: order.phone || '',
             address: order.address || '',
-            shippingLine1: order.shipping_line1 || order.shippingLine1 || '',
-            shippingLine2: order.shipping_line2 || order.shippingLine2 || '',
-            shippingCity: order.shipping_city || order.shippingCity || '',
-            shippingState: order.shipping_state || order.shippingState || '',
-            shippingPincode: order.shipping_pincode || order.shippingPincode || '',
-            shippingCountry: order.shipping_country || order.shippingCountry || 'India',
             productName: firstItem.name || 'Saree',
             productImage: firstItem.image || '',
             color: firstItem.color || '',
@@ -358,8 +339,7 @@ export default function CMSConsole() {
             totalQty: totalQty,
             paymentMethod: paymentMethod,
             status: order.order_status,
-            items: enrichedItems,
-            rawOrder: order
+            items: enrichedItems
           };
         });
         setOrders(mapped);
@@ -483,94 +463,6 @@ export default function CMSConsole() {
       showToast(`Push failed: ${err.message}`, 'error');
     } finally {
       setSyncingOrderId(null);
-    }
-  };
-
-  const handleOpenEditAddress = (order) => {
-    setEditingAddressOrder(order);
-    setEditCustomerName(order.customer || '');
-    setEditPhone(order.phone || '');
-    setEditEmail(order.email || '');
-    setEditLine1(order.shippingLine1 || order.address || '');
-    setEditLine2(order.shippingLine2 || '');
-    setEditCity(order.shippingCity || '');
-    setEditState(order.shippingState || '');
-    setEditPincode(order.shippingPincode || '');
-  };
-
-  const handleSaveCustomerAddress = async (e) => {
-    e.preventDefault();
-    if (!editingAddressOrder) return;
-
-    if (!editCity || !editState || !editPincode || !editLine1) {
-      showToast('Please fill in Address Line 1, City, State, and Pincode.', 'warning');
-      return;
-    }
-
-    setIsSavingAddress(true);
-    showToast('Saving address to database...', 'info');
-
-    const addressParts = [
-      editLine1.trim(),
-      editLine2.trim(),
-      editCity.trim(),
-      `${editState.trim()} - ${editPincode.trim()}`,
-      'India'
-    ].filter(Boolean);
-    const fullCombinedAddress = addressParts.join(', ');
-
-    const dbId = editingAddressOrder.dbId || String(editingAddressOrder.id).replace(/\D/g, '');
-
-    try {
-      const response = await fetch('/api/cms/db', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'update',
-          table: 'orders',
-          id: dbId ? Number(dbId) : editingAddressOrder.id,
-          fastrrOrderId: editingAddressOrder.fastrrOrderId || editingAddressOrder.id,
-          shiprocketOrderId: editingAddressOrder.shiprocketOrderId,
-          data: {
-            customer_name: editCustomerName.trim(),
-            phone: editPhone.trim(),
-            email: editEmail.trim(),
-            address: fullCombinedAddress,
-            shipping_line1: editLine1.trim(),
-            shipping_line2: editLine2.trim(),
-            shipping_city: editCity.trim(),
-            shipping_state: editState.trim(),
-            shipping_pincode: editPincode.trim(),
-            shipping_country: 'India'
-          }
-        })
-      });
-
-      const resData = await response.json();
-
-      if (response.ok && resData.success) {
-        showToast('✅ Customer address saved successfully!', 'success');
-        setOrders(prev => prev.map(o => o.id === editingAddressOrder.id ? {
-          ...o,
-          customer: editCustomerName.trim(),
-          phone: editPhone.trim(),
-          email: editEmail.trim(),
-          address: fullCombinedAddress,
-          shippingLine1: editLine1.trim(),
-          shippingLine2: editLine2.trim(),
-          shippingCity: editCity.trim(),
-          shippingState: editState.trim(),
-          shippingPincode: editPincode.trim()
-        } : o));
-        setEditingAddressOrder(null);
-      } else {
-        showToast(`Save failed: ${resData.error || 'Unknown error'}`, 'error');
-      }
-    } catch (err) {
-      console.error('Save address error:', err);
-      showToast(`Error saving address: ${err.message}`, 'error');
-    } finally {
-      setIsSavingAddress(false);
     }
   };
 
@@ -2111,24 +2003,10 @@ export default function CMSConsole() {
                       })()}
                     </td>
                     <td className="px-4 py-4">
-                      <div className="flex flex-col gap-1 min-w-[220px] max-w-[280px]">
-                        <span className="text-sm font-bold text-slate-900 dark:text-white leading-tight">{item.customer}</span>
-                        <div className="text-xs text-slate-600 dark:text-slate-300 whitespace-normal break-words leading-relaxed bg-slate-50 dark:bg-slate-800/60 p-2 rounded-lg border border-slate-100 dark:border-slate-800/80">
-                          {item.address || (
-                            <span className="text-rose-500 font-semibold italic">Missing address details</span>
-                          )}
-                        </div>
-                        <div className="flex items-center justify-between text-xs text-slate-500 pt-0.5">
-                          <span className="font-mono font-semibold">{item.phone}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEditAddress(item)}
-                            className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline cursor-pointer bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800/50"
-                            title="Edit customer shipping address fields"
-                          >
-                            ✏️ Edit Address
-                          </button>
-                        </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-slate-900 dark:text-white">{item.customer}</span>
+                        <span className="text-xs text-slate-500 mt-0.5 line-clamp-1" title={item.address}>{item.address}</span>
+                        <span className="text-xs text-slate-500">{item.phone}</span>
                       </div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-right">
@@ -4076,170 +3954,6 @@ export default function CMSConsole() {
             >
               Submit Request
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Customer Shipping Address Modal */}
-      {editingAddressOrder && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 max-w-xl w-full shadow-2xl space-y-6 relative max-h-[90vh] overflow-y-auto">
-            {/* Header */}
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-[10px] font-black tracking-wider uppercase text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded-full border border-blue-500/20">
-                  Order #{editingAddressOrder.fastrrOrderId || editingAddressOrder.id}
-                </span>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white mt-2">
-                  Edit Shipping Address
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Update customer and address fields directly in database before pushing to Shiprocket.
-                </p>
-              </div>
-              <button 
-                type="button"
-                onClick={() => setEditingAddressOrder(null)}
-                className="size-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center text-sm font-bold cursor-pointer transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveCustomerAddress} className="space-y-4">
-              {/* Customer Contact */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="sm:col-span-1">
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Customer Name</label>
-                  <input 
-                    type="text" 
-                    required
-                    value={editCustomerName}
-                    onChange={(e) => setEditCustomerName(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
-                </div>
-                <div className="sm:col-span-1">
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Phone Number</label>
-                  <input 
-                    type="tel" 
-                    required
-                    value={editPhone}
-                    onChange={(e) => setEditPhone(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
-                  />
-                </div>
-                <div className="sm:col-span-1">
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Email Address</label>
-                  <input 
-                    type="email" 
-                    value={editEmail}
-                    onChange={(e) => setEditEmail(e.target.value)}
-                    placeholder="customer@example.com"
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              {/* Address Line 1 */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Address Line 1 (House/Flat, Building, Street) <span className="text-rose-500">*</span>
-                </label>
-                <textarea 
-                  rows={2}
-                  required
-                  value={editLine1}
-                  onChange={(e) => setEditLine1(e.target.value)}
-                  placeholder="e.g. Flat 402, Lotus Heights, Weaver Lane"
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 leading-relaxed"
-                />
-              </div>
-
-              {/* Address Line 2 / Landmark */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Address Line 2 (Landmark, Area, Village)
-                </label>
-                <input 
-                  type="text" 
-                  value={editLine2}
-                  onChange={(e) => setEditLine2(e.target.value)}
-                  placeholder="e.g. Near Gol Bagh / Hazar Kholi"
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-
-              {/* City, State, Pincode */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    City / District <span className="text-rose-500">*</span>
-                  </label>
-                  <input 
-                    type="text" 
-                    required
-                    value={editCity}
-                    onChange={(e) => setEditCity(e.target.value)}
-                    placeholder="e.g. Nashik"
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    State <span className="text-rose-500">*</span>
-                  </label>
-                  <input 
-                    type="text" 
-                    required
-                    value={editState}
-                    onChange={(e) => setEditState(e.target.value)}
-                    placeholder="e.g. Maharashtra"
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Pincode <span className="text-rose-500">*</span>
-                  </label>
-                  <input 
-                    type="text" 
-                    required
-                    maxLength={6}
-                    value={editPincode}
-                    onChange={(e) => setEditPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    placeholder="e.g. 423203"
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono font-bold"
-                  />
-                </div>
-              </div>
-
-              {/* Formatted Preview Box */}
-              <div className="bg-slate-100 dark:bg-slate-950/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Assembled Delivery Address Preview:</span>
-                <p className="text-xs text-slate-800 dark:text-slate-200 font-medium mt-1">
-                  {[editLine1, editLine2, editCity, editState ? `${editState} - ${editPincode}` : editPincode, 'India'].filter(Boolean).join(', ') || 'Address preview will appear here...'}
-                </p>
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setEditingAddressOrder(null)}
-                  className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSavingAddress}
-                  className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-1.5"
-                >
-                  {isSavingAddress ? 'Saving...' : '💾 Save Address to Database'}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

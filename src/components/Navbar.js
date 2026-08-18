@@ -24,9 +24,9 @@ export default function Navbar() {
     <nav className="flex flex-col max-w-5xl w-full mx-auto relative z-50 gap-4 mt-1.5 mb-4 px-2 sm:px-0">
       
       {/* Mobile Navbar Row */}
-      <div className="flex md:hidden items-center justify-between gap-1.5 w-full">
+      <div className="flex md:hidden items-center gap-3 w-full">
         {/* Left: Logo */}
-        <Link href="/" className="flex items-center justify-start gap-2 bg-white/90 dark:bg-[#0c1e44]/90 px-3 h-12 rounded-[9999px] nav-glass border border-white/20 dark:border-white/10 transition-colors duration-300 flex-1 min-w-0 hover:no-underline">
+        <Link href="/" className="flex items-center justify-start gap-2 bg-white/90 dark:bg-[#0c1e44]/90 px-3.5 h-12 rounded-[9999px] nav-glass border border-white/30 dark:border-white/10 transition-colors duration-300 flex-1 min-w-0 hover:no-underline">
           <Image 
             src="/logo.png" 
             alt="Reenat Trends Logo" 
@@ -35,11 +35,11 @@ export default function Navbar() {
             style={{ width: 'auto', height: 'auto' }}
             className="rounded-full object-contain shrink-0"
           />
-          <span className="font-anton select-none text-slate-800 dark:text-white text-xs sm:text-sm tracking-wider transition-colors duration-300 whitespace-nowrap">REENAT TRENDS</span>
+          <span className="font-anton font-bold select-none text-slate-800 dark:text-white text-xs sm:text-sm tracking-wider transition-colors duration-300 whitespace-nowrap truncate">REENAT TRENDS</span>
         </Link>
 
         {/* Right: Toggle/Search/Hamburger Pill */}
-        <div className="flex items-center justify-between gap-2.5 bg-white/90 dark:bg-[#0c1e44]/90 px-3 h-12 rounded-[9999px] nav-glass border border-white/20 dark:border-white/10 text-slate-800 dark:text-white shrink-0">
+        <div className="flex items-center justify-between gap-2 bg-white/90 dark:bg-[#0c1e44]/90 px-3.5 h-12 rounded-[9999px] nav-glass border border-white/30 dark:border-white/10 text-slate-800 dark:text-white flex-1 min-w-0">
           {/* Neumorphic Sliding Switch (Left) */}
           <button
             type="button"
@@ -119,7 +119,7 @@ export default function Navbar() {
       {/* Desktop Navbar Row */}
       <div className="hidden md:flex items-center justify-between gap-3 w-full">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 bg-white/90 dark:bg-[#0c1e44]/90 px-4 py-2 rounded-[9999px] nav-glass border border-white/20 dark:border-white/10 transition-colors duration-300 shrink-0 hover:no-underline">
+        <Link href="/" className="flex items-center gap-2 h-[60px] px-5 rounded-[9999px] nav-glass border border-white/30 dark:border-white/10 transition-colors duration-300 shrink-0 hover:no-underline">
           <Image 
             src="/logo.png" 
             alt="Reenat Trends Logo" 
@@ -128,15 +128,13 @@ export default function Navbar() {
             style={{ width: 'auto', height: 'auto' }}
             className="rounded-full object-contain shrink-0"
           />
-          <span className="font-anton select-none text-slate-800 dark:text-white text-base tracking-wider transition-colors duration-300">REENAT TRENDS</span>
+          <span className="font-anton font-bold select-none text-slate-800 dark:text-white text-base tracking-wider transition-colors duration-300">REENAT TRENDS</span>
         </Link>
 
         {/* Desktop Nav and Action Buttons */}
-        <div className="flex items-center justify-between gap-4 flex-1 bg-white/90 dark:bg-[#0c1e44]/90 text-slate-800 dark:text-white px-5 py-2 rounded-[9999px] nav-glass border border-white/20 dark:border-white/10 transition-colors duration-300">
-          <div className="hidden md:block"></div>
-
+        <div className="flex items-center justify-between gap-4 flex-1 h-[60px] px-6 md:px-8 rounded-[9999px] nav-glass border border-white/30 dark:border-white/10 transition-colors duration-300">
           {/* Links */}
-          <ul className="hidden md:flex items-center gap-6 py-1">
+          <ul className="hidden md:flex items-center gap-8 py-1 m-0 flex-none">
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
               return (
@@ -154,44 +152,10 @@ export default function Navbar() {
                 </li>
               );
             })}
-
-            {/* Bulk Purchase Dropdown */}
-            <li className="relative group/bulk">
-              <button 
-                type="button" 
-                className="transition-colors font-medium text-sm text-slate-700 hover:text-[#183fad] dark:text-white/80 dark:hover:text-[#F1BF0A] flex items-center gap-1 cursor-pointer bg-transparent border-0"
-              >
-                <span>Bulk Purchase</span>
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-3 group-hover/bulk:rotate-180 transition-transform duration-300">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                </svg>
-              </button>
-              
-              {/* Dropdown Pane */}
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-72 bg-white dark:bg-[#0c1e44] rounded-2xl shadow-xl border border-slate-200/80 dark:border-white/10 p-4 opacity-0 invisible group-hover/bulk:opacity-100 group-hover/bulk:visible transition-all duration-300 z-50 text-left glass">
-                <span className="text-[#F1BF0A] font-bold text-[10px] uppercase tracking-wider block mb-1">Wholesale Deals</span>
-                <h4 className="font-bold text-slate-800 dark:text-white text-sm mb-1">Buying in Bulk?</h4>
-                <p className="text-slate-500 dark:text-slate-355 text-xs mb-3.5 leading-relaxed">
-                  Get special wholesale pricing, custom packing, and priority shipping for weddings, corporate gifting, or retail.
-                </p>
-                <a 
-                  href="https://wa.me/919028571571?text=Hi%2C%20I%27m%20interested%20in%20wholesale%20buying%20from%20Reenat%20Trends." 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="w-full inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full py-2 px-4 font-semibold text-xs transition-colors hover:no-underline"
-                >
-                  <svg viewBox="0 0 24 24" fill="currentColor" className="size-4">
-                    <path d="M17.472 14.382c-.022-.079-.186-.285-.438-.413-.252-.127-1.49-.736-1.72-.818-.23-.082-.397-.123-.564.123-.167.247-.648.818-.795.986-.147.168-.293.188-.545.061-.252-.127-1.066-.393-2.03-1.253-.75-.67-1.257-1.498-1.405-1.75-.147-.253-.015-.39.111-.516.113-.113.252-.293.378-.44.127-.147.168-.253.253-.42.083-.168.041-.314-.02-.44-.061-.127-.564-1.36-.773-1.86-.203-.49-.406-.423-.564-.423-.146-.007-.314-.007-.482-.007-.168 0-.443.063-.674.314-.23.253-.88.86-.88 2.098 0 1.237.9 2.43 1.025 2.6.126.17 1.767 2.698 4.28 3.784.6.257 1.065.41 1.43.527.6.19 1.15.163 1.583.098.483-.072 1.49-.61 1.702-1.2 0 0 .041-.21.015-.285z"/>
-                    <path d="M12.003 21c-1.63 0-3.176-.426-4.526-1.173l-.324-.192-3.36.88.895-3.277-.21-.335A8.966 8.966 0 013 12c0-4.963 4.037-9 9-9 4.962 0 9 4.037 9 9 0 4.962-4.038 9-9 9zm9.006-18C16.326.31 9.684.31 5.006 4.988 1.309 8.687.312 14.238 2.502 19.06L.5 24.5l5.56-.1.085-.05c4.71 3.25 11.233 2.15 14.654-2.58 3.656-5.06 2.378-12.062-2.79-15.77z"/>
-                  </svg>
-                  <span>WhatsApp Wholesale</span>
-                </a>
-              </div>
-            </li>
           </ul>
 
           {/* Icons/Actions */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 shrink-0 flex-none min-w-auto justify-end">
             <Link href="/new-arrivals" className="hidden sm:flex items-center gap-2 btn-primary rounded-full py-1.5 px-4 text-sm whitespace-nowrap transition-transform duration-300 hover:scale-105 shadow-sm font-semibold">
               <span>Explore Collection</span>
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="size-4">

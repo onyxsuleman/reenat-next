@@ -20,9 +20,6 @@ export default function Cart() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
-  const [city, setCity] = useState('');
-  const [state, setState] = useState('');
-  const [pincode, setPincode] = useState('');
   // Payment method is fixed to COD in the fallback form. "Pay Online" requires a real gateway.
   const paymentMethod = 'Cash on Delivery';
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,14 +40,16 @@ export default function Cart() {
           if (defaultAddr) {
             setFullName(defaultAddr.name || '');
             setPhone(defaultAddr.phone || '');
-            setAddress(defaultAddr.line1 ? `${defaultAddr.line1}${defaultAddr.line2 ? `, ${defaultAddr.line2}` : ''}` : '');
-            setCity(defaultAddr.city || '');
-            setState(defaultAddr.state || '');
-            setPincode(defaultAddr.pincode || '');
+            setAddress(`${defaultAddr.line1}${defaultAddr.line2 ? `, ${defaultAddr.line2}` : ''}, ${defaultAddr.city}, ${defaultAddr.state} - ${defaultAddr.pincode}`);
+          } else {
+            setAddress('12, Weaver Street, Silk Nagar, Kanchipuram, Tamil Nadu - 631501');
           }
         } catch (e) {
           console.warn("Could not parse cached address book:", e);
+          setAddress('12, Weaver Street, Silk Nagar, Kanchipuram, Tamil Nadu - 631501');
         }
+      } else {
+        setAddress('12, Weaver Street, Silk Nagar, Kanchipuram, Tamil Nadu - 631501');
       }
     }
   }, [userSession, showCheckoutForm]);
@@ -170,18 +169,13 @@ export default function Cart() {
 
   const handleConfirmOrder = async (e) => {
     e.preventDefault();
-    if (!fullName || !email || !phone || !address || !city || !state || !pincode) {
-      showToast('Please fill in all address fields (including City, State, and Pincode).', 'warning');
+    if (!fullName || !email || !phone || !address) {
+      showToast('Please fill in all checkout fields.', 'warning');
       return;
     }
 
     if (phone.replace(/\D/g, '').length < 10) {
       showToast('Please enter a valid 10-digit phone number.', 'warning');
-      return;
-    }
-
-    if (pincode.replace(/\D/g, '').length !== 6) {
-      showToast('Please enter a valid 6-digit delivery pincode.', 'warning');
       return;
     }
 
@@ -197,9 +191,6 @@ export default function Cart() {
           email,
           phone,
           address,
-          city,
-          state,
-          pincode,
           cart,
           promoCode,
           paymentMethod,
@@ -433,10 +424,7 @@ export default function Cart() {
                         if (selected) {
                           setFullName(selected.name || '');
                           setPhone(selected.phone || '');
-                          setAddress(selected.line1 ? `${selected.line1}${selected.line2 ? `, ${selected.line2}` : ''}` : '');
-                          setCity(selected.city || '');
-                          setState(selected.state || '');
-                          setPincode(selected.pincode || '');
+                          setAddress(`${selected.line1}${selected.line2 ? `, ${selected.line2}` : ''}, ${selected.city}, ${selected.state} - ${selected.pincode}`);
                         }
                       }}
                       className="w-full bg-white/50 dark:bg-black/10 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#183fad] dark:focus:ring-[#F1BF0A]"
@@ -458,7 +446,6 @@ export default function Cart() {
                     required 
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="e.g. Priya Sharma"
                     className="w-full bg-white/50 dark:bg-black/10 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#183fad] dark:focus:ring-[#F1BF0A]" 
                   />
                 </div>
@@ -470,7 +457,6 @@ export default function Cart() {
                     required 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="e.g. customer@example.com"
                     className="w-full bg-white/50 dark:bg-black/10 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#183fad] dark:focus:ring-[#F1BF0A]" 
                   />
                 </div>
@@ -489,54 +475,14 @@ export default function Cart() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Street Address (House/Flat No, Building, Area)</label>
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Delivery Address</label>
                   <textarea 
                     required 
                     rows={2}
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    placeholder="e.g. Flat 402, Lotus Heights, Baner Road"
                     className="w-full bg-white/50 dark:bg-black/10 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#183fad] dark:focus:ring-[#F1BF0A]" 
                   />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">City</label>
-                    <input 
-                      type="text" 
-                      required 
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                      placeholder="e.g. Pune"
-                      className="w-full bg-white/50 dark:bg-black/10 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#183fad] dark:focus:ring-[#F1BF0A]" 
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">State</label>
-                    <input 
-                      type="text" 
-                      required 
-                      value={state}
-                      onChange={(e) => setState(e.target.value)}
-                      placeholder="e.g. Maharashtra"
-                      className="w-full bg-white/50 dark:bg-black/10 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#183fad] dark:focus:ring-[#F1BF0A]" 
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Pincode (6 Digits)</label>
-                    <input 
-                      type="text" 
-                      required 
-                      maxLength={6}
-                      value={pincode}
-                      onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      placeholder="e.g. 411045"
-                      className="w-full bg-white/50 dark:bg-black/10 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#183fad] dark:focus:ring-[#F1BF0A]" 
-                    />
-                  </div>
                 </div>
 
                 <div>
