@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useApp } from '../../context/AppContext';
 import { auth, googleProvider, signInWithPopup, RecaptchaVerifier, signInWithPhoneNumber } from '../../utils/firebase';
 
+import Script from 'next/script';
+
 export default function Login() {
   const router = useRouter();
   const { userSession, handleLogin, showToast } = useApp();
@@ -39,8 +41,34 @@ export default function Login() {
 
       const token = data.result.token;
 
-      // 2. Ensure HeadlessCheckout SDK is initialized
-      if (typeof window === 'undefined' || !window.HeadlessCheckout) {
+      // 2. Ensure Login SDK is initialized
+      const ensureLoginSdk = () => new Promise((resolve) => {
+        const getSdk = () => {
+          if (typeof window === 'undefined') return null;
+          if (window.ShiprocketLogin && typeof window.ShiprocketLogin.buyNow === 'function') return window.ShiprocketLogin;
+          if (window.HeadlessCheckout && typeof window.HeadlessCheckout.buyNow === 'function') return window.HeadlessCheckout;
+          return null;
+        };
+
+        const existing = getSdk();
+        if (existing) { resolve(existing); return; }
+
+        let attempts = 0;
+        const poll = setInterval(() => {
+          attempts++;
+          const sdk = getSdk();
+          if (sdk) {
+            clearInterval(poll);
+            resolve(sdk);
+          } else if (attempts >= 40) {
+            clearInterval(poll);
+            resolve(null);
+          }
+        }, 100);
+      });
+
+      const loginSdk = await ensureLoginSdk();
+      if (!loginSdk || typeof loginSdk.buyNow !== 'function') {
         throw new Error('Shiprocket Fastrr SDK is loading. Please try again in a few seconds.');
       }
 
@@ -51,7 +79,7 @@ export default function Login() {
       };
 
       // 3. Launch Fastrr Login Dialog
-      window.HeadlessCheckout.buyNow(e, token, config, async (response) => {
+      loginSdk.buyNow(e, token, config, async (response) => {
         try {
           setIsFastrrLoading(true);
           showToast('Authenticating user profile...', 'info');
@@ -315,6 +343,13 @@ export default function Login() {
           <div id="recaptcha-container"></div>
         </div>
       </div>
+
+      {/* Shiprocket Fastrr 1-Click Login SDK */}
+      <Script 
+        id="shiprocket-login-sdk"
+        src="https://checkout-ui.shiprocket.com/assets/js/channels/login.js" 
+        strategy="lazyOnload"
+      />
     </main>
   );
 }

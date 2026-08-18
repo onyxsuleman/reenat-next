@@ -136,21 +136,37 @@ export default function Cart() {
       }
 
       // --- 1.3 SDK readiness guard (cart page) ---
-      // Poll for up to 6 seconds (60 × 100ms). Doubled from 3s to handle slow mobile
-      // connections and cases where the user taps Checkout before afterInteractive fires.
+      // Poll for up to 6 seconds (60 × 100ms) and ensure window.HeadlessCheckout.addToCart is available.
       const waitForFastrr = () => new Promise((resolve) => {
-        if (window.HeadlessCheckout) { resolve(true); return; }
+        if (typeof window !== 'undefined' && window.HeadlessCheckout && typeof window.HeadlessCheckout.addToCart === 'function') {
+          resolve(true);
+          return;
+        }
+
+        // Dynamically inject custom.js if missing
+        if (typeof window !== 'undefined' && !document.getElementById('shiprocket-custom-sdk')) {
+          const script = document.createElement('script');
+          script.id = 'shiprocket-custom-sdk';
+          script.src = 'https://checkout-ui.shiprocket.com/assets/js/channels/custom.js';
+          script.async = true;
+          document.body.appendChild(script);
+        }
+
         let attempts = 0;
         const poll = setInterval(() => {
           attempts++;
-          if (window.HeadlessCheckout || attempts >= 60) {
+          if (typeof window !== 'undefined' && window.HeadlessCheckout && typeof window.HeadlessCheckout.addToCart === 'function') {
             clearInterval(poll);
-            resolve(!!window.HeadlessCheckout);
+            resolve(true);
+          } else if (attempts >= 60) {
+            clearInterval(poll);
+            resolve(false);
           }
         }, 100);
       });
+
       const sdkReady = await waitForFastrr();
-      if (sdkReady && window.HeadlessCheckout) {
+      if (sdkReady && window.HeadlessCheckout && typeof window.HeadlessCheckout.addToCart === 'function') {
         window.HeadlessCheckout.addToCart(e, token, {
           fallbackUrl: window.location.href
         });
