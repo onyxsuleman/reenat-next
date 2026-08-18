@@ -311,7 +311,18 @@ export default function CMSConsole() {
           // Detect Payment Method accurately (Prepaid vs COD)
           const rawPm = String(order.payment_method || '').trim().toUpperCase();
           const rawPs = String(order.payment_status || order.financial_status || '').trim().toLowerCase();
-          const isPrepaid = rawPm.includes('PREPAID') || rawPm.includes('ONLINE') || rawPm.includes('UPI') || rawPm.includes('CARD') || rawPm.includes('PAYU') || rawPs === 'paid' || rawPs === 'success' || rawPs === 'completed';
+          const rawPg = String(order.payment_gateway || '').trim().toLowerCase();
+          const isPrepaid = (
+            rawPm.includes('PREPAID') || 
+            rawPm.includes('ONLINE') || 
+            rawPm.includes('UPI') || 
+            rawPm.includes('CARD') || 
+            rawPm.includes('PAYU') || 
+            rawPg.includes('payu') ||
+            rawPg.includes('razorpay') ||
+            rawPg.includes('cashfree') ||
+            ['paid', 'captured', 'success', 'successful', 'completed', 'authorized'].includes(rawPs)
+          );
           const paymentMethod = isPrepaid ? 'Prepaid' : 'COD';
 
           const rawDate = order.created_at ? new Date(order.created_at) : new Date();

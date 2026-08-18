@@ -40,8 +40,38 @@ export async function POST(request) {
     const shippingAddress = payload.shipping_address || payload.shipping_line1 || {};
     const billingAddress = payload.billing_address || {};
 
-    const shiprocketOrderId = String(payload.shiprocket_order_id || payload.order_id || payload.id || payload.transaction_id || '');
-    const fastrrOrderId = String(payload.fastrr_order_id || payload.fastrr_id || `FAST-${shiprocketOrderId || Date.now()}`);
+    // Extract Order Identifiers with complete Fastrr / Shiprocket coverage
+    const clientOrderId = String(
+      payload.client_order_id || 
+      payload.clientOrderId || 
+      (payload.order_details && payload.order_details.client_order_id) ||
+      (payload.order && payload.order.client_order_id) ||
+      ''
+    ).trim();
+
+    const shiprocketOrderIdRaw = String(
+      payload.shiprocket_order_id || 
+      payload.order_id || 
+      payload.id || 
+      payload.transaction_id || 
+      payload.orderId || 
+      clientOrderId ||
+      ''
+    ).trim();
+
+    const fastrrOrderIdRaw = String(
+      payload.fastrr_order_id || 
+      payload.fastrr_id || 
+      payload.fastrrOrderId || 
+      clientOrderId ||
+      ''
+    ).trim();
+
+    const shiprocketOrderId = shiprocketOrderIdRaw || clientOrderId || '';
+    const effectiveId = fastrrOrderIdRaw || shiprocketOrderId || '';
+    const fastrrOrderId = effectiveId 
+      ? (effectiveId.startsWith('FAST-') ? effectiveId : `FAST-${effectiveId}`) 
+      : `FAST-${Date.now()}`;
     
     const customerName = payload.customer_name || 
                          payload.billing_name || 
@@ -93,36 +123,126 @@ export async function POST(request) {
     const fullAddress = `${shippingLine1} ${shippingLine2}, ${shippingCity}, ${shippingState} - ${shippingPincode}, ${shippingCountry}`.replace(/\s+/g, ' ').replace(/^[\s,]+|[\s,]+$/g, '').trim();
 
     // Financials
-    const total = Math.round(Number(payload.total_price || payload.total || 0));
-    const subtotal = Math.round(Number(payload.subtotal_price || payload.subtotal || total));
-    const tax = Math.round(Number(payload.tax_price || payload.tax || 0));
-    const discount = Math.round(Number(payload.discount_amount || payload.discount || 0));
+    const total = Math.round(Number(
+      payload.total_price || 
+      payload.total_amount || 
+      payload.payment_total || 
+      payload.total || 
+      payload.amount || 
+      (payload.payment_details && (payload.payment_details.amount || payload.payment_details.total)) ||
+      0
+    ));
+    const subtotal = Math.round(Number(
+      payload.subtotal_price || 
+      payload.sub_total || 
+      payload.subtotal || 
+      total
+    ));
+    const tax = Math.round(Number(payload.tax_price || payload.tax_amount || payload.tax || 0));
+    const discount = Math.round(Number(
+      payload.discount_amount || 
+      payload.discount || 
+      payload.total_discount || 
+      (subtotal > total ? subtotal - total : 0)
+    ));
 
-    // Payment Gateway Mode
+    // Deep Extraction of Payment Fields
+    const paymentInfo = payload.payment_info || payload.payment_details || payload.payment || {};
+
     const rawPaymentMode = String(
-      payload.payment_method || 
       payload.payment_mode || 
+      payload.payment_method || 
       payload.payment_type || 
-      (payload.payment_info && payload.payment_info.payment_mode) || 
+      paymentInfo.payment_mode || 
+      paymentInfo.mode || 
+      paymentInfo.type || 
+      paymentInfo.method || 
+      payload.mode || 
       ''
     ).trim().toUpperCase();
 
     const rawPaymentStatus = String(
       payload.payment_status || 
-      (payload.payment_info && payload.payment_info.payment_status) || 
+      payload.financial_status || 
+      paymentInfo.payment_status || 
+      paymentInfo.status || 
+      payload.status || 
       ''
     ).trim().toLowerCase();
 
-    const rawGateway = String(payload.payment_gateway || (payload.payment_info && payload.payment_info.payment_gateway) || '').trim().toLowerCase();
+    const rawGateway = String(
+      payload.payment_gateway || 
+      payload.gateway || 
+      paymentInfo.payment_gateway || 
+      paymentInfo.gateway || 
+      paymentInfo.pg || 
+      ''
+    ).trim().toLowerCase();
 
-    const isExplicitPrepaid = (rawPaymentMode === 'PREPAID' || rawPaymentMode === 'ONLINE' || rawPaymentMode === 'PAY ONLINE') || rawPaymentStatus === 'paid';
-    const isCod = !isExplicitPrepaid;
+    const rawPgTxnId = String(
+      payload.pg_transaction_id || 
+      payload.transaction_id || 
+      payload.pg_txnid || 
+      payload.pg_txn_id || 
+      paymentInfo.pg_transaction_id || 
+      paymentInfo.transaction_id || 
+      paymentInfo.pg_txnid || 
+      paymentInfo.pg_txn_id || 
+      ''
+    ).trim();
 
-    const paymentMethod = isCod ? 'COD' : 'Prepaid';
-    const normalizedPaymentMethod = isCod ? 'cod' : 'prepaid';
-    const paymentGateway = rawGateway || (isCod ? 'cod' : 'payu');
-    const paymentStatus = isCod ? (rawPaymentStatus || 'pending') : (rawPaymentStatus || 'paid');
-    const financialStatus = paymentStatus === 'paid' ? 'paid' : 'pending';
+    // Comprehensive Prepaid Validation
+    const isPaidStatus = [
+      'captured',
+      'paid',
+      'success',
+      'successful',
+      'completed',
+      'complete',
+      'authorized',
+      'settled'
+    ].includes(rawPaymentStatus);
+
+    const isOnlineGateway = [
+      'payu',
+      'razorpay',
+      'cashfree',
+      'phonepe',
+      'paytm',
+      'stripe',
+      'ccavenue',
+      'billdesk',
+      'upi',
+      'card',
+      'netbanking',
+      'wallet'
+    ].some(g => rawGateway.includes(g) || rawPaymentMode.toLowerCase().includes(g));
+
+    const isPrepaidMode = (
+      rawPaymentMode.includes('PREPAID') || 
+      rawPaymentMode.includes('ONLINE') || 
+      rawPaymentMode.includes('PAY ONLINE') || 
+      rawPaymentMode.includes('UPI') || 
+      rawPaymentMode.includes('CARD') || 
+      rawPaymentMode.includes('NETBANKING') || 
+      rawPaymentMode.includes('WALLET') ||
+      rawPaymentMode.includes('PAYU')
+    );
+
+    const isExplicitCod = (
+      (rawPaymentMode === 'COD' || rawPaymentMode === 'CASH' || rawPaymentMode === 'CASH ON DELIVERY') &&
+      !isPaidStatus &&
+      !isOnlineGateway &&
+      !rawPgTxnId
+    );
+
+    const isPrepaid = (isPrepaidMode || isPaidStatus || isOnlineGateway || (Boolean(rawPgTxnId) && !isExplicitCod)) && !isExplicitCod;
+
+    const paymentMethod = isPrepaid ? 'Prepaid' : 'COD';
+    const normalizedPaymentMethod = isPrepaid ? 'prepaid' : 'cod';
+    const paymentGateway = rawGateway || (isPrepaid ? 'payu' : 'cod');
+    const paymentStatus = isPrepaid ? (rawPaymentStatus || 'captured') : (rawPaymentStatus || 'pending');
+    const financialStatus = (isPrepaid || isPaidStatus) ? 'paid' : 'pending';
     const orderStatus = payload.order_status || 'Pending';
 
     const supabase = getSupabaseServerClient();

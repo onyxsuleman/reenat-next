@@ -62,7 +62,10 @@ export async function POST(request) {
                 String(o.payment_method || '').toUpperCase().includes('UPI') || 
                 String(o.payment_method || '').toUpperCase().includes('CARD') || 
                 String(o.payment_method || '').toUpperCase().includes('PAYU') || 
-                String(o.financial_status || '').toLowerCase() === 'paid'
+                String(o.payment_gateway || '').toLowerCase().includes('payu') ||
+                String(o.payment_gateway || '').toLowerCase().includes('razorpay') ||
+                String(o.payment_gateway || '').toLowerCase().includes('cashfree') ||
+                ['paid', 'captured', 'success', 'successful', 'completed', 'authorized'].includes(String(o.financial_status || '').toLowerCase())
               ) ? 'Prepaid' : 'COD',
               payment_status: o.financial_status || 'pending',
               order_status: o.order_status || 'Pending',

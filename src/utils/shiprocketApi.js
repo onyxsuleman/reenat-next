@@ -139,8 +139,19 @@ export async function pushOrderToShiprocket(order) {
     });
 
     const pMethod = String(order.payment_method || '').toUpperCase();
-    const pStatus = String(order.payment_status || '').toLowerCase();
-    const isExplicitPrepaid = (pMethod.includes('PREPAID') || pMethod.includes('ONLINE')) && pStatus === 'paid';
+    const pStatus = String(order.payment_status || order.financial_status || '').toLowerCase();
+    const pGateway = String(order.payment_gateway || '').toLowerCase();
+    const isExplicitPrepaid = (
+      pMethod.includes('PREPAID') || 
+      pMethod.includes('ONLINE') || 
+      pMethod.includes('UPI') || 
+      pMethod.includes('CARD') || 
+      pMethod.includes('PAYU') || 
+      pGateway.includes('payu') ||
+      pGateway.includes('razorpay') ||
+      pGateway.includes('cashfree') ||
+      ['paid', 'captured', 'success', 'successful', 'completed', 'authorized'].includes(pStatus)
+    );
     const isCod = !isExplicitPrepaid;
 
     const payload = {
