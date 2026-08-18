@@ -139,6 +139,46 @@ export async function POST(request) {
     } else if (action === 'update') {
       result = await supabase.from(table).update(data).eq(eqCol, eqVal !== undefined ? eqVal : id);
 
+      // Cross-sync address updates to checkout_order_addresses & checkout_orders
+      if (data && (data.shipping_city !== undefined || data.shipping_state !== undefined || data.shipping_pincode !== undefined || data.shipping_line1 !== undefined)) {
+        try {
+          const fId = body.fastrrOrderId || (typeof id === 'string' && id.startsWith('FAST') ? id : null);
+          let targetOrderId = null;
+          if (fId) {
+            const { data: co } = await supabase.from('checkout_orders').select('id').eq('fastrr_order_id', fId).single();
+            if (co) targetOrderId = co.id;
+          }
+          if (!targetOrderId && id && !isNaN(Number(id))) {
+            const { data: co } = await supabase.from('checkout_orders').select('id').eq('legacy_id', Number(id)).single();
+            if (co) targetOrderId = co.id;
+          }
+
+          if (targetOrderId) {
+            const addrUpdates = {};
+            if (data.shipping_line1 !== undefined) addrUpdates.address_line1 = data.shipping_line1;
+            if (data.shipping_line2 !== undefined) addrUpdates.address_line2 = data.shipping_line2;
+            if (data.shipping_city !== undefined) addrUpdates.city = data.shipping_city;
+            if (data.shipping_state !== undefined) addrUpdates.state = data.shipping_state;
+            if (data.shipping_pincode !== undefined) addrUpdates.pincode = data.shipping_pincode;
+            if (data.customer_name !== undefined) addrUpdates.full_name = data.customer_name;
+            if (data.phone !== undefined) addrUpdates.phone = data.phone;
+            if (data.email !== undefined) addrUpdates.email = data.email;
+
+            await supabase.from('checkout_order_addresses').update(addrUpdates).eq('order_id', targetOrderId);
+
+            const coUpdates = {};
+            if (data.customer_name !== undefined) coUpdates.customer_name = data.customer_name;
+            if (data.email !== undefined) coUpdates.customer_email = data.email;
+            if (data.phone !== undefined) coUpdates.customer_phone = data.phone;
+            if (Object.keys(coUpdates).length > 0) {
+              await supabase.from('checkout_orders').update(coUpdates).eq('id', targetOrderId);
+            }
+          }
+        } catch (addrSyncErr) {
+          console.warn('Non-fatal address cross-table sync error:', addrSyncErr.message);
+        }
+      }
+
       // Also update checkout_orders / orders synchronously when order_status changes
       if (data && data.order_status) {
         try {

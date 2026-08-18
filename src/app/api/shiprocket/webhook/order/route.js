@@ -55,28 +55,47 @@ export async function POST(request) {
     const shiprocketOrderId = String(payload.shiprocket_order_id || payload.order_id || payload.id || payload.transaction_id || '');
     const fastrrOrderId = String(payload.fastrr_order_id || payload.fastrr_id || `FAST-${shiprocketOrderId || Date.now()}`);
     
-    const customerName = payload.customer_name || 
-                         payload.billing_name || 
-                         (customerDetails.first_name ? `${customerDetails.first_name} ${customerDetails.last_name || ''}`.trim() : '') ||
-                         (shippingAddress && typeof shippingAddress === 'object' ? shippingAddress.name || (shippingAddress.first_name ? `${shippingAddress.first_name} ${shippingAddress.last_name || ''}`.trim() : '') : '') ||
-                         (billingAddress.name ? billingAddress.name : '') || 
-                         'Customer';
+    const cleanStr = (val) => (typeof val === 'string' ? val.trim() : (typeof val === 'number' ? String(val).trim() : ''));
 
-    const email = payload.customer_email || 
-                  payload.email || 
-                  customerDetails.email || 
-                  (shippingAddress && typeof shippingAddress === 'object' ? shippingAddress.email : '') || 
-                  billingAddress.email || 
-                  '';
+    // Customer Name extraction fallbacks
+    const customerName = cleanStr(
+      payload.customer_name || 
+      payload.billing_name || 
+      (customerDetails.first_name ? `${customerDetails.first_name} ${customerDetails.last_name || ''}`.trim() : '') ||
+      customerDetails.name ||
+      customerDetails.full_name ||
+      (shippingAddress && typeof shippingAddress === 'object' ? shippingAddress.name || (shippingAddress.first_name ? `${shippingAddress.first_name} ${shippingAddress.last_name || ''}`.trim() : '') : '') ||
+      (billingAddress && typeof billingAddress === 'object' ? billingAddress.name || (billingAddress.first_name ? `${billingAddress.first_name} ${billingAddress.last_name || ''}`.trim() : '') : '') || 
+      'Customer'
+    );
 
-    const phone = payload.customer_phone || 
-                  payload.phone || 
-                  customerDetails.phone || 
-                  (shippingAddress && typeof shippingAddress === 'object' ? shippingAddress.phone : '') || 
-                  billingAddress.phone || 
-                  '';
+    // Email extraction fallbacks
+    const email = cleanStr(
+      payload.customer_email || 
+      payload.email || 
+      customerDetails.email || 
+      customerDetails.email_id ||
+      customerDetails.customer_email ||
+      (shippingAddress && typeof shippingAddress === 'object' ? (shippingAddress.email || shippingAddress.email_id) : '') || 
+      (billingAddress && typeof billingAddress === 'object' ? (billingAddress.email || billingAddress.email_id) : '') || 
+      (payload.payment_info && payload.payment_info.email) ||
+      (payload.user && payload.user.email) ||
+      ''
+    );
 
-    // Structured Address Fields
+    // Phone extraction fallbacks
+    const phone = cleanStr(
+      payload.customer_phone || 
+      payload.phone || 
+      customerDetails.phone || 
+      customerDetails.phone_number ||
+      customerDetails.mobile ||
+      (shippingAddress && typeof shippingAddress === 'object' ? (shippingAddress.phone || shippingAddress.mobile) : '') || 
+      (billingAddress && typeof billingAddress === 'object' ? (billingAddress.phone || billingAddress.mobile) : '') || 
+      ''
+    );
+
+    // Structured Address Fields extraction with comprehensive Fastrr / Shopify key coverage
     let shippingLine1 = '';
     let shippingLine2 = '';
     let shippingCity = '';
@@ -84,25 +103,125 @@ export async function POST(request) {
     let shippingPincode = '';
     let shippingCountry = 'India';
 
-    const cleanStr = (val) => (typeof val === 'string' ? val : (typeof val === 'number' ? String(val) : ''));
-
     if (shippingAddress && typeof shippingAddress === 'object') {
-      shippingLine1 = cleanStr(shippingAddress.address1 || shippingAddress.line1);
-      shippingLine2 = cleanStr(shippingAddress.address2 || shippingAddress.line2);
-      shippingCity = cleanStr(shippingAddress.city);
-      shippingState = cleanStr(shippingAddress.state);
-      shippingPincode = cleanStr(shippingAddress.zip || shippingAddress.pincode);
-      shippingCountry = cleanStr(shippingAddress.country) || 'India';
+      shippingLine1 = cleanStr(
+        shippingAddress.address1 || 
+        shippingAddress.line1 || 
+        shippingAddress.address || 
+        shippingAddress.street ||
+        shippingAddress.house_no ||
+        ''
+      );
+      shippingLine2 = cleanStr(
+        shippingAddress.address2 || 
+        shippingAddress.line2 || 
+        shippingAddress.landmark || 
+        shippingAddress.area || 
+        shippingAddress.village || 
+        shippingAddress.sub_district ||
+        shippingAddress.company || 
+        ''
+      );
+      shippingCity = cleanStr(
+        shippingAddress.city || 
+        shippingAddress.district || 
+        shippingAddress.district_city || 
+        shippingAddress.city_name || 
+        shippingAddress.town || 
+        ''
+      );
+      shippingState = cleanStr(
+        shippingAddress.state || 
+        shippingAddress.province || 
+        shippingAddress.state_name || 
+        shippingAddress.province_code || 
+        shippingAddress.zone || 
+        shippingAddress.region ||
+        ''
+      );
+      shippingPincode = cleanStr(
+        shippingAddress.zip || 
+        shippingAddress.pincode || 
+        shippingAddress.postal_code || 
+        shippingAddress.postcode || 
+        shippingAddress.zipcode || 
+        ''
+      );
+      shippingCountry = cleanStr(
+        shippingAddress.country || 
+        shippingAddress.country_name || 
+        shippingAddress.country_code || 
+        'India'
+      );
     } else if (typeof shippingAddress === 'string') {
-      shippingLine1 = shippingAddress;
-      shippingLine2 = cleanStr(payload.shipping_address_2 || payload.shipping_line2);
-      shippingCity = cleanStr(payload.shipping_city || payload.city);
-      shippingState = cleanStr(payload.shipping_state || payload.state);
-      shippingPincode = cleanStr(payload.shipping_pincode || payload.pincode);
-      shippingCountry = cleanStr(payload.shipping_country || payload.country) || 'India';
+      shippingLine1 = cleanStr(shippingAddress);
     }
-    
-    const fullAddress = `${shippingLine1} ${shippingLine2}, ${shippingCity}, ${shippingState} - ${shippingPincode}, ${shippingCountry}`.replace(/\s+/g, ' ').replace(/^[\s,]+|[\s,]+$/g, '').trim();
+
+    // Top-level / Billing fallbacks if any field is still empty
+    if (!shippingLine1) {
+      shippingLine1 = cleanStr(
+        payload.shipping_address_1 || 
+        payload.shipping_line1 || 
+        payload.address1 || 
+        payload.address || 
+        (billingAddress && typeof billingAddress === 'object' ? (billingAddress.address1 || billingAddress.line1) : '')
+      );
+    }
+    if (!shippingLine2) {
+      shippingLine2 = cleanStr(
+        payload.shipping_address_2 || 
+        payload.shipping_line2 || 
+        payload.address2 || 
+        payload.landmark || 
+        (billingAddress && typeof billingAddress === 'object' ? (billingAddress.address2 || billingAddress.line2 || billingAddress.landmark) : '')
+      );
+    }
+    if (!shippingCity) {
+      shippingCity = cleanStr(
+        payload.shipping_city || 
+        payload.city || 
+        payload.district || 
+        payload.district_city || 
+        (billingAddress && typeof billingAddress === 'object' ? (billingAddress.city || billingAddress.district) : '')
+      );
+    }
+    if (!shippingState) {
+      shippingState = cleanStr(
+        payload.shipping_state || 
+        payload.state || 
+        payload.province || 
+        payload.state_name || 
+        payload.province_code || 
+        payload.region || 
+        (billingAddress && typeof billingAddress === 'object' ? (billingAddress.state || billingAddress.province || billingAddress.state_name) : '')
+      );
+    }
+    if (!shippingPincode) {
+      shippingPincode = cleanStr(
+        payload.shipping_pincode || 
+        payload.pincode || 
+        payload.zip || 
+        payload.postal_code || 
+        payload.postcode || 
+        (billingAddress && typeof billingAddress === 'object' ? (billingAddress.zip || billingAddress.pincode || billingAddress.postal_code) : '')
+      );
+    }
+
+    // Build human-readable full address
+    const addressParts = [
+      shippingLine1, 
+      shippingLine2, 
+      shippingCity, 
+      shippingState ? `${shippingState}${shippingPincode ? ` - ${shippingPincode}` : ''}` : shippingPincode, 
+      shippingCountry
+    ].filter(Boolean);
+
+    const fullAddress = addressParts.join(', ').replace(/\s+/g, ' ').trim();
+
+    // Check if critical shipping fields are still missing and log a clear warning
+    if (!shippingCity || !shippingState || !shippingPincode) {
+      console.warn(`[Fastrr Webhook Extraction Alert] Order ${fastrrOrderId} has missing address components (city: "${shippingCity}", state: "${shippingState}", pincode: "${shippingPincode}"). Full address: "${fullAddress}". Staff can edit in CMS before pushing to Shiprocket.`);
+    }
 
     // Financials
     const total = Math.round(Number(payload.total_price || payload.total || 0));

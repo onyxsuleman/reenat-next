@@ -84,7 +84,6 @@ export default function Cart() {
   };
 
   const handleCheckout = async (e) => {
-    if (e && e.preventDefault) e.preventDefault();
     if (cart.length === 0) {
       showToast('Your cart is empty!', 'info');
       return;
