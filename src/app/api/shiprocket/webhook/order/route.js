@@ -29,6 +29,18 @@ export async function POST(request) {
     }
 
     const payload = rawBody ? JSON.parse(rawBody) : {};
+    const supabase = getSupabaseServerClient();
+
+    // 0. Raw Payload Logging for inspection of Fastrr field structure
+    try {
+      await supabase.from('webhook_raw_logs').insert({
+        source: 'fastrr_order_webhook',
+        raw_payload: payload,
+        received_at: new Date().toISOString()
+      });
+    } catch (logErr) {
+      console.warn('Raw webhook log insert failed (non-fatal):', logErr.message);
+    }
 
     // Validation ping check
     if (Object.keys(payload).length === 0) {
@@ -124,8 +136,6 @@ export async function POST(request) {
     const paymentStatus = isCod ? (rawPaymentStatus || 'pending') : (rawPaymentStatus || 'paid');
     const financialStatus = paymentStatus === 'paid' ? 'paid' : 'pending';
     const orderStatus = payload.order_status || 'Pending';
-
-    const supabase = getSupabaseServerClient();
 
     // Parse Line Items with Self-Healing Product Lookup by Unique Product ID (NSY00xx) or SKU
     const rawItems = payload.items || payload.line_items || [];
