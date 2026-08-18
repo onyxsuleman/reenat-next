@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useApp } from '../../context/AppContext';
 import ProductCard from '../../components/ProductCard';
-import ProductSkeleton from '../../components/ProductSkeleton';
+import ProductSkeleton, { ProductSkeletonGrid } from '../../components/ProductSkeleton';
 
 const COLLECTIONS = [
   { id: 'All', name: 'All Collections', description: 'Explore our complete handcrafted handloom collection', icon: '✨' },
@@ -19,7 +19,7 @@ const COLLECTIONS = [
 function ShopContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { products, isProductPaused, isCatalogPaused } = useApp();
+  const { products, isProductsLoading, isProductPaused, isCatalogPaused } = useApp();
 
   // URL state synchronization
   const collectionParam = searchParams.get('collection') || 'All';
@@ -424,7 +424,11 @@ function ShopContent() {
 
       {/* Product Grid Section */}
       <div>
-        {filteredProducts && filteredProducts.length > 0 ? (
+        {isProductsLoading && (!filteredProducts || filteredProducts.length === 0) ? (
+          <ul id="product-list" className="grid grid-cols-2 gap-2.5 sm:gap-4 md:grid-cols-3">
+            <ProductSkeletonGrid count={6} />
+          </ul>
+        ) : filteredProducts && filteredProducts.length > 0 ? (
           <ul id="product-list" className="grid grid-cols-2 gap-2.5 sm:gap-4 md:grid-cols-3">
             {filteredProducts.map((product) => (
               <ProductCard key={product.id} product={product} />

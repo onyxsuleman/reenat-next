@@ -3,9 +3,10 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import ProductCard from '../../components/ProductCard';
+import { ProductSkeletonGrid } from '../../components/ProductSkeleton';
 
 export default function NewArrivals() {
-  const { products, isProductPaused, isCatalogPaused } = useApp();
+  const { products, isProductsLoading, isProductPaused, isCatalogPaused } = useApp();
   const [selectedType, setSelectedType] = useState('All');
   const [selectedPriceRange, setSelectedPriceRange] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -143,7 +144,11 @@ export default function NewArrivals() {
 
       {/* Catalog Grid */}
       <main className="max-w-5xl mx-auto overflow-hidden">
-        {filteredProducts.length === 0 ? (
+        {isProductsLoading && (!filteredProducts || filteredProducts.length === 0) ? (
+          <ul id="product-list" className="grid grid-cols-2 gap-2 md:gap-4 md:grid-cols-3">
+            <ProductSkeletonGrid count={6} />
+          </ul>
+        ) : filteredProducts.length === 0 ? (
           <div className="py-12 text-center text-slate-500 dark:text-slate-400 bg-white/40 dark:bg-black/10 border border-black/5 dark:border-white/10 rounded-2xl glass">
             <p className="font-semibold text-base text-slate-750 dark:text-white">No sarees match your filter criteria.</p>
             <p className="text-xs mt-1">Try resetting search query or filters to view our full lineage.</p>

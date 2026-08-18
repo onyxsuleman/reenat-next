@@ -11,6 +11,7 @@ import { ProductSkeletonGrid } from '../components/ProductSkeleton';
 export default function Home() {
   const { 
     products, 
+    isProductsLoading,
     heroSlides, 
     categoryCards, 
     collectionCards, 
@@ -695,7 +696,9 @@ export default function Home() {
 
         {/* Product Grid */}
         <ul id="product-list" className="grid grid-cols-2 gap-2.5 sm:gap-4 md:grid-cols-3 mt-6">
-          {products && products.length > 0 ? (() => {
+          {isProductsLoading && (!products || products.length === 0) ? (
+            <ProductSkeletonGrid count={6} />
+          ) : products && products.length > 0 ? (() => {
             const catalogMap = {};
             products.forEach(p => {
               const cid = (p.catalogId || p.catalog_id || `SINGLE-${p.id}`).trim().toUpperCase();
@@ -728,7 +731,9 @@ export default function Home() {
               <ProductCard key={product.id} product={product} />
             ));
           })() : (
-            <ProductSkeletonGrid count={6} />
+            <li className="col-span-full py-12 text-center text-slate-400">
+              No products found in the catalog.
+            </li>
           )}
         </ul>
       </main>

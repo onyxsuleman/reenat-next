@@ -478,7 +478,8 @@ const defaultBestSellers = [
 ];
 
 export function AppProvider({ children }) {
-  const [products, setProducts] = useState(mappedDefaultProducts);
+  const [products, setProducts] = useState([]);
+  const [isProductsLoading, setIsProductsLoading] = useState(true);
   const [cart, setCart] = useState([]);
   const [heroSlides, setHeroSlides] = useState(defaultHeroSlides);
   const [categoryCards, setCategoryCards] = useState(defaultCategoryCards);
@@ -573,11 +574,16 @@ export function AppProvider({ children }) {
   };
 
   const loadDatabaseProducts = async () => {
+    setIsProductsLoading(true);
     let cached = [];
     try {
-      cached = JSON.parse(localStorage.getItem('products') || '[]');
-      if (cached && cached.length > 0) {
-        setProducts(cached.map(mapRawProduct));
+      const rawCached = localStorage.getItem('products');
+      if (rawCached) {
+        cached = JSON.parse(rawCached);
+        if (Array.isArray(cached) && cached.length > 0) {
+          setProducts(cached.map(mapRawProduct));
+          setIsProductsLoading(false);
+        }
       }
     } catch (e) {
       console.warn("localStorage products parsing failed", e);
@@ -587,30 +593,24 @@ export function AppProvider({ children }) {
       const { data, error } = await supabase.from('products').select('*').order('id', { ascending: true });
       if (!error && data && data.length > 0) {
         const mappedData = data.map(mapRawProduct);
-
-        // Merge fetched data with local-only items (either marked isLocal or not present in the database)
-        const dbIds = new Set(mappedData.map(p => String(p.id)));
-        const dbNames = new Set(mappedData.map(p => p.name));
-        const existingLocal = Array.isArray(cached) 
-          ? cached.filter(p => (p.isLocal || !dbNames.has(p.name)) && !dbIds.has(String(p.id))) 
-          : [];
-        const combined = [...mappedData, ...existingLocal];
-        setProducts(combined);
+        // Database is the SINGLE SOURCE OF TRUTH — do not mix with old hardcoded default items
+        setProducts(mappedData);
         try {
-          localStorage.setItem('products', JSON.stringify(combined));
+          localStorage.setItem('products', JSON.stringify(mappedData));
         } catch (storageError) {
           console.warn("Could not save products cache to localStorage due to quota limits:", storageError);
         }
-      } else {
-        if (!cached || cached.length === 0) {
-          setProducts(mappedDefaultProducts);
-        }
+      } else if (!error && data && data.length === 0) {
+        // Database is explicitly empty
+        setProducts([]);
+        try {
+          localStorage.removeItem('products');
+        } catch (_) {}
       }
     } catch (err) {
       console.error("Failed to connect to database:", err);
-      if (!cached || cached.length === 0) {
-        setProducts(mappedDefaultProducts);
-      }
+    } finally {
+      setIsProductsLoading(false);
     }
   };
 
@@ -1006,6 +1006,7 @@ export function AppProvider({ children }) {
     <AppContext.Provider value={{
       products,
       setProducts,
+      isProductsLoading,
       cart,
       wishlist,
       theme,
