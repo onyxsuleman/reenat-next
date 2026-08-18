@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { sendMetaCapiEvent } from '../../../../utils/metaPixel';
+import { sanitizeSku } from '../../../../utils/skuUtils';
 
 export async function POST(request) {
   try {
@@ -23,34 +24,14 @@ export async function POST(request) {
     const items = cart.map(item => {
       const rawIdStr = String(item.id || '').replace(/\D/g, '');
       const numId = rawIdStr ? parseInt(rawIdStr, 10) : 1;
-      const formattedProductId = numId >= 1000000 ? `NSY${numId}` : `NSY${String(1000000 + numId)}`;
       const catalog = item.catalog_id || item.catalogId || '';
 
-      // 1. Resolve SKU cleanly: Strip any catalog prefix (e.g. M5||) and format strictly as "Seller SKU - NSY100000xx"
-      let rawSellerSku = [item.skuId, item.sku, item.styleid, item.styleId]
+      // 1. Resolve SKU cleanly using shared sanitizeSku
+      const rawSellerSku = [item.skuId, item.sku, item.styleid, item.styleId, item.color, item.name]
         .map(s => (typeof s === 'string' ? s.trim() : ''))
         .find(s => s.length > 0) || '';
 
-      // Strip catalog prefix like "M5||", old NSY tags, and leading dashes
-      let cleanSellerSku = rawSellerSku
-        .replace(/^[A-Z0-9]+\|\|/i, '')
-        .replace(/\s*-\s*NSY\d+/ig, '')
-        .replace(/^NSY\d+/ig, '')
-        .replace(/^[\s\-\|]+/, '')
-        .trim();
-
-      if (!cleanSellerSku) {
-        if (item.color) {
-          cleanSellerSku = item.color.toLowerCase().includes('pai') ? item.color : `${item.color} Pai`;
-        } else if (item.name) {
-          cleanSellerSku = String(item.name).split(' ').slice(0, 3).join(' ');
-        }
-      }
-
-      // Ensure single clean Product ID is present at the end without duplicating NSY tags
-      let resolvedSku = cleanSellerSku 
-        ? (cleanSellerSku.includes(formattedProductId) ? cleanSellerSku : `${cleanSellerSku} - ${formattedProductId}`) 
-        : formattedProductId;
+      const resolvedSku = sanitizeSku(rawSellerSku, numId);
 
       // 2. Resolve Image URL cleanly
       let rawImage = item.image || item.image_front || item.image_url || item.image1 || item.image2 || item.image3 || item.image4 || '';
@@ -115,19 +96,23 @@ export async function POST(request) {
     };
 
     if (customer && typeof customer === 'object') {
-      const rawName = typeof customer.name === 'string' ? customer.name : '';
-      const nameParts = (rawName || 'Guest Customer').trim().split(/\s+/);
-      const firstName = nameParts[0] || 'Guest';
-      const lastName = nameParts.slice(1).join(' ') || 'Customer';
-      const email = typeof customer.email === 'string' ? customer.email : '';
-      const phone = typeof customer.phone === 'string' ? customer.phone : '';
+      const rawName = typeof customer.name === 'string' ? customer.name.trim() : '';
+      const nameParts = (rawName || '').split(/\s+/).filter(Boolean);
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      const email = typeof customer.email === 'string' && customer.email.includes('@') ? customer.email.trim() : '';
+      const cleanPhone = typeof customer.phone === 'string' ? customer.phone.replace(/\D/g, '') : '';
+      const phone = cleanPhone.length >= 10 ? cleanPhone.slice(-10) : '';
 
-      cart_data.customer_details = {
-        email: email,
-        phone: phone,
-        first_name: firstName,
-        last_name: lastName
-      };
+      const custObj = {};
+      if (email) custObj.email = email;
+      if (phone) custObj.phone = phone;
+      if (firstName) custObj.first_name = firstName;
+      if (lastName) custObj.last_name = lastName;
+
+      if (Object.keys(custObj).length > 0) {
+        cart_data.customer_details = custObj;
+      }
     }
 
     // 4. Build root payload with required parameters
