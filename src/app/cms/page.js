@@ -312,6 +312,8 @@ export default function CMSConsole() {
           const rawPm = String(order.payment_method || '').trim().toUpperCase();
           const rawPs = String(order.payment_status || order.financial_status || '').trim().toLowerCase();
           const rawPg = String(order.payment_gateway || '').trim().toLowerCase();
+          const discountVal = Number(order.discount || order.discount_amount || 0);
+          const hasDiscount = discountVal > 0;
           const isPrepaid = (
             rawPm.includes('PREPAID') || 
             rawPm.includes('ONLINE') || 
@@ -321,7 +323,8 @@ export default function CMSConsole() {
             rawPg.includes('payu') ||
             rawPg.includes('razorpay') ||
             rawPg.includes('cashfree') ||
-            ['paid', 'captured', 'success', 'successful', 'completed', 'authorized'].includes(rawPs)
+            ['paid', 'captured', 'success', 'successful', 'completed', 'authorized'].includes(rawPs) ||
+            hasDiscount
           );
           const paymentMethod = isPrepaid ? 'Prepaid' : 'COD';
 
