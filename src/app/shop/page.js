@@ -192,28 +192,6 @@ function ShopContent() {
   return (
     <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-6">
       
-      {/* Shop Hero Header Banner */}
-      <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-[#0c1e44] via-[#183fad] to-indigo-950 text-white p-6 sm:p-10 shadow-xl border border-white/10 glass">
-        <div className="relative z-10 max-w-2xl space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 text-[#F1BF0A] font-semibold text-xs tracking-wider uppercase backdrop-blur-md">
-            <span>{activeCollectionMeta.icon}</span>
-            <span>{selectedCollection === 'All' ? 'Complete Handloom Catalog' : `${selectedCollection} Collection`}</span>
-          </div>
-          <h1 className="text-3xl sm:text-5xl font-anton tracking-wider uppercase">
-            {selectedCollection === 'All' ? 'SHOP ALL SAREES' : selectedCollection}
-          </h1>
-          <p className="text-white/80 text-xs sm:text-sm leading-relaxed max-w-xl">
-            {activeCollectionMeta.description}
-          </p>
-        </div>
-
-        {/* Decorative Watermark & Light Orbs */}
-        <div className="absolute right-[-20px] bottom-[-20px] text-white/5 font-anton text-[120px] sm:text-[180px] select-none pointer-events-none uppercase leading-none">
-          REENAT
-        </div>
-        <div className="absolute top-0 right-0 w-64 h-64 bg-[#F1BF0A]/10 rounded-full blur-3xl pointer-events-none"></div>
-      </div>
-
       {/* Collection Quick-Switch Tabs Bar */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
