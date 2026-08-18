@@ -1,3 +1,5 @@
+import { withSentryConfig } from "@sentry/nextjs";
+
 /** @type {import('next').NextConfig} */
 const remotePatterns = [
   {
@@ -82,5 +84,18 @@ const nextConfig = {
   }
 };
 
-// Triggering rebuild for HTTPS database endpoint and passcode sync
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  // For all available options, see:
+  // https://github.com/getsentry/sentry-webpack-plugin#options
+  org: "onyx-enterprises",
+  project: "reenat",
+
+  // Only print logs for uploading source maps in CI
+  silent: !process.env.CI,
+
+  // Upload a larger set of source maps for prettier stack traces
+  widenClientFileUpload: true,
+
+  // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers
+  tunnelRoute: "/monitoring",
+});
