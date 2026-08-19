@@ -11,14 +11,38 @@ export async function POST(request) {
       email, 
       phone, 
       address, 
+      city,
+      state,
+      pincode,
       cart, 
       promoCode, 
       paymentMethod 
     } = body;
 
-    // 1. Basic Field Validation
-    if (!fullName || !email || !phone || !address || !cart || !Array.isArray(cart) || cart.length === 0) {
-      return NextResponse.json({ error: 'Missing or invalid checkout fields.' }, { status: 400 });
+    const resolvedCity = (city || body.shippingCity || body.shipping_city || '').trim();
+    const resolvedState = (state || body.shippingState || body.shipping_state || '').trim();
+    const resolvedPincode = (pincode || body.shippingPincode || body.shipping_pincode || '').trim();
+    const resolvedAddress = (address || body.shippingAddress || body.shipping_line1 || '').trim();
+    const resolvedFullName = (fullName || body.name || '').trim();
+    const resolvedEmail = (email || '').trim();
+    const resolvedPhone = (phone || '').trim();
+
+    // 1. Strict Field Validation (Full shipping address with city, state, and pincode is required)
+    if (
+      !resolvedFullName || 
+      !resolvedEmail || 
+      !resolvedPhone || 
+      !resolvedAddress || 
+      !resolvedCity || 
+      !resolvedState || 
+      !resolvedPincode || 
+      !cart || 
+      !Array.isArray(cart) || 
+      cart.length === 0
+    ) {
+      return NextResponse.json({ 
+        error: 'Missing or invalid checkout fields. Full address including City, State, and Pincode is required.' 
+      }, { status: 400 });
     }
 
     // 3. Connect to Supabase
@@ -115,86 +139,92 @@ export async function POST(request) {
 
     // 6. Total Calculations (no separate tax line in new schema)
     const total = subtotal - discountAmount;
-
-    // 7. Deduplication check: Prevent duplicate orders within 60 seconds
-    const oneMinuteAgo = new Date(Date.now() - 60000).toISOString();
     const roundedTotal = Math.round(total);
+
+    // 7. Deduplication check: Prevent duplicate orders within 2 minutes by phone (no total matching)
+    const twoMinutesAgo = new Date(Date.now() - 120000).toISOString();
     const { data: existingOrders } = await supabase
       .from('orders')
-      .select('id, created_at')
-      .eq('customer_phone', phone.trim())
-      .eq('total_amount', roundedTotal)
-      .gte('created_at', oneMinuteAgo)
+      .select('id, created_at, total_amount, order_status')
+      .eq('customer_phone', resolvedPhone)
+      .gte('created_at', twoMinutesAgo)
       .limit(1);
 
     let order = null;
 
     if (existingOrders && existingOrders.length > 0) {
-      console.log(`Duplicate checkout detected (Order UUID: ${existingOrders[0].id}). Returning existing record.`);
+      console.warn(`Duplicate checkout attempt detected for phone ${resolvedPhone} within 2 minutes (existing Order #${existingOrders[0].id}). Skipping duplicate insert and re-push to Shiprocket.`);
       const { data: fetchedData } = await supabase
         .from('orders')
-        .select('*')
+        .select('*, items:order_items(*), addresses:order_addresses(*)')
         .eq('id', existingOrders[0].id);
       order = fetchedData;
-    } else {
-      const financialStatus = paymentMethod === 'Pay Online' ? 'paid' : 'pending';
-      const idempotencyKey = `direct:${phone.trim()}:${Date.now()}`;
 
-      // Insert into new orders table
-      const { data: newOrder, error: insertErr } = await supabase
-        .from('orders')
-        .insert({
-          idempotency_key: idempotencyKey,
-          customer_name: fullName.trim(),
-          customer_email: email.trim(),
-          customer_phone: phone.trim(),
-          sub_total: Math.round(subtotal),
-          discount_amount: Math.round(discountAmount),
-          total_amount: roundedTotal,
-          payment_method: paymentMethod,
-          financial_status: financialStatus,
-          order_status: 'Pending'
-        })
-        .select();
+      const createdOrder = order && order[0] ? order[0] : null;
+      return NextResponse.json({ success: true, order: createdOrder, duplicate: true });
+    }
 
-      if (insertErr) {
-        console.error("Database order insertion failed:", insertErr.message, insertErr.details, insertErr.hint);
-        return NextResponse.json({ error: `Order insert failed: ${insertErr.message}` }, { status: 500 });
+    const financialStatus = paymentMethod === 'Pay Online' ? 'paid' : 'pending';
+    const idempotencyKey = `direct:${resolvedPhone}:${Date.now()}`;
+
+    // Insert into new orders table
+    const { data: newOrder, error: insertErr } = await supabase
+      .from('orders')
+      .insert({
+        idempotency_key: idempotencyKey,
+        customer_name: resolvedFullName,
+        customer_email: resolvedEmail,
+        customer_phone: resolvedPhone,
+        sub_total: Math.round(subtotal),
+        discount_amount: Math.round(discountAmount),
+        total_amount: roundedTotal,
+        payment_method: paymentMethod,
+        financial_status: financialStatus,
+        order_status: 'Pending'
+      })
+      .select();
+
+    if (insertErr) {
+      console.error("Database order insertion failed:", insertErr.message, insertErr.details, insertErr.hint);
+      return NextResponse.json({ error: `Order insert failed: ${insertErr.message}` }, { status: 500 });
+    }
+    order = newOrder;
+
+    // Insert order items into order_items table
+    if (newOrder && newOrder[0]) {
+      const orderUuid = newOrder[0].id;
+      const itemRows = verifiedOrderItems.map(item => ({
+        order_id: orderUuid,
+        product_id: item.product_id || null,
+        sku_snapshot: item.skuId || 'N/A',
+        name_snapshot: item.name || 'Saree',
+        color_snapshot: item.color || '',
+        unit_price: Number(item.price || 0),
+        quantity: Number(item.qty || 1),
+        total_price: Number((item.price || 0) * (item.qty || 1))
+      }));
+
+      if (itemRows.length > 0) {
+        const { error: itemsErr } = await supabase.from('order_items').insert(itemRows);
+        if (itemsErr) {
+          console.warn('Order items insert warning:', itemsErr.message);
+        }
       }
-      order = newOrder;
 
-      // Insert order items into order_items table
-      if (newOrder && newOrder[0]) {
-        const orderUuid = newOrder[0].id;
-        const itemRows = verifiedOrderItems.map(item => ({
-          order_id: orderUuid,
-          product_id: item.product_id || null,
-          sku_snapshot: item.skuId || 'N/A',
-          name_snapshot: item.name || 'Saree',
-          color_snapshot: item.color || '',
-          unit_price: Number(item.price || 0),
-          quantity: Number(item.qty || 1),
-          total_price: Number((item.price || 0) * (item.qty || 1))
-        }));
-
-        if (itemRows.length > 0) {
-          const { error: itemsErr } = await supabase.from('order_items').insert(itemRows);
-          if (itemsErr) {
-            console.warn('Order items insert warning:', itemsErr.message);
-          }
-        }
-
-        // Insert shipping address into order_addresses
-        const { error: addrErr } = await supabase.from('order_addresses').insert({
-          order_id: orderUuid,
-          full_name: fullName.trim(),
-          phone: phone.trim(),
-          email: email.trim(),
-          address_line1: address.trim()
-        });
-        if (addrErr) {
-          console.warn('Order address insert warning:', addrErr.message);
-        }
+      // Insert shipping address directly from validated request fields into order_addresses
+      const { error: addrErr } = await supabase.from('order_addresses').insert({
+        order_id: orderUuid,
+        full_name: resolvedFullName,
+        phone: resolvedPhone,
+        email: resolvedEmail,
+        address_line1: resolvedAddress,
+        city: resolvedCity,
+        state: resolvedState,
+        pincode: resolvedPincode,
+        country: 'India'
+      });
+      if (addrErr) {
+        console.warn('Order address insert warning:', addrErr.message);
       }
     }
 
@@ -233,12 +263,12 @@ export async function POST(request) {
       sendMetaCapiEvent({
         eventName: 'Purchase',
         eventId: eventId,
-        email: email.trim(),
-        phone: phone.trim(),
-        fullName: fullName.trim(),
-        city: '',
-        state: '',
-        zipcode: '',
+        email: resolvedEmail,
+        phone: resolvedPhone,
+        fullName: resolvedFullName,
+        city: resolvedCity,
+        state: resolvedState,
+        zipcode: resolvedPincode,
         country: 'India',
         value: createdOrder.total_amount || roundedTotal,
         currency: 'INR',
@@ -256,12 +286,12 @@ export async function POST(request) {
       sendMetaCapiEvent({
         eventName: 'AddPaymentInfo',
         eventId: addPaymentEventId,
-        email: email.trim(),
-        phone: phone.trim(),
-        fullName: fullName.trim(),
-        city: '',
-        state: '',
-        zipcode: '',
+        email: resolvedEmail,
+        phone: resolvedPhone,
+        fullName: resolvedFullName,
+        city: resolvedCity,
+        state: resolvedState,
+        zipcode: resolvedPincode,
         country: 'India',
         value: createdOrder.total_amount || roundedTotal,
         currency: 'INR',

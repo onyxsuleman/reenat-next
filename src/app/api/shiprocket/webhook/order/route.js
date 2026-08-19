@@ -435,10 +435,20 @@ export async function POST(request) {
       if (existing && existing.length > 0) existingOrder = existing[0];
     }
 
+    if (!existingOrder && phone && phone.trim()) {
+      const { data: existing } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('customer_phone', phone.trim())
+        .gte('created_at', twoMinutesAgo)
+        .limit(1);
+      if (existing && existing.length > 0) existingOrder = existing[0];
+    }
+
     let orderUuid = null;
 
     if (existingOrder) {
-      // Update existing order
+      // Update existing order status/payment without duplicating items or stock decrement
       orderUuid = existingOrder.id;
       await supabase
         .from('orders')
@@ -449,30 +459,49 @@ export async function POST(request) {
           shiprocket_order_id: String(shiprocketOrderId || '')
         })
         .eq('id', orderUuid);
-    } else {
-      // Insert new order
-      const { data: newOrder, error: orderErr } = await supabase
-        .from('orders')
-        .insert({
-          idempotency_key: idempotencyKey,
-          fastrr_order_id: fastrrOrderId,
-          shiprocket_order_id: String(shiprocketOrderId),
-          customer_name: customerName,
-          customer_email: email.trim(),
-          customer_phone: phone.trim(),
-          financial_status: financialStatus,
-          payment_method: normalizedPaymentMethod,
-          payment_gateway: paymentGateway,
-          sub_total: subtotal,
-          discount_amount: discount,
-          total_amount: total,
-          order_status: orderStatus
-        })
-        .select();
 
-      if (!orderErr && newOrder && newOrder[0]) {
-        orderUuid = newOrder[0].id;
+      // Update shipment if provided
+      const shipmentData = payload.shipment_details || {};
+      if (shipmentData.shipment_id || shipmentData.awb_code) {
+        await supabase.from('order_shipments').insert({
+          order_id: orderUuid,
+          shipment_id: String(shipmentData.shipment_id || shiprocketOrderId),
+          courier_name: shipmentData.courier_name || '',
+          awb_code: shipmentData.awb_code || '',
+          pickup_location: process.env.SHIPROCKET_PICKUP_LOCATION || 'work',
+          tracking_status: shipmentData.tracking_status || 'MANIFESTED',
+          tracking_url: shipmentData.tracking_url || ''
+        });
       }
+
+      console.log(`Duplicate webhook order attempt detected. Updated existing order #${orderUuid} successfully.`);
+      return NextResponse.json({ success: true, message: 'Existing order updated', order_id: orderUuid });
+    }
+
+    // Insert new order
+    const needsAddressReview = !shippingCity || !shippingState || !shippingPincode;
+    const { data: newOrder, error: orderErr } = await supabase
+      .from('orders')
+      .insert({
+        idempotency_key: idempotencyKey,
+        fastrr_order_id: fastrrOrderId,
+        shiprocket_order_id: String(shiprocketOrderId),
+        customer_name: customerName,
+        customer_email: email.trim(),
+        customer_phone: phone.trim(),
+        financial_status: financialStatus,
+        payment_method: normalizedPaymentMethod,
+        payment_gateway: paymentGateway,
+        sub_total: subtotal,
+        discount_amount: discount,
+        total_amount: total,
+        order_status: orderStatus,
+        needs_address_review: needsAddressReview
+      })
+      .select();
+
+    if (!orderErr && newOrder && newOrder[0]) {
+      orderUuid = newOrder[0].id;
     }
 
     if (orderUuid) {
@@ -503,7 +532,7 @@ export async function POST(request) {
         city: shippingCity,
         state: shippingState,
         pincode: shippingPincode,
-        country: shippingCountry
+        country: shippingCountry || 'India'
       });
 
       // Write Shipment Metadata to order_shipments
