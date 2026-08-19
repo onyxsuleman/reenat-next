@@ -119,7 +119,7 @@ export default function Login() {
 
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && !window.recaptchaVerifier) {
+    if (typeof window !== 'undefined' && auth && !window.recaptchaVerifier) {
       try {
         window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
           'size': 'invisible',
@@ -149,6 +149,11 @@ export default function Login() {
   const handleSendOtp = async (e) => {
     e.preventDefault();
 
+    if (!auth) {
+      showToast('SMS OTP is not configured on this environment. Please use 1-Click Fastrr login below.', 'warning');
+      return;
+    }
+
     const rawDigits = phone.replace(/\D/g, '');
     if (!phone || rawDigits.length < 10) {
       showToast('Please enter a valid 10-digit phone number.', 'warning');
@@ -162,7 +167,7 @@ export default function Login() {
       const formattedPhone = `+91${rawDigits}`;
       
       // Ensure recaptchaVerifier is initialized
-      if (!window.recaptchaVerifier) {
+      if (!window.recaptchaVerifier && auth) {
         window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
           'size': 'invisible'
         });
@@ -232,6 +237,11 @@ export default function Login() {
   };
 
   const handleGoogleLogin = async () => {
+    if (!auth || !googleProvider) {
+      showToast('Google login is not configured on this environment. Please use 1-Click Fastrr login below.', 'warning');
+      return;
+    }
+
     setIsSubmitting(true);
     showToast('Connecting to Google account...', 'info');
 

@@ -1,16 +1,28 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 
+const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  apiKey: apiKey,
   authDomain: "reenat-trends.firebaseapp.com",
   projectId: "reenat-trends",
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app);
-const googleProvider = new GoogleAuthProvider();
+let app = null;
+let auth = null;
+let googleProvider = null;
+const isFirebaseConfigured = Boolean(apiKey && apiKey.length > 5 && apiKey !== 'undefined');
 
-export { auth, googleProvider, signInWithPopup, RecaptchaVerifier, signInWithPhoneNumber };
+try {
+  if (isFirebaseConfigured) {
+    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    auth = getAuth(app);
+    googleProvider = new GoogleAuthProvider();
+  }
+} catch (err) {
+  console.warn("Firebase initialization skipped or failed:", err.message);
+}
 
+export { auth, googleProvider, signInWithPopup, RecaptchaVerifier, signInWithPhoneNumber, isFirebaseConfigured };
