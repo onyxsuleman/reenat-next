@@ -63,7 +63,7 @@ export default function ProductMiniCard({ product }) {
       {/* Action Button */}
       <div className="flex-shrink-0">
         <Link 
-          href={`/product?id=NSY${String(product.id).padStart(4, '0')}`}
+          href={`/product?id=${product.product_id || product.productId || product.id}`}
           className="inline-flex items-center justify-center bg-slate-800 hover:bg-slate-700 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 px-4 py-2 rounded-full text-xs font-bold transition-colors hover:no-underline shadow-sm"
         >
           View Product

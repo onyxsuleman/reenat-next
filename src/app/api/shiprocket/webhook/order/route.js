@@ -278,20 +278,35 @@ export async function POST(request) {
 
       let dbProduct = null;
 
-      // Primary Lookup: Direct lookup by candidate Product ID in products table
+      // Primary Lookup: Try product_id (new text PK) first, then legacy_id (old numeric)
       if (targetDbId) {
         try {
+          // Try as text product_id first (e.g. NSY9M1001)
           const { data: idProd } = await supabase
             .from('products')
-            .select('id, name, image, color, styleid, catalog_id')
-            .eq('id', targetDbId)
+            .select('product_id, legacy_id, name, image, color, sku, catalog_code')
+            .eq('product_id', String(targetDbId))
             .maybeSingle();
 
           if (idProd) {
             dbProduct = idProd;
+          } else {
+            // Fallback: try as legacy_id (old numeric id)
+            const numericId = parseInt(String(targetDbId).replace(/\D/g, ''), 10);
+            if (!isNaN(numericId)) {
+              const { data: legacyProd } = await supabase
+                .from('products')
+                .select('product_id, legacy_id, name, image, color, sku, catalog_code')
+                .eq('legacy_id', numericId)
+                .maybeSingle();
+
+          if (legacyProd) {
+                dbProduct = legacyProd;
+              }
+            }
           }
         } catch (idErr) {
-          console.error('Direct Product ID lookup error in webhook:', idErr);
+          console.error('Product lookup error in webhook:', idErr);
         }
       }
 
@@ -303,14 +318,14 @@ export async function POST(request) {
 
           const { data: skuProd } = await supabase
             .from('products')
-            .select('id, name, image, color, styleid, catalog_id')
-            .or(`styleid.eq.${rawSku},styleid.eq.${cleanRawSku},styleid.eq.${sellerSkuOnly},styleid.ilike.%${sellerSkuOnly}%`)
+            .select('product_id, legacy_id, name, image, color, sku, catalog_code')
+            .or(`sku.eq.${rawSku},sku.eq.${cleanRawSku},sku.eq.${sellerSkuOnly},sku.ilike.%${sellerSkuOnly}%`)
             .limit(1)
             .maybeSingle();
 
           if (skuProd) {
             dbProduct = skuProd;
-            targetDbId = dbProduct.id;
+            targetDbId = dbProduct.product_id;
           }
         } catch (skuErr) {
           console.error('SKU lookup error in webhook:', skuErr);
@@ -325,8 +340,8 @@ export async function POST(request) {
         .replace(/^[\s\-\|]+/, '')
         .trim();
 
-      if (!cleanSkuBase && dbProduct && dbProduct.styleid) {
-        cleanSkuBase = String(dbProduct.styleid)
+      if (!cleanSkuBase && dbProduct && dbProduct.sku) {
+        cleanSkuBase = String(dbProduct.sku)
           .replace(/^[A-Z0-9]+\|\|/i, '')
           .replace(/\s*-\s*NSY\d+/ig, '')
           .replace(/^NSY\d+/ig, '')
@@ -342,11 +357,11 @@ export async function POST(request) {
       }
 
       // IF dbProduct was found, ALWAYS use dbProduct's verified name, image, color & ID!
-      const finalDbId = dbProduct ? dbProduct.id : (rawSku.includes('NSY') ? targetDbId : null);
+      const finalProductId = dbProduct ? dbProduct.product_id : (rawSku.includes('NSY') ? String(targetDbId) : null);
       
       let resolvedSku = cleanSkuBase;
-      if (finalDbId) {
-        const formattedIdStr = `NSY${String(1000000 + finalDbId)}`;
+      if (finalProductId) {
+        const formattedIdStr = finalProductId;
         resolvedSku = cleanSkuBase 
           ? (cleanSkuBase.includes(formattedIdStr) ? cleanSkuBase : `${cleanSkuBase} - ${formattedIdStr}`) 
           : formattedIdStr;
@@ -366,14 +381,14 @@ export async function POST(request) {
       }
 
       return {
-        id: dbProduct ? dbProduct.id : (finalDbId || item.id || 1),
+        id: dbProduct ? dbProduct.product_id : (finalProductId || item.id || 'unknown'),
         name: dbProduct ? dbProduct.name : (item.title || item.name || 'Saree'),
         qty: Number(item.quantity || item.qty || 1),
         price: Number(item.price || 0),
         image: resolvedImage,
         color: dbProduct ? dbProduct.color : (item.color || ''),
         skuId: resolvedSku,
-        variantId: dbProduct ? dbProduct.id : (item.variant_id || item.variantId || '')
+        variantId: dbProduct ? dbProduct.product_id : (item.variant_id || item.variantId || '')
       };
     }));
 
@@ -395,152 +410,125 @@ export async function POST(request) {
         .catch(err => console.error('Customer upsert non-fatal error:', err));
     }
 
-    // 1. Dual-Write Target: Save/Update in Legacy 'orders' Table for 100% Backward Compatibility
+    // Unified Order Write: Single orders table + order_items + order_addresses + order_shipments
+    const idempotencyKey = `webhook:${fastrrOrderId}:${shiprocketOrderId}`;
+    
+    // Check for existing order (deduplication)
     const twoMinutesAgo = new Date(Date.now() - 120000).toISOString();
-    let existingQuery = supabase
-      .from('orders')
-      .select('id, shiprocket_order_id, created_at')
-      .gte('created_at', twoMinutesAgo);
-
-    if (shiprocketOrderId && shiprocketOrderId.length > 0) {
-      existingQuery = existingQuery.eq('shiprocket_order_id', shiprocketOrderId);
-    } else if (phone && phone.trim()) {
-      existingQuery = existingQuery.eq('phone', phone.trim()).eq('total', total);
+    let existingOrder = null;
+    
+    if (shiprocketOrderId) {
+      const { data: existing } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('shiprocket_order_id', shiprocketOrderId)
+        .limit(1);
+      if (existing && existing.length > 0) existingOrder = existing[0];
     }
 
-    const { data: existingOrders } = await existingQuery.limit(1);
-    let legacyInsertedOrder = null;
+    if (!existingOrder && fastrrOrderId) {
+      const { data: existing } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('fastrr_order_id', fastrrOrderId)
+        .limit(1);
+      if (existing && existing.length > 0) existingOrder = existing[0];
+    }
 
-    if (existingOrders && existingOrders.length > 0) {
-      const existingId = existingOrders[0].id;
-      const { data: updatedData } = await supabase
+    let orderUuid = null;
+
+    if (existingOrder) {
+      // Update existing order
+      orderUuid = existingOrder.id;
+      await supabase
         .from('orders')
         .update({
-          payment_method: paymentMethod,
-          payment_status: paymentStatus,
+          payment_method: normalizedPaymentMethod,
+          financial_status: financialStatus,
           order_status: orderStatus,
-          items: orderItems,
-          address: fullAddress,
-          shiprocket_order_id: String(shiprocketOrderId || existingOrders[0].shiprocket_order_id || '')
+          shiprocket_order_id: String(shiprocketOrderId || '')
         })
-        .eq('id', existingId)
-        .select();
-
-      legacyInsertedOrder = updatedData;
+        .eq('id', orderUuid);
     } else {
-      const { data: newOrder } = await supabase
+      // Insert new order
+      const { data: newOrder, error: orderErr } = await supabase
         .from('orders')
         .insert({
-          customer_name: customerName,
-          email: email.trim(),
-          phone: phone.trim(),
-          address: fullAddress,
-          shipping_line1: shippingLine1,
-          shipping_line2: shippingLine2,
-          shipping_city: shippingCity,
-          shipping_state: shippingState,
-          shipping_pincode: shippingPincode,
-          shipping_country: shippingCountry,
+          idempotency_key: idempotencyKey,
+          fastrr_order_id: fastrrOrderId,
           shiprocket_order_id: String(shiprocketOrderId),
-          subtotal: subtotal,
-          tax: tax,
-          discount: discount,
-          total: total,
-          payment_method: paymentMethod,
-          payment_status: paymentStatus,
-          order_status: orderStatus,
-          items: orderItems
+          customer_name: customerName,
+          customer_email: email.trim(),
+          customer_phone: phone.trim(),
+          financial_status: financialStatus,
+          payment_method: normalizedPaymentMethod,
+          payment_gateway: paymentGateway,
+          sub_total: subtotal,
+          discount_amount: discount,
+          total_amount: total,
+          order_status: orderStatus
         })
         .select();
 
-      legacyInsertedOrder = newOrder;
+      if (!orderErr && newOrder && newOrder[0]) {
+        orderUuid = newOrder[0].id;
+      }
     }
 
-    // 2. Primary 4-Table Normalized Write: checkout_orders, items, addresses, shipments
-    try {
-      const mainOrderPayload = {
-        fastrr_order_id: fastrrOrderId,
-        shiprocket_order_id: String(shiprocketOrderId),
-        customer_name: customerName,
-        customer_email: email.trim(),
-        customer_phone: phone.trim(),
-        financial_status: financialStatus,
-        payment_method: normalizedPaymentMethod,
-        payment_gateway: paymentGateway,
-        sub_total: subtotal,
-        tax_amount: tax,
-        discount_amount: discount,
-        total_amount: total,
-        order_status: orderStatus,
-        legacy_id: legacyInsertedOrder && legacyInsertedOrder[0] ? legacyInsertedOrder[0].id : null
-      };
+    if (orderUuid) {
+      // Write Line Items to order_items
+      const itemRows = orderItems.map(item => ({
+        order_id: orderUuid,
+        product_id: typeof item.id === 'string' && item.id.startsWith('NSY') ? item.id : null,
+        sku_snapshot: item.skuId || item.sku || 'N/A',
+        name_snapshot: item.name || 'Saree',
+        color_snapshot: item.color || '',
+        unit_price: Number(item.price || 0),
+        quantity: Number(item.qty || 1),
+        total_price: Number((item.price || 0) * (item.qty || 1))
+      }));
 
-      const { data: newCheckoutOrder, error: mainErr } = await supabase
-        .from('checkout_orders')
-        .upsert(mainOrderPayload, { onConflict: 'fastrr_order_id' })
-        .select();
-
-      if (!mainErr && newCheckoutOrder && newCheckoutOrder[0]) {
-        const checkoutOrderId = newCheckoutOrder[0].id;
-
-        // Write Line Items to checkout_order_items
-        const itemRows = orderItems.map(item => ({
-          order_id: checkoutOrderId,
-          product_id: typeof item.id === 'number' ? item.id : null,
-          sku: item.skuId || item.sku || 'N/A',
-          variant_id: item.variantId || '',
-          product_name: item.name || 'Saree',
-          image_url: item.image || '',
-          color: item.color || '',
-          unit_price: Number(item.price || 0),
-          quantity: Number(item.qty || 1),
-          total_price: Number((item.price || 0) * (item.qty || 1))
-        }));
-
-        if (itemRows.length > 0) {
-          await supabase.from('checkout_order_items').insert(itemRows);
-        }
-
-        // Write Address to checkout_order_addresses
-        await supabase.from('checkout_order_addresses').insert({
-          order_id: checkoutOrderId,
-          address_type: 'shipping',
-          full_name: customerName,
-          phone: phone.trim(),
-          email: email.trim(),
-          address_line1: shippingLine1,
-          address_line2: shippingLine2,
-          city: shippingCity,
-          state: shippingState,
-          pincode: shippingPincode,
-          country: shippingCountry
-        });
-
-        // Write Shipment Metadata to checkout_shipments
-        const shipmentData = payload.shipment_details || {};
-        await supabase.from('checkout_shipments').insert({
-          order_id: checkoutOrderId,
-          shipment_id: String(shipmentData.shipment_id || shiprocketOrderId),
-          courier_name: shipmentData.courier_name || '',
-          awb_code: shipmentData.awb_code || '',
-          pickup_location: process.env.SHIPROCKET_PICKUP_LOCATION || 'work',
-          tracking_status: shipmentData.tracking_status || 'MANIFESTED',
-          tracking_url: shipmentData.tracking_url || ''
-        });
-
-        console.log(`✅ 4-Table Normalized Order Save Successful! (Checkout Order UUID: ${checkoutOrderId})`);
+      if (itemRows.length > 0) {
+        await supabase.from('order_items').insert(itemRows);
       }
-    } catch (normErr) {
-      console.warn('4-Table normalized write fallback warning (table may not exist yet):', normErr.message);
+
+      // Write Address to order_addresses
+      await supabase.from('order_addresses').insert({
+        order_id: orderUuid,
+        full_name: customerName,
+        phone: phone.trim(),
+        email: email.trim(),
+        address_line1: shippingLine1,
+        address_line2: shippingLine2,
+        city: shippingCity,
+        state: shippingState,
+        pincode: shippingPincode,
+        country: shippingCountry
+      });
+
+      // Write Shipment Metadata to order_shipments
+      const shipmentData = payload.shipment_details || {};
+      await supabase.from('order_shipments').insert({
+        order_id: orderUuid,
+        shipment_id: String(shipmentData.shipment_id || shiprocketOrderId),
+        courier_name: shipmentData.courier_name || '',
+        awb_code: shipmentData.awb_code || '',
+        pickup_location: process.env.SHIPROCKET_PICKUP_LOCATION || 'work',
+        tracking_status: shipmentData.tracking_status || 'MANIFESTED',
+        tracking_url: shipmentData.tracking_url || ''
+      });
+
+      console.log(`✅ Unified Order Save Successful! (Order UUID: ${orderUuid})`);
     }
 
     // 3. Stock Control Decrement
     for (const item of orderItems) {
-      if (item.id && !String(item.id).startsWith('temp-')) {
+      const itemPid = item.id || item.product_id;
+      if (itemPid && !String(itemPid).startsWith('temp-') && String(itemPid).startsWith('NSY')) {
         const { data: product } = await supabase
           .from('products')
           .select('stock_qty')
-          .eq('id', item.id)
+          .eq('product_id', itemPid)
           .single();
 
         if (product) {
@@ -548,9 +536,9 @@ export async function POST(request) {
           const newStock = Math.max(0, currentStock - item.qty);
 
           await supabase
-            .from('products')
-            .update({ stock_qty: newStock })
-            .eq('id', item.id);
+          .from('products')
+          .update({ stock_qty: newStock })
+          .eq('product_id', itemPid);
         }
       }
     }

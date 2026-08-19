@@ -21,10 +21,11 @@ export async function POST(request) {
     // 1. Format cart items for Shiprocket
     const fallbackImage = 'https://www.reenattrends.com/saree_kanjivaram.png';
     const items = cart.map(item => {
-      const rawIdStr = String(item.id || '').replace(/\D/g, '');
+      const canonicalPid = item.product_id || item.productId || (String(item.id || '').startsWith('NSY') ? item.id : '');
+      const rawIdStr = String(item.legacy_id || item.id || '').replace(/\D/g, '');
       const numId = rawIdStr ? parseInt(rawIdStr, 10) : 1;
-      const formattedProductId = numId >= 1000000 ? `NSY${numId}` : `NSY${String(1000000 + numId)}`;
-      const catalog = item.catalog_id || item.catalogId || '';
+      const formattedProductId = canonicalPid || (numId >= 1000000 ? `NSY${numId}` : `NSY${String(1000000 + numId)}`);
+      const catalog = item.catalog_code || item.catalog_id || item.catalogId || '';
 
       // 1. Resolve SKU cleanly: Strip any catalog prefix (e.g. M5||) and format strictly as "Seller SKU - NSY100000xx"
       let rawSellerSku = [item.skuId, item.sku, item.styleid, item.styleId]

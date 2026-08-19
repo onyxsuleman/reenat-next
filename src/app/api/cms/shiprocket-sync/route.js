@@ -14,48 +14,41 @@ export async function POST(request) {
 
     const supabase = getSupabaseServerClient();
 
-    // 1. Try fetching from legacy orders table first
-    let { data: order, error: fetchErr } = await supabase
+    // Fetch from unified orders table with joins
+    const { data: orderData } = await supabase
       .from('orders')
-      .select('*')
-      .eq('id', orderId)
+      .select(`
+        *,
+        items:order_items(*),
+        addresses:order_addresses(*)
+      `)
+      .or(`id.eq.${orderId},fastrr_order_id.eq.${orderId},shiprocket_order_id.eq.${orderId},legacy_order_ref.eq.${orderId}`)
       .maybeSingle();
 
-    // 2. If not found, search checkout_orders by UUID or legacy_id
-    if (!order) {
-      const { data: normOrder } = await supabase
-        .from('checkout_orders')
-        .select(`
-          *,
-          items:checkout_order_items(*),
-          addresses:checkout_order_addresses(*)
-        `)
-        .or(`id.eq.${orderId},legacy_id.eq.${orderId}`)
-        .maybeSingle();
+    let order = null;
 
-      if (normOrder) {
-        const shipAddr = (normOrder.addresses || [])[0] || {};
-        const fullAddress = `${shipAddr.address_line1 || ''} ${shipAddr.address_line2 || ''}, ${shipAddr.city || ''}, ${shipAddr.state || ''} - ${shipAddr.pincode || ''}`.replace(/\s+/g, ' ').replace(/^[\s,]+|[\s,]+$/g, '').trim();
+    if (orderData) {
+      const shipAddr = (orderData.addresses || [])[0] || {};
+      const fullAddress = `${shipAddr.address_line1 || ''} ${shipAddr.address_line2 || ''}, ${shipAddr.city || ''}, ${shipAddr.state || ''} - ${shipAddr.pincode || ''}`.replace(/\s+/g, ' ').replace(/^[\s,]+|[\s,]+$/g, '').trim();
 
-        order = {
-          id: normOrder.legacy_id || normOrder.id,
-          customer_name: normOrder.customer_name,
-          email: normOrder.customer_email,
-          phone: normOrder.customer_phone,
-          address: fullAddress,
-          total: normOrder.total_amount,
-          payment_method: String(normOrder.payment_method).toUpperCase() === 'PREPAID' ? 'Prepaid' : 'COD',
-          items: (normOrder.items || []).map(i => ({
-            id: i.product_id || i.id,
-            name: i.product_name,
-            qty: i.quantity,
-            price: Number(i.unit_price || 0),
-            image: i.image_url,
-            color: i.color || '',
-            skuId: i.sku || 'N/A'
-          }))
-        };
-      }
+      order = {
+        id: orderData.legacy_order_ref || orderData.id,
+        uuid: orderData.id,
+        customer_name: orderData.customer_name,
+        email: orderData.customer_email,
+        phone: orderData.customer_phone,
+        address: fullAddress,
+        total: orderData.total_amount,
+        payment_method: String(orderData.payment_method).toUpperCase() === 'PREPAID' ? 'Prepaid' : 'COD',
+        items: (orderData.items || []).map(i => ({
+          id: i.product_id || i.id,
+          name: i.name_snapshot,
+          qty: i.quantity,
+          price: Number(i.unit_price || 0),
+          color: i.color_snapshot || '',
+          skuId: i.sku_snapshot || 'N/A'
+        }))
+      };
     }
 
     if (!order) {

@@ -35,12 +35,12 @@ export async function GET(request) {
     const limit = Math.max(1, parseInt(searchParams.get('limit') || '100', 10));
     const collectionId = searchParams.get('collection_id');
 
-    // 3. Fetch all products from Supabase
+    // 3. Fetch all products from Supabase (new schema: product_id PK)
     const supabase = getSupabaseServerClient();
     const { data: dbProducts, error } = await supabase
       .from('products')
       .select('*')
-      .order('id', { ascending: true });
+      .order('product_id', { ascending: true });
 
     if (error) {
       return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
@@ -51,12 +51,12 @@ export async function GET(request) {
       ? dbProducts.filter(p => String(p.collection_id) === String(collectionId))
       : dbProducts;
 
-    // 5. Group products by catalog_id
+    // 5. Group products by catalog_code (was catalog_id)
     const productsMap = {};
     for (const row of filteredDbProducts) {
-      const groupKey = row.catalog_id && row.catalog_id.trim() !== ''
-        ? row.catalog_id.trim()
-        : `standalone_${row.id}`;
+      const groupKey = row.catalog_code && row.catalog_code.trim() !== ''
+        ? row.catalog_code.trim()
+        : `standalone_${row.product_id}`;
       
       if (!productsMap[groupKey]) {
         productsMap[groupKey] = [];
@@ -101,7 +101,7 @@ export async function GET(request) {
           grams = Math.round(dbWeight * 1000);
         }
         
-        let rawVariantImage = v.image || v.image_front || v.image1 || '';
+        let rawVariantImage = v.image || '';
         let variantImage = '';
 
         if (rawVariantImage) {
@@ -123,14 +123,14 @@ export async function GET(request) {
         }
 
         return {
-          id: v.id,
+          id: v.product_id,
           title: v.color || 'Default',
           price: parseFloat(v.price || '0').toFixed(2),
-          compare_at_price: v.originalprice ? parseFloat(v.originalprice).toFixed(2) : null,
-          sku: v.styleid || `NSY${String(v.id).padStart(4, '0')}`,
+          compare_at_price: v.mrp ? parseFloat(v.mrp).toFixed(2) : null,
+          sku: v.sku || v.product_id,
           quantity: parseInt(v.stock_qty !== undefined ? v.stock_qty : 10, 10),
           created_at: v.created_at || new Date().toISOString(),
-          updated_at: v.created_at || new Date().toISOString(),
+          updated_at: v.updated_at || v.created_at || new Date().toISOString(),
           taxable: true,
           option_values: {
             Color: v.color || 'Default'
@@ -146,7 +146,7 @@ export async function GET(request) {
 
       const optionColors = Array.from(new Set(variants.map(v => v.color || 'Default')));
 
-      let mainImage = mainVariant.image || mainVariant.image_front || mainVariant.image1 || '';
+      let mainImage = mainVariant.image || '';
       if (mainImage.startsWith('/')) {
         mainImage = `https://www.reenattrends.com${mainImage}`;
       } else if (mainImage.includes('.sslip.io') || mainImage.includes('supabasekong')) {
@@ -158,11 +158,11 @@ export async function GET(request) {
       formattedProducts.push({
         id: productId,
         title: title,
-        body_html: `<p>${mainVariant.desc || ''}</p>`,
+        body_html: `<p>${mainVariant.desc_text || ''}</p>`,
         vendor: mainVariant.brand || 'REENAT TRENDS',
         product_type: mainVariant.type || 'Saree',
         created_at: mainVariant.created_at || new Date().toISOString(),
-        updated_at: mainVariant.created_at || new Date().toISOString(),
+        updated_at: mainVariant.updated_at || mainVariant.created_at || new Date().toISOString(),
         handle: handle,
         tags: tags,
         status: 'active',

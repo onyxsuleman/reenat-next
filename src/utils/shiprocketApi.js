@@ -197,16 +197,17 @@ export async function pushOrderToShiprocket(order) {
       const shipmentId = String(resData.shipment_id || '');
 
       // Update order in Supabase with Shiprocket IDs
+      // order.id may be a UUID (new schema) or a legacy ref
       try {
         const supabase = getSupabaseServerClient();
+        const orderId = order.uuid || order.id;
         await supabase
           .from('orders')
           .update({
             shiprocket_order_id: srOrderId,
-            tracking_number: shipmentId,
             order_status: 'Synced to Shiprocket'
           })
-          .eq('id', order.id);
+          .eq('id', orderId);
       } catch (dbErr) {
         console.warn('Could not save Shiprocket order ID back to database:', dbErr.message);
       }
